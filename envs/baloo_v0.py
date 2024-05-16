@@ -72,7 +72,9 @@ class BalooV0(BalooBase):
         xml_path=None,
         ctrl_timestep=0.01,
     ):
-        super().__init__(render_mode=render_mode, xml_path=xml_path, ctrl_timestep=ctrl_timestep)
+        super().__init__(render_mode=render_mode,
+                         xml_path=xml_path,
+                         ctrl_timestep=ctrl_timestep)
 
         # action space is elevator height, pressure commands for each joint (h, left [0,1,2,3], right [0,1,2,3])
         self.action_space = spaces.Box(-1,

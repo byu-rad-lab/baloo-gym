@@ -1,6 +1,6 @@
 import gymnasium as gym
 import mujoco
-from baloo_gym.utils.baloo_lib import get_contact_forces_on_body
+from utils.baloo_lib import get_contact_forces_on_body
 import numpy as np
 from scipy.stats import entropy
 
@@ -60,19 +60,16 @@ class GlobalContactForces:
         """
         thetas = self.get_horizontal_force_directions()
         counts, bins = np.histogram(
-            thetas, bins=20
-        )  # 20 bins = 360/20 = 18 degrees per bin
+            thetas, bins=20)  # 20 bins = 360/20 = 18 degrees per bin
         probabilities = counts / counts.sum()
         return entropy(probabilities)
 
 
 class ForceRewardWrapper(gym.Wrapper):
     """
-    This class overwrites baloo_v1 step function in order to return a different reward.
-    Cant override just reward because its called within step, and the python interpreter
-    uses the most local version of a function by default.
+    Now this class can just override the calculate_reward() function, since this is the function
+    that is called from the step function in the base class. 
     """
-
     def __init__(self, env):
         """Constructor for the Reward wrapper."""
         super().__init__(env)
@@ -80,14 +77,14 @@ class ForceRewardWrapper(gym.Wrapper):
     def _calc_reward(self):
         #! wait, dont I want to just add things to the taxel reward already? Maybe I should just use gym.RewardWrapper
         """Calculates the reward to return."""
-        contact_forces = get_contact_forces_on_body(self.model, self.data, "box")
+        contact_forces = get_contact_forces_on_body(self.model, self.data,
+                                                    "box")
         global_contact_forces = GlobalContactForces(contact_forces)
 
         reward = -1
         if global_contact_forces.get_num_contacts() > 0:
             reward += global_contact_forces.get_force_direction_entropy(
-                angle_bin_degrees=20
-            )
+                angle_bin_degrees=20)
 
         return reward
 
@@ -98,7 +95,9 @@ class ForceRewardWrapper(gym.Wrapper):
         self.set_commands_from_action(action)
 
         # step the model forward in time however many steps are needed to match the control timestep
-        mujoco.mj_step(self.model, self.data, nstep=self.sim_steps_per_control_step)
+        mujoco.mj_step(self.model,
+                       self.data,
+                       nstep=self.sim_steps_per_control_step)
         # print(self.data.ctrl)
 
         # get observation, reward, done, info

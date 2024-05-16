@@ -34,6 +34,9 @@ def make_env():
     if config["time_aware_obs"]:
         env = TimeAwareObservation(env)  #! causes chagne to float64
 
+    # from wrappers.force_reward_wrapper import ForceRewardWrapper
+    # env = ForceRewardWrapper(env)
+
     # env = RecordVideo(
     #     env, f"./rollout_videos/{5}", episode_trigger=lambda x: x % 100 == 0
     # ) #!causes change to float64

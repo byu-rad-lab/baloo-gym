@@ -51,12 +51,12 @@ def get_contact_forces_on_body(model, data, body_name):
             # if any geoms involved in contact are attached to body we're interested in
             if contact_geom_ids in geomid_attached_to_body:
                 F_CC_C = np.zeros(
-                    6
-                )  # wrench at contact point C expressed in contact frame
-                f_C_W = np.zeros(3)  # force at contact point C expressed in world frame
+                    6)  # wrench at contact point C expressed in contact frame
+                f_C_W = np.zeros(
+                    3)  # force at contact point C expressed in world frame
                 mujoco.mj_contactForce(
-                    model, data, i, F_CC_C
-                )  # doesn't throw error if i is out of range of ncon
+                    model, data, i,
+                    F_CC_C)  # doesn't throw error if i is out of range of ncon
                 R_CW = data.contact[i].frame
                 mujoco.mju_rotVecMatT(f_C_W, F_CC_C[:3], R_CW)
                 contact_forces.append(f_C_W)
@@ -87,7 +87,7 @@ def get_box_position(model, data):
     """
     qpos_adr = model.joint(model.body("box").jntadr).qposadr.item()
     free_body_len = 7  # position + quaternion
-    object_pose = data.qpos[qpos_adr : qpos_adr + free_body_len]
+    object_pose = data.qpos[qpos_adr:qpos_adr + free_body_len]
     return object_pose[:3]
 
 
@@ -109,7 +109,7 @@ def get_box_vel(model, data):
     """
     qvel_adr = model.joint(model.body("box").jntadr).dofadr.item()
     free_body_len = 6  # linear vel + angular vel
-    object_vel = data.qvel[qvel_adr : qvel_adr + free_body_len]
+    object_vel = data.qvel[qvel_adr:qvel_adr + free_body_len]
     return object_vel[:3]
 
 
@@ -135,7 +135,7 @@ def get_box_quat(model, data):
     """
     qpos_adr = model.joint(model.body("box").jntadr).qposadr.item()
     free_body_len = 7  # position + quaternion
-    object_pose = data.qpos[qpos_adr : qpos_adr + free_body_len]
+    object_pose = data.qpos[qpos_adr:qpos_adr + free_body_len]
     return object_pose[-4:]
 
 
@@ -162,13 +162,16 @@ def get_elevator_vel(model, data):
 def get_joint_pressures(model, data, side, jointnum):
     pressures = []
     for i in range(4):
-        pressures.append(data.act[model.actuator(f"{side}_j{jointnum}_p{i}").actadr])
+        pressures.append(
+            data.act[model.actuator(f"{side}_j{jointnum}_p{i}").actadr])
     return np.asarray(pressures)
 
 
-def set_joint_pressure_commands(model, data, side, jointnum, pressure_commands):
+def set_joint_pressure_commands(model, data, side, jointnum,
+                                pressure_commands):
     for i in range(4):
-        data.ctrl[model.actuator(f"{side}_j{jointnum}_p{i}").id] = pressure_commands[i]
+        data.ctrl[model.actuator(
+            f"{side}_j{jointnum}_p{i}").id] = pressure_commands[i]
 
 
 def get_joint_pressure_commands(model, data, side, jointnum):
@@ -176,6 +179,7 @@ def get_joint_pressure_commands(model, data, side, jointnum):
     for i in range(4):
         cmds.append(data.ctrl[model.actuator(f"{side}_j{jointnum}_p{i}").id])
     return np.asarray(cmds)
+
 
 def set_joint_angles(model, data, side, jangles):
     #get disks in model
@@ -244,14 +248,76 @@ def detect_box_touch(model, data):
     """
     if data.ncon > 0:
         for i in range(data.ncon):
-            if (
-                data.contact[i].geom1 == model.geom("box").id
-                or data.contact[i].geom2 == model.geom("box").id
-            ):
+            if (data.contact[i].geom1 == model.geom("box").id
+                    or data.contact[i].geom2 == model.geom("box").id):
                 # box is being touched. Need to check if it is the ground or not
-                if not (
-                    data.contact[i].geom1 == model.geom("world").id
-                    or data.contact[i].geom2 == model.geom("world").id
-                ):
+                if not (data.contact[i].geom1 == model.geom("world").id
+                        or data.contact[i].geom2 == model.geom("world").id):
                     return True
     return False
+
+
+class Observation:
+    # to help with bookkeeping, this class is used to store the observation vector
+    def __init__(
+        self,
+        object_pos,
+        object_vel,
+        elevator_pos,
+        elevator_vel,
+        left_pos,
+        right_pos,
+        left_vel,
+        right_vel,
+    ):
+        self.object_pos = object_pos
+        self.object_vel = object_vel
+        self.elevator_pos = elevator_pos
+        self.elevator_vel = elevator_vel
+        self.left_j0_pos = left_pos[0:2]
+        self.left_j1_pos = left_pos[2:4]
+        self.left_j2_pos = left_pos[4:6]
+        self.right_j0_pos = right_pos[0:2]
+        self.right_j1_pos = right_pos[2:4]
+        self.right_j2_pos = right_pos[4:6]
+        self.left_j0_vel = left_vel[0:2]
+        self.left_j1_vel = left_vel[2:4]
+        self.left_j2_vel = left_vel[4:6]
+        self.right_j0_vel = right_vel[0:2]
+        self.right_j1_vel = right_vel[2:4]
+        self.right_j2_vel = right_vel[4:6]
+
+        self.obs_lower_bound = np.asarray([-2, -2, 0] + [-2] * 3 + [-1.5] +
+                                          [-5] + [-np.pi] * 6 + [-np.pi] * 6 +
+                                          [-2 * np.pi] * 6 + [-2 * np.pi] * 6)
+
+        self.obs_upper_bound = np.asarray([2, 2, 2] + [2] * 3 + [0] + [5] +
+                                          [np.pi] * 6 + [np.pi] * 6 +
+                                          [2 * np.pi] * 6 + [2 * np.pi] * 6)
+
+    def to_array(self):
+        return np.hstack([
+            self.object_pos,
+            self.object_vel,
+            self.elevator_pos,
+            self.elevator_vel,
+            self.left_j0_pos,
+            self.left_j1_pos,
+            self.left_j2_pos,
+            self.right_j0_pos,
+            self.right_j1_pos,
+            self.right_j2_pos,
+            self.left_j0_vel,
+            self.left_j1_vel,
+            self.left_j2_vel,
+            self.right_j0_vel,
+            self.right_j1_vel,
+            self.right_j2_vel,
+        ])
+
+    def __repr__(self):
+        return f"{self.to_array()}"
+
+    def normalize_and_center(self):
+        return (2 * (self.to_array() - self.obs_lower_bound) /
+                (self.obs_upper_bound - self.obs_lower_bound) - 1)
