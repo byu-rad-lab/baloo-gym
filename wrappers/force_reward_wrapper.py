@@ -1,6 +1,6 @@
 import gymnasium as gym
 import mujoco
-from baloo_lib import get_contact_forces_on_body
+from baloo_gym.utils.baloo_lib import get_contact_forces_on_body
 import numpy as np
 from scipy.stats import entropy
 
