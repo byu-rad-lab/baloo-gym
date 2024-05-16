@@ -40,3 +40,10 @@ pip install -r requirements.txt
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 ```
+
+
+#### Assets ####
+
+This code needs an xml file to represent the mujoco model. A static copy of the Baloo xml model file is included in this repo, but you can also generate different versions in the [baloo_mujoco_sim repo](https://bitbucket.org/byu_rad_lab/baloo_mujoco_sim/src/master/). This repo has more details on how to make changes to the model and generate the xml file.
+
+Note that the model uses some [Mujoco Plugins](https://mujoco.readthedocs.io/en/stable/programming/extension.html), so those will need to be built as well. See the baloo_mujoco_sim repo for more details on how to do that.
