@@ -1,29 +1,25 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+This repo is an RL training environment for Baloo.
 
-### What is this repository for? ###
+#### Setting up a Virtual Environment and Installing Dependencies ####
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+Before you can run the application, you need to set up a virtual environment and install the necessary dependencies. Here's how you can do that:
 
-### How do I get set up? ###
+1. First, create a virtual environment. You can do this using the following command:
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+```bash
+python3 -m venv env
+```
 
-### Contribution guidelines ###
+2. Next, activate the virtual environment:
 
-* Writing tests
-* Code review
-* Other guidelines
+```bash
+source env/bin/activate
+```
 
-### Who do I talk to? ###
+3. Install the dependencies:
 
-* Repo owner or admin
-* Other community or team contact
+```bash
+pip install -r requirements.txt
+```

@@ -2,7 +2,6 @@ import gymnasium as gym
 import mujoco
 import mujoco.viewer
 import numpy as np
-from requests import get
 import wandb
 from baloo_lib import (
     detect_box_touch,
@@ -57,63 +56,44 @@ class Observation:
         self.right_j1_vel = right_vel[2:4]
         self.right_j2_vel = right_vel[4:6]
 
-        self.obs_lower_bound = np.asarray(
-            [-2, -2, 0]
-            + [-2] * 3
-            + [-1.5]
-            + [-5]
-            + [-np.pi] * 6
-            + [-np.pi] * 6
-            + [-2 * np.pi] * 6
-            + [-2 * np.pi] * 6
-        )
+        self.obs_lower_bound = np.asarray([-2, -2, 0] + [-2] * 3 + [-1.5] +
+                                          [-5] + [-np.pi] * 6 + [-np.pi] * 6 +
+                                          [-2 * np.pi] * 6 + [-2 * np.pi] * 6)
 
-        self.obs_upper_bound = np.asarray(
-            [2, 2, 2]
-            + [2] * 3
-            + [0]
-            + [5]
-            + [np.pi] * 6
-            + [np.pi] * 6
-            + [2 * np.pi] * 6
-            + [2 * np.pi] * 6
-        )
+        self.obs_upper_bound = np.asarray([2, 2, 2] + [2] * 3 + [0] + [5] +
+                                          [np.pi] * 6 + [np.pi] * 6 +
+                                          [2 * np.pi] * 6 + [2 * np.pi] * 6)
 
     def to_array(self):
-        return np.hstack(
-            [
-                self.object_pos,
-                self.object_vel,
-                self.elevator_pos,
-                self.elevator_vel,
-                self.left_j0_pos,
-                self.left_j1_pos,
-                self.left_j2_pos,
-                self.right_j0_pos,
-                self.right_j1_pos,
-                self.right_j2_pos,
-                self.left_j0_vel,
-                self.left_j1_vel,
-                self.left_j2_vel,
-                self.right_j0_vel,
-                self.right_j1_vel,
-                self.right_j2_vel,
-            ]
-        )
+        return np.hstack([
+            self.object_pos,
+            self.object_vel,
+            self.elevator_pos,
+            self.elevator_vel,
+            self.left_j0_pos,
+            self.left_j1_pos,
+            self.left_j2_pos,
+            self.right_j0_pos,
+            self.right_j1_pos,
+            self.right_j2_pos,
+            self.left_j0_vel,
+            self.left_j1_vel,
+            self.left_j2_vel,
+            self.right_j0_vel,
+            self.right_j1_vel,
+            self.right_j2_vel,
+        ])
 
     def __repr__(self):
         return f"{self.to_array()}"
 
     def normalize_and_center(self):
-        return (
-            2
-            * (self.to_array() - self.obs_lower_bound)
-            / (self.obs_upper_bound - self.obs_lower_bound)
-            - 1
-        )
+        return (2 * (self.to_array() - self.obs_lower_bound) /
+                (self.obs_upper_bound - self.obs_lower_bound) - 1)
 
 
 class NormalizedAction:
+
     def __init__(self, normalized_action_vector):
         self.elevator_height = normalized_action_vector[0]
         self.left_j0_pressure = normalized_action_vector[1:5]
@@ -130,22 +110,20 @@ class NormalizedAction:
         return f"Action: {self._to_array()}"
 
     def _to_array(self):
-        return np.hstack(
-            [
-                self.elevator_height,
-                self.left_j0_pressure,
-                self.left_j1_pressure,
-                self.left_j2_pressure,
-                self.right_j0_pressure,
-                self.right_j1_pressure,
-                self.right_j2_pressure,
-            ]
-        )
+        return np.hstack([
+            self.elevator_height,
+            self.left_j0_pressure,
+            self.left_j1_pressure,
+            self.left_j2_pressure,
+            self.right_j0_pressure,
+            self.right_j1_pressure,
+            self.right_j2_pressure,
+        ])
 
     def unnormalize(self):
         unnormalized_actions = (self._to_array() + 1) * (
-            self.action_upper_bound - self.action_lower_bound
-        ) / 2 + self.action_lower_bound
+            self.action_upper_bound -
+            self.action_lower_bound) / 2 + self.action_lower_bound
 
         self.elevator_height = unnormalized_actions[0]
         self.left_j0_pressure = unnormalized_actions[1:5]
@@ -170,11 +148,16 @@ class BalooV0(gym.Env):
         super().__init__()
 
         # action space is elevator height, pressure commands for each joint (h, left [0,1,2,3], right [0,1,2,3])
-        self.action_space = spaces.Box(-1, 1, shape=(1 + 24,), dtype=np.float32)
+        self.action_space = spaces.Box(-1,
+                                       1,
+                                       shape=(1 + 24, ),
+                                       dtype=np.float32)
 
-        self.observation_space = spaces.Box(
-            -1, 1, shape=(6 + 6 + 6 + 6 + 3 + 3 + 2,), dtype=np.float32
-        )
+        self.observation_space = spaces.Box(-1,
+                                            1,
+                                            shape=(6 + 6 + 6 + 6 + 3 + 3 +
+                                                   2, ),
+                                            dtype=np.float32)
 
         self.camera_id = camera_id
         self.camera_name = camera_name
@@ -186,9 +169,8 @@ class BalooV0(gym.Env):
         self.control_timestep = 0.01  # seconds
 
         assert int(self.control_timestep % self.simulation_timestep) == 0
-        self.sim_steps_per_control_step = int(
-            self.control_timestep / self.simulation_timestep
-        )
+        self.sim_steps_per_control_step = int(self.control_timestep /
+                                              self.simulation_timestep)
 
     def _reinitialize_states(self):
         self._initialize_model_from_xml()
@@ -206,7 +188,8 @@ class BalooV0(gym.Env):
     def _get_obs(self):
         rawObs = Observation(**self._get_sensor_data(self.model, self.data))
 
-        return rawObs.normalize_and_center().astype(self.observation_space.dtype)
+        return rawObs.normalize_and_center().astype(
+            self.observation_space.dtype)
 
     def _get_sensor_data(self, model, data):
         left_pos = get_joint_angles(model, data, "left")
@@ -234,7 +217,8 @@ class BalooV0(gym.Env):
         unnormalized_actions = NormalizedAction(action).unnormalize()
 
         # apply action to the model
-        set_elevator_cmd(self.model, self.data, unnormalized_actions.elevator_height)
+        set_elevator_cmd(self.model, self.data,
+                         unnormalized_actions.elevator_height)
 
         left_pressures = [
             unnormalized_actions.left_j0_pressure,
@@ -248,12 +232,10 @@ class BalooV0(gym.Env):
         ]
 
         for i in range(3):
-            set_joint_pressure_commands(
-                self.model, self.data, "left", i, left_pressures[i]
-            )
-            set_joint_pressure_commands(
-                self.model, self.data, "right", i, right_pressures[i]
-            )
+            set_joint_pressure_commands(self.model, self.data, "left", i,
+                                        left_pressures[i])
+            set_joint_pressure_commands(self.model, self.data, "right", i,
+                                        right_pressures[i])
 
     def _calc_reward(self):
         # calculate reward based on number of active taxels
@@ -269,13 +251,8 @@ class BalooV0(gym.Env):
         reward_right_l1 = np.count_nonzero(taxel_right_l1)
         reward_chest = np.count_nonzero(taxel_chest)
 
-        total_reward = (
-            reward_left_l0
-            + reward_left_l1
-            + reward_right_l0
-            + reward_right_l1
-            + reward_chest
-        )
+        total_reward = (reward_left_l0 + reward_left_l1 + reward_right_l0 +
+                        reward_right_l1 + reward_chest)
 
         return (
             total_reward - 1
@@ -286,7 +263,9 @@ class BalooV0(gym.Env):
         self._set_commands_from_action(action)
 
         # step the model forward in time however many steps are needed to match the control timestep
-        mujoco.mj_step(self.model, self.data, nstep=self.sim_steps_per_control_step)
+        mujoco.mj_step(self.model,
+                       self.data,
+                       nstep=self.sim_steps_per_control_step)
 
         # get observation, reward, done, info
         observation = self._get_obs()
@@ -313,9 +292,7 @@ class BalooV0(gym.Env):
         return observation, info
 
     def render(self):
-        return self.mujoco_renderer.render(
-            self.render_mode, self.camera_id, self.camera_name
-        )
+        return self.mujoco_renderer.render(self.render_mode)
 
     def close(self):
         if self.mujoco_renderer is not None:
@@ -340,13 +317,15 @@ if __name__ == "__main__":
     #     save_code=True,  # optional
     # )
 
+
     def make_env():
         env = BalooV0("human", camera_name="fixedcam")
         check_env(env)
 
         env = TimeLimit(
-            env, max_episode_steps=config["time_limit_sec"] / env.control_timestep
-        )  # must come before TimeAwareObservationV0
+            env,
+            max_episode_steps=config["time_limit_sec"] /
+            env.control_timestep)  # must come before TimeAwareObservationV0
 
         if config["time_aware_obs"]:
             env = TimeAwareObservation(env)  #! causes chagne to float64
