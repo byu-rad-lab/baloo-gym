@@ -109,13 +109,11 @@ class BalooV1(BalooBase):
     def __init__(
         self,
         render_mode=None,
-        camera_id=None,
         camera_name=None,
         ctrl_timestep=0.01,
     ):
         super().__init__(
             render_mode=render_mode,
-            camera_id=camera_id,
             camera_name=camera_name,
             ctrl_timestep=ctrl_timestep,
         )

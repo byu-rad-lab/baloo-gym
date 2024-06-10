@@ -34,7 +34,6 @@ _ALL_RENDERERS = {
 
 
 class BaseRender:
-
     def __init__(
         self,
         model: "mujoco.MjModel",
@@ -140,7 +139,6 @@ class BaseRender:
 
 class OffScreenViewer(BaseRender):
     """Offscreen rendering class with opengl context."""
-
     def __init__(
         self,
         model: "mujoco.MjMujoco",
@@ -288,7 +286,6 @@ class OffScreenViewer(BaseRender):
 
 class WindowViewer(BaseRender):
     """Class for window rendering in all MuJoCo environments."""
-
     def __init__(
         self,
         model: "mujoco.MjModel",
@@ -619,7 +616,6 @@ class MujocoRenderer:
     - :meth:`close` - Closes all contexts initialized with the renderer
 
     """
-
     def __init__(
         self,
         model: "mujoco.MjModel",
@@ -669,6 +665,10 @@ class MujocoRenderer:
                 mujoco.mjtObj.mjOBJ_CAMERA,
                 camera_name,
             )
+
+            if self.camera_id == -1:
+                raise ValueError(
+                    f"Camera with name {camera_name} not found in the model")
 
     def render(
         self,

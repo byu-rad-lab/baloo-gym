@@ -28,7 +28,6 @@ class BalooBase(gym.Env, ABC):
     def __init__(
         self,
         render_mode=None,
-        camera_id=None,
         camera_name=None,
         ctrl_timestep=0.01,
     ):
@@ -37,7 +36,6 @@ class BalooBase(gym.Env, ABC):
         self.action_space = None
         self.observation_space = None
 
-        self.camera_id = camera_id
         self.camera_name = camera_name
         self.render_mode = render_mode
         self.xml_string = baloo_mj.XML_STRING
@@ -69,8 +67,13 @@ class BalooBase(gym.Env, ABC):
     def _initialize_model_from_xml(self):
         self.model = mujoco.MjModel.from_xml_string(self.xml_string)
         self.data = mujoco.MjData(self.model)
+
+        #send in either camera_id or camera_name
         self.mujoco_renderer = MujocoRenderer(self.model,
                                               self.data,
+                                              width=640,
+                                              height=480,
+                                              camera_name=self.camera_name,
                                               max_geom=100000)
 
     def step(self, action):

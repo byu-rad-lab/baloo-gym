@@ -55,3 +55,9 @@ wandb/
 __pycache__/
 
 .vscode/
+
+runs/
+
+rollout_videos/
+
+models/
