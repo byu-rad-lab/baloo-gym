@@ -2,12 +2,14 @@ from envs.baloo_v0 import BalooV0
 from gymnasium.wrappers import RecordVideo, TimeLimit, TimeAwareObservation
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
-
-# deprecation warning https://github.com/pytorch/pytorch/issues/84712
+import importlib
+# import wandb
 
 config = {
     "total_timesteps": 500000,
-    "env_name": "BalooGymEnv",
+    "ctrl_timestep": 0.01,
+    "env_name": "baloo_v0",
+    "class_name": "BalooV0",
     "time_limit_sec": 5,
     "time_aware_obs": True,
 }
@@ -22,9 +24,14 @@ config = {
 
 
 def make_env():
-    env = BalooV0("human",
-                  camera_name="fixedcam",
-                  xml_path="/home/curtis/baloo_gym/assets/baloo.xml")
+    EnvClass = getattr(importlib.import_module(f"envs.{config['env_name']}"),
+                       config['class_name'])
+
+    env = EnvClass(render_mode="human",
+                   camera_id=0,
+                   camera_name="camera_0",
+                   ctrl_timestep=config["ctrl_timestep"])
+
     check_env(env)
 
     env = TimeLimit(
@@ -49,9 +56,8 @@ obs, info = env.reset()
 env.render()
 
 while True:
-    # action = env.action_space.sample()
-    action = [1, -1] * int(env.action_space.shape[0] / 2)
-    action.insert(1, 0)
+    action = env.action_space.sample()
+    # action = [1, -1] * int(env.action_space.shape[0] / 2)
     print(action)
 
     obs, reward, terminated, truncated, info = env.step(action)

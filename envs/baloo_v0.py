@@ -25,7 +25,7 @@ class NormalizedAction:
         self.right_j1_pressure = normalized_action_vector[17:21]
         self.right_j2_pressure = normalized_action_vector[21:25]
 
-        self.action_lower_bound = np.asarray([-1] + [0] * 24)
+        self.action_lower_bound = np.asarray([-1000] + [0] * 24)
         self.action_upper_bound = np.asarray([0] + [300] * 24)
 
     def __repr__(self):
@@ -119,10 +119,15 @@ class BalooV0(BalooBase):
         )  # penalize if total_reward is 0, hopefully to push arms to move
 
     def _get_sensor_data(self, model, data):
-        left_pos = get_joint_angles(model, data, "left")
-        left_vel = get_joint_vel(model, data, "left")
-        right_pos = get_joint_angles(model, data, "right")
-        right_vel = get_joint_vel(model, data, "right")
+        left_pos = []
+        left_vel = []
+        right_pos = []
+        right_vel = []
+        for i in range(3):
+            left_pos.append(get_joint_angles(model, data, "left", i))
+            left_vel.append(get_joint_vel(model, data, "left", i))
+            right_pos.append(get_joint_angles(model, data, "right", i))
+            right_vel.append(get_joint_vel(model, data, "right", i))
 
         object_pos = get_box_position(model, data)
         object_vel = get_box_vel(model, data)
@@ -134,8 +139,8 @@ class BalooV0(BalooBase):
             "object_vel": object_vel,
             "elevator_pos": elevator_pos,
             "elevator_vel": elevator_vel,
-            "left_pos": left_pos,
-            "right_pos": right_pos,
-            "left_vel": left_vel,
-            "right_vel": right_vel,
+            "left_pos": np.hstack(left_pos),
+            "right_pos": np.hstack(right_pos),
+            "left_vel": np.hstack(left_vel),
+            "right_vel": np.hstack(right_vel),
         }
