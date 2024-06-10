@@ -8,8 +8,8 @@ import importlib
 config = {
     "total_timesteps": 500000,
     "ctrl_timestep": 0.01,
-    "env_name": "baloo_v0",
-    "class_name": "BalooV0",
+    "env_name": "baloo_v1",
+    "class_name": "BalooV1",
     "time_limit_sec": 5,
     "time_aware_obs": True,
 }
@@ -61,7 +61,7 @@ while True:
     # print(action)
 
     obs, reward, terminated, truncated, info = env.step(action)
-    # print(f"Reward: {reward}, Terminated: {terminated}, Truncated: {truncated}")
+    print(f"Reward: {reward}, Terminated: {terminated}, Truncated: {truncated}")
     env.render()
 
 # rl_model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=f"runs/{run.id}")

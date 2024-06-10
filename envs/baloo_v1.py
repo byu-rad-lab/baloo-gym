@@ -23,7 +23,7 @@ class IncrementalAction:
         self.right_j1_pressure = np.asarray(normalized_action_vector[17:21])
         self.right_j2_pressure = np.asarray(normalized_action_vector[21:25])
 
-        self.action_lower_bound = np.asarray([-1] + [0] * 24)
+        self.action_lower_bound = np.asarray([-1000] + [0] * 24)
         self.action_upper_bound = np.asarray([0] + [300] * 24)
 
         # add flag to declare if action is normalized or not.
@@ -92,7 +92,7 @@ class IncrementalAction:
         increment_directions is a 25 element vector of +1, 0, or -1.
         Each on is scaled by 20kpa for pressures and .1m for height.
         """
-        self.elevator_height += increment_directions[0] * 0.05
+        self.elevator_height += increment_directions[0] * 50
         self.left_j0_pressure += increment_directions[1:5] * 10
         self.left_j1_pressure += increment_directions[5:9] * 10
         self.left_j2_pressure += increment_directions[9:13] * 10
