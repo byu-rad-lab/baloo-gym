@@ -164,7 +164,6 @@ class BalooV1(BalooBase):
 
         total_reward = (reward_left_l0 + reward_left_l1 + reward_right_l0 +
                         reward_right_l1 + reward_chest)
-        print("old calc reward")
 
         return (
             total_reward - 1
