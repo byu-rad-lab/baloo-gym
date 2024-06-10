@@ -62,4 +62,13 @@ import baloo_mujoco_sim
 
 xml_string = baloo_mujoco_sim.XML_STRING
 ```
+
+#### Using baloo_mujoco_sim utils ####
+
+The baloo_mujoco_sim repo has a lot of useful functions to help interface with the mujoco model. They may not cover everything you need, but they are a good starting point. Implement your own helper functions as needed.
+
+These functions are available in the baloo_mujoco_sim.utils.baloo_mj_api module.
+
+
+
  

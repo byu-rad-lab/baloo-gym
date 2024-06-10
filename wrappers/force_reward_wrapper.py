@@ -1,6 +1,5 @@
 import gymnasium as gym
-import mujoco
-from utils.baloo_lib import get_contact_forces_on_body
+from baloo_mujoco_sim.utils.baloo_mj_api import get_contact_forces_on_body
 import numpy as np
 from scipy.stats import entropy
 
@@ -67,14 +66,13 @@ class GlobalContactForces:
 
 class ForceRewardWrapper(gym.Wrapper):
     """
-    Now this class can just override the calculate_reward() function, since this is the function
-    that is called from the step function in the base class. 
+    Now this class can just overrides the calculate_reward() method to return a force based reward. 
     """
     def __init__(self, env):
         """Constructor for the Reward wrapper."""
         super().__init__(env)
 
-    def _calc_reward(self):
+    def calculate_reward(self):
         #! wait, dont I want to just add things to the taxel reward already? Maybe I should just use gym.RewardWrapper
         """Calculates the reward to return."""
         contact_forces = get_contact_forces_on_body(self.model, self.data,
@@ -87,27 +85,3 @@ class ForceRewardWrapper(gym.Wrapper):
                 angle_bin_degrees=20)
 
         return reward
-
-    def step(self, action):
-
-        #! can't I just call super().step(action) here instead of copying code?
-        # map action to elevator height and joint pressure commands
-        self.set_commands_from_action(action)
-
-        # step the model forward in time however many steps are needed to match the control timestep
-        mujoco.mj_step(self.model,
-                       self.data,
-                       nstep=self.sim_steps_per_control_step)
-        # print(self.data.ctrl)
-
-        # get observation, reward, done, info
-        observation = self.get_obs()
-        info = {}
-
-        reward = self._calc_reward()
-        # reward = -1
-        # terminated = detect_box_touch(self.model, self.data)
-        terminated = False
-        truncated = False
-
-        return observation, reward, terminated, truncated, info
