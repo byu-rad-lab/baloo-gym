@@ -1,9 +1,7 @@
 import numpy as np
 from gymnasium import spaces
 
-#!this import requires scripts to be run from the root of the repo
-from utils.baloo_lib import (
-    detect_box_touch,
+from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_box_position,
     get_box_vel,
     get_elevator_height,
@@ -11,11 +9,10 @@ from utils.baloo_lib import (
     get_joint_angles,
     get_joint_vel,
     get_tactile_image,
-    set_elevator_cmd,
-    set_joint_pressure_commands,
-    Observation,
 )
 from envs.baloo_base import BalooBase
+
+from utils.observation import Observation
 
 
 class NormalizedAction:
@@ -62,18 +59,19 @@ class NormalizedAction:
 
 
 class BalooV0(BalooBase):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
-
+    '''
+    BalooV0 implements an environment where 
+    '''
     def __init__(
         self,
         render_mode=None,
         camera_id=None,
         camera_name=None,
-        xml_path=None,
         ctrl_timestep=0.01,
     ):
         super().__init__(render_mode=render_mode,
-                         xml_path=xml_path,
+                         camera_id=camera_id,
+                         camera_name=camera_name,
                          ctrl_timestep=ctrl_timestep)
 
         # action space is elevator height, pressure commands for each joint (h, left [0,1,2,3], right [0,1,2,3])
@@ -89,24 +87,36 @@ class BalooV0(BalooBase):
                                             dtype=np.float32)
 
     def get_observation_from_mujoco(self):
-        return np.array([1] * self.observation_space.shape[0]).astype(
-            self.observation_space.dtype)
-
-    def map_action_to_pressure_commands(self, action):
-        return [1] * 24
-
-    def calculate_reward(self):
-        return 1
-
-    def _buffer_to_array(self, buffer):
-        # convert deque of jangles objects to a single numpy array
-        return np.array([jangle.as_array() for jangle in buffer]).flatten()
-
-    def _get_obs(self):
         rawObs = Observation(**self._get_sensor_data(self.model, self.data))
 
         return rawObs.normalize_and_center().astype(
             self.observation_space.dtype)
+
+    def map_action_to_commands(self, action):
+        unnormalized_actions = NormalizedAction(action).unnormalize()
+
+        return unnormalized_actions._to_array()
+
+    def calculate_reward(self):
+        # calculate reward based on number of active taxels
+        taxel_left_l0 = get_tactile_image(self.model, self.data, "left", 0)
+        taxel_left_l1 = get_tactile_image(self.model, self.data, "left", 1)
+        taxel_right_l0 = get_tactile_image(self.model, self.data, "right", 0)
+        taxel_right_l1 = get_tactile_image(self.model, self.data, "right", 1)
+        taxel_chest = get_tactile_image(self.model, self.data, "chest", None)
+
+        reward_left_l0 = np.count_nonzero(taxel_left_l0)
+        reward_left_l1 = np.count_nonzero(taxel_left_l1)
+        reward_right_l0 = np.count_nonzero(taxel_right_l0)
+        reward_right_l1 = np.count_nonzero(taxel_right_l1)
+        reward_chest = np.count_nonzero(taxel_chest)
+
+        total_reward = (reward_left_l0 + reward_left_l1 + reward_right_l0 +
+                        reward_right_l1 + reward_chest)
+
+        return (
+            total_reward - 1
+        )  # penalize if total_reward is 0, hopefully to push arms to move
 
     def _get_sensor_data(self, model, data):
         left_pos = get_joint_angles(model, data, "left")
@@ -129,48 +139,3 @@ class BalooV0(BalooBase):
             "left_vel": left_vel,
             "right_vel": right_vel,
         }
-
-    def _set_commands_from_action(self, action):
-        unnormalized_actions = NormalizedAction(action).unnormalize()
-
-        # apply action to the model
-        set_elevator_cmd(self.model, self.data,
-                         unnormalized_actions.elevator_height)
-
-        left_pressures = [
-            unnormalized_actions.left_j0_pressure,
-            unnormalized_actions.left_j1_pressure,
-            unnormalized_actions.left_j2_pressure,
-        ]
-        right_pressures = [
-            unnormalized_actions.right_j0_pressure,
-            unnormalized_actions.right_j1_pressure,
-            unnormalized_actions.right_j2_pressure,
-        ]
-
-        for i in range(3):
-            set_joint_pressure_commands(self.model, self.data, "left", i,
-                                        left_pressures[i])
-            set_joint_pressure_commands(self.model, self.data, "right", i,
-                                        right_pressures[i])
-
-    def _calc_reward(self):
-        # calculate reward based on number of active taxels
-        taxel_left_l0 = get_tactile_image(self.model, self.data, "left", 0)
-        taxel_left_l1 = get_tactile_image(self.model, self.data, "left", 1)
-        taxel_right_l0 = get_tactile_image(self.model, self.data, "right", 0)
-        taxel_right_l1 = get_tactile_image(self.model, self.data, "right", 1)
-        taxel_chest = get_tactile_image(self.model, self.data, "chest", None)
-
-        reward_left_l0 = np.count_nonzero(taxel_left_l0)
-        reward_left_l1 = np.count_nonzero(taxel_left_l1)
-        reward_right_l0 = np.count_nonzero(taxel_right_l0)
-        reward_right_l1 = np.count_nonzero(taxel_right_l1)
-        reward_chest = np.count_nonzero(taxel_chest)
-
-        total_reward = (reward_left_l0 + reward_left_l1 + reward_right_l0 +
-                        reward_right_l1 + reward_chest)
-
-        return (
-            total_reward - 1
-        )  # penalize if total_reward is 0, hopefully to push arms to move

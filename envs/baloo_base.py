@@ -3,6 +3,11 @@ from gymnasium import spaces
 from abc import ABC, abstractmethod
 import mujoco
 from utils.mujoco_rendering import MujocoRenderer
+import baloo_mujoco_sim as baloo_mj
+from baloo_mujoco_sim.utils.baloo_mj_api import (
+    set_elevator_cmd,
+    set_joint_pressure_commands,
+)
 
 
 class BalooBase(gym.Env, ABC):
@@ -15,16 +20,16 @@ class BalooBase(gym.Env, ABC):
     which accepts pressure commands as inputs. 
 
     WORKFLOW to implement a new environment:
-    1. Decide on action_space and implement map_action_to_pressure_commands(). This m
+    1. Decide on action_space and implement map_action_to_pressure_commands().
     2. Decide on observation_space and implement get_observation_from_mujoco()
-    3. Design reward function and implement calculate_reward(). This must return a float. todo: MAYBE ONLY VIA WRAPPER?
+    3. Design reward function and implement calculate_reward(). This can be overridden with a wrapper since 
+    this will likely change frequently.
     '''
     def __init__(
         self,
         render_mode=None,
         camera_id=None,
         camera_name=None,
-        xml_path=None,
         ctrl_timestep=0.01,
     ):
         super().__init__()
@@ -35,7 +40,7 @@ class BalooBase(gym.Env, ABC):
         self.camera_id = camera_id
         self.camera_name = camera_name
         self.render_mode = render_mode
-        self.xml_path = xml_path
+        self.xml_string = baloo_mj.XML_STRING
 
         self._reinitialize_states()
 
@@ -47,7 +52,7 @@ class BalooBase(gym.Env, ABC):
                                               self.simulation_timestep)
 
     @abstractmethod
-    def map_action_to_pressure_commands(self, action):
+    def map_action_to_commands(self, action):
         pass
 
     @abstractmethod
@@ -62,7 +67,7 @@ class BalooBase(gym.Env, ABC):
         self._initialize_model_from_xml()
 
     def _initialize_model_from_xml(self):
-        self.model = mujoco.MjModel.from_xml_path(self.xml_path)
+        self.model = mujoco.MjModel.from_xml_string(self.xml_string)
         self.data = mujoco.MjData(self.model)
         self.mujoco_renderer = MujocoRenderer(self.model,
                                               self.data,
@@ -70,15 +75,18 @@ class BalooBase(gym.Env, ABC):
 
     def step(self, action):
 
-        pressure_commands = self.map_action_to_pressure_commands(action)
+        commands = self.map_action_to_commands(action)
 
         assert len(
-            pressure_commands
-        ) == 24, "Pressure commands must be a list of 24 floats, in correct order."
+            commands
+        ) == 25, "Commands must be a list of 25 floats: [elevator_height, left_j0, left_j1, left_j2, right_j0, right_j1, right_j2]"
 
-        # apply pressure commands to the model for forward simulation
-        #todo: check this order of commands, or implement name-based method to fill in commands
-        self.data.ctrl[1:] = pressure_commands
+        set_elevator_cmd(self.model, self.data, commands[0])
+        for i in range(3):
+            set_joint_pressure_commands(self.model, self.data, "left", i,
+                                        commands[1 + (i * 4):5 + (i * 4)])
+            set_joint_pressure_commands(self.model, self.data, "right", i,
+                                        commands[13 + (i * 4):17 + (i * 4)])
 
         # step the model forward in time however many steps are needed to match the control timestep
         mujoco.mj_step(self.model,
