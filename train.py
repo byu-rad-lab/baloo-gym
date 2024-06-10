@@ -58,10 +58,10 @@ env.render()
 while True:
     action = env.action_space.sample()
     # action = [1, -1] * int(env.action_space.shape[0] / 2)
-    print(action)
+    # print(action)
 
     obs, reward, terminated, truncated, info = env.step(action)
-    print(env.unwrapped.data.ctrl)
+    # print(f"Reward: {reward}, Terminated: {terminated}, Truncated: {truncated}")
     env.render()
 
 # rl_model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=f"runs/{run.id}")

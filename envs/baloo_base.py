@@ -74,7 +74,6 @@ class BalooBase(gym.Env, ABC):
                                               max_geom=100000)
 
     def step(self, action):
-
         commands = self.map_action_to_commands(action)
 
         assert len(
