@@ -7,7 +7,7 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 config = {
-    "total_timesteps": 500000,
+    "total_timesteps": 250000,
     "ctrl_timestep": 0.01,
     "env_name": "baloo_v1",
     "class_name": "BalooV1",
@@ -41,8 +41,8 @@ def make_env():
     if config["time_aware_obs"]:
         env = TimeAwareObservation(env)  #! causes chagne to float64
 
-    # from wrappers.force_reward_wrapper import ForceRewardWrapper
-    # env = ForceRewardWrapper(env)
+    from wrappers.force_reward_wrapper import ForceRewardWrapper
+    env = ForceRewardWrapper(env)
 
     env = RecordVideo(
         env, f"./rollout_videos/{5}",

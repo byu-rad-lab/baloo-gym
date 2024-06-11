@@ -72,6 +72,13 @@ class ForceRewardWrapper(gym.Wrapper):
         """Constructor for the Reward wrapper."""
         super().__init__(env)
 
+    def step(self, action):
+        """Step function that calls the parent step function and then calculates the reward."""
+        observation, reward, terminated, truncated, info = self.env.step(
+            action)
+        reward = self.calculate_reward()
+        return observation, reward, terminated, truncated, info
+
     def calculate_reward(self):
         #! wait, dont I want to just add things to the taxel reward already? Maybe I should just use gym.RewardWrapper
         """Calculates the reward to return."""
@@ -84,4 +91,5 @@ class ForceRewardWrapper(gym.Wrapper):
             reward += global_contact_forces.get_force_direction_entropy(
                 angle_bin_degrees=20)
 
+        print("hello from force reward wrapper!")
         return reward
