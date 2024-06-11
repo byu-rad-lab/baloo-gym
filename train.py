@@ -6,6 +6,11 @@ import importlib
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
+import warnings
+
+# Set warnings to be displayed as exceptions
+warnings.simplefilter('error', category=UserWarning)
+
 config = {
     "total_timesteps": 250000,
     "ctrl_timestep": 0.01,
@@ -45,7 +50,8 @@ def make_env():
     env = ForceRewardWrapper(env)
 
     env = RecordVideo(
-        env, f"./rollout_videos/{5}",
+        env,
+        f"./experiments/rollout_videos/{run.id}",
         episode_trigger=lambda x: x % 100 == 0)  #!causes change to float64
     return env
 
@@ -65,13 +71,16 @@ env.render()
 #         f"Reward: {reward}, Terminated: {terminated}, Truncated: {truncated}")
 #     env.render()
 
-rl_model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=f"runs/{run.id}")
+rl_model = PPO("MlpPolicy",
+               env,
+               verbose=1,
+               tensorboard_log=f"./experiments/runs/{run.id}")
 rl_model.learn(
     total_timesteps=config["total_timesteps"],
     progress_bar=True,
     callback=WandbCallback(
         # gradient_save_freq=100,
-        model_save_path=f"./models/{run.id}",
+        model_save_path=f"./experiments/models/{run.id}",
         verbose=2,
     ),
 )

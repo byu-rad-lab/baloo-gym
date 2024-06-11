@@ -74,15 +74,16 @@ class ForceRewardWrapper(gym.Wrapper):
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
+        # call baloo_base step function
         observation, reward, terminated, truncated, info = self.env.step(
             action)
         reward = self.calculate_reward()
         return observation, reward, terminated, truncated, info
 
     def calculate_reward(self):
-        #! wait, dont I want to just add things to the taxel reward already? Maybe I should just use gym.RewardWrapper
         """Calculates the reward to return."""
-        contact_forces = get_contact_forces_on_body(self.model, self.data,
+        contact_forces = get_contact_forces_on_body(self.env.unwrapped.model,
+                                                    self.env.unwrapped.data,
                                                     "box")
         global_contact_forces = GlobalContactForces(contact_forces)
 
@@ -91,5 +92,4 @@ class ForceRewardWrapper(gym.Wrapper):
             reward += global_contact_forces.get_force_direction_entropy(
                 angle_bin_degrees=20)
 
-        print("hello from force reward wrapper!")
         return reward
