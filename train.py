@@ -18,6 +18,7 @@ config = {
     "class_name": "BalooV1",
     "time_limit_sec": 10,
     "time_aware_obs": True,
+    "reward_signal": "three_part_reward",
 }
 
 run = wandb.init(
@@ -46,8 +47,8 @@ def make_env():
     if config["time_aware_obs"]:
         env = TimeAwareObservation(env)  #! causes chagne to float64
 
-    from wrappers.force_reward_wrapper import ForceRewardWrapper
-    env = ForceRewardWrapper(env)
+    from wrappers.three_part_reward_wrapper import ThreePartRewardWrapper
+    env = ThreePartRewardWrapper(env)
 
     env = RecordVideo(
         env,
