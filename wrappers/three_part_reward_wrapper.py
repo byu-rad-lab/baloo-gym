@@ -42,6 +42,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                  self.env.unwrapped.data, 'right', 1)
         C_T = get_tactile_image(self.env.unwrapped.model,
                                 self.env.unwrapped.data, 'chest', None)
+        
+        #normalize the tactile images to be between 0 and 1
+        L_T0 = L_T0 / np.max(L_T0) if np.max(L_T0) != 0 else L_T0
+        L_T1 = L_T1 / np.max(L_T1) if np.max(L_T1) != 0 else L_T1
+        R_T0 = R_T0 / np.max(R_T0) if np.max(R_T0) != 0 else R_T0
+        R_T1 = R_T1 / np.max(R_T1) if np.max(R_T1) != 0 else R_T1
+        C_T = C_T / np.max(C_T) if np.max(C_T) != 0 else C_T
+
 
         #encourage grasping with sensor areas
         r_sensor = (np.linalg.norm(L_T0, 'fro') + np.linalg.norm(L_T1, 'fro') +
