@@ -53,7 +53,7 @@ def make_env():
     env = RecordVideo(
         env,
         f"./experiments/rollout_videos/{run.id}",
-        episode_trigger=lambda x: x % 100 == 0)  #!causes change to float64
+        episode_trigger=lambda x: x % 20 == 0)  #!causes change to float64
     return env
 
 
