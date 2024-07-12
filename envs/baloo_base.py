@@ -8,6 +8,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     set_elevator_cmd,
     set_joint_pressure_commands,
 )
+import os
 
 
 class BalooBase(gym.Env, ABC):
@@ -38,8 +39,9 @@ class BalooBase(gym.Env, ABC):
 
         self.camera_name = camera_name
         self.render_mode = render_mode
-        self.xml_string = baloo_mj.XML_STRING
+        self.xml_path = baloo_mj.XML_PATH
 
+        self.first_load = True
         self._reinitialize_states()
 
         self.simulation_timestep = self.model.opt.timestep
@@ -65,7 +67,11 @@ class BalooBase(gym.Env, ABC):
         self._initialize_model_from_xml()
 
     def _initialize_model_from_xml(self):
-        self.model = mujoco.MjModel.from_xml_string(self.xml_string)
+        if self.first_load:
+            print(f"Loading {os.path.basename(self.xml_path)} model.")
+            self.first_load = False
+
+        self.model = mujoco.MjModel.from_xml_path(self.xml_path)
         self.data = mujoco.MjData(self.model)
 
         #send in either camera_id or camera_name
