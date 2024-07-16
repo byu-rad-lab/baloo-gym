@@ -12,7 +12,7 @@ import os
 
 
 class BalooBase(gym.Env, ABC):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
+    metadata = {"render_modes": ["human", "rgb_array"]}
     '''
     This class takes care of all of the mujoco stuff and gym stuff. Users need to inherit from this
     and implement their own observations, rewards, and action spaces. 
@@ -39,6 +39,10 @@ class BalooBase(gym.Env, ABC):
 
         self.camera_name = camera_name
         self.render_mode = render_mode
+
+        self.render_width = 1920
+        self.render_height = 1080
+
         self.xml_path = baloo_mj.XML_PATH
 
         self.first_load = True
@@ -46,6 +50,7 @@ class BalooBase(gym.Env, ABC):
 
         self.simulation_timestep = self.model.opt.timestep
         self.control_timestep = ctrl_timestep  # seconds
+        self.metadata["render_fps"] = int(1 / self.control_timestep)
 
         assert int(self.control_timestep % self.simulation_timestep) == 0
         self.sim_steps_per_control_step = int(self.control_timestep /
@@ -72,13 +77,15 @@ class BalooBase(gym.Env, ABC):
             self.first_load = False
 
         self.model = mujoco.MjModel.from_xml_path(self.xml_path)
+        self.model.vis.global_.offwidth = self.render_width
+        self.model.vis.global_.offheight = self.render_height
         self.data = mujoco.MjData(self.model)
 
         #send in either camera_id or camera_name
         self.mujoco_renderer = MujocoRenderer(self.model,
                                               self.data,
-                                              width=640,
-                                              height=480,
+                                              width=self.render_width,
+                                              height=self.render_height,
                                               camera_name=self.camera_name,
                                               max_geom=100000)
 

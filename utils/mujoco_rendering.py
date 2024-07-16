@@ -66,6 +66,7 @@ class BaseRender:
         # Keep in Mujoco Context
         self.con = mujoco.MjrContext(self.model,
                                      mujoco.mjtFontScale.mjFONTSCALE_150)
+        
 
         self._set_mujoco_buffer()
 
@@ -244,6 +245,7 @@ class OffScreenViewer(BaseRender):
         if segmentation:
             self.scn.flags[mujoco.mjtRndFlag.mjRND_SEGMENT] = 0
             self.scn.flags[mujoco.mjtRndFlag.mjRND_IDCOLOR] = 0
+
 
         rgb_arr = np.zeros(3 * self.viewport.width * self.viewport.height,
                            dtype=np.uint8)
