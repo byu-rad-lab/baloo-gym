@@ -41,9 +41,16 @@ if __name__ == "__main__":
             tags=["carlo"],
         )
 
+        callback = WandbCallback(
+            # gradient_save_freq=100,
+            model_save_path=f"./experiments/models/{run.id}",
+            verbose=2,
+        )
+
     else:
 
         run = Run("test")
+        callback = None
 
     def make_env():
         EnvClass = getattr(
@@ -93,10 +100,6 @@ if __name__ == "__main__":
     rl_model.learn(
         total_timesteps=config["total_timesteps"],
         progress_bar=True,
-        callback=WandbCallback(
-            # gradient_save_freq=100,
-            model_save_path=f"./experiments/models/{run.id}",
-            verbose=2,
-        ),
+        callback=callback,
     )
     run.finish()
