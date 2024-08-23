@@ -36,3 +36,20 @@ def get_sensor_data(model, data):
         "left_vel": np.hstack(left_vel),
         "right_vel": np.hstack(right_vel),
     }
+
+
+def record_rollout(env, policy):
+    obs, info = env.reset()
+    done = False
+    frames = []
+    rewards = []
+    while not done:
+        action, _states = policy.predict(obs)
+        obs, reward, terminated, truncated, info = env.step(action)
+        done = terminated or truncated
+        frames.append(env.render())
+        rewards.append(reward)
+
+    env.close()
+
+    return frames, rewards
