@@ -154,11 +154,11 @@ class BalooV1(BalooBase):
         taxel_right_l1 = get_tactile_image(self.model, self.data, "right", 1)
         taxel_chest = get_tactile_image(self.model, self.data, "chest", None)
 
-        reward_left_l0 = np.count_nonzero(taxel_left_l0)
-        reward_left_l1 = np.count_nonzero(taxel_left_l1)
-        reward_right_l0 = np.count_nonzero(taxel_right_l0)
-        reward_right_l1 = np.count_nonzero(taxel_right_l1)
-        reward_chest = np.count_nonzero(taxel_chest)
+        reward_left_l0 = np.count_nonzero(taxel_left_l0) / 1024
+        reward_left_l1 = np.count_nonzero(taxel_left_l1) / 1024
+        reward_right_l0 = np.count_nonzero(taxel_right_l0) / 1024
+        reward_right_l1 = np.count_nonzero(taxel_right_l1) / 1024
+        reward_chest = np.count_nonzero(taxel_chest) / 1024
 
         total_reward = (reward_left_l0 + reward_left_l1 + reward_right_l0 +
                         reward_right_l1 + reward_chest)
