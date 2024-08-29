@@ -15,21 +15,21 @@ from utils.helpers import record_rollout
 
 @dataclass
 class Run:
-    id: str
+    name: str
 
 
 if __name__ == "__main__":
 
-    USE_WANDB = False
+    USE_WANDB = True
 
     config = {
-        "total_timesteps": 2000,
+        "total_timesteps": 500000,
         "ctrl_timestep": .1,
         "env_name": "baloo_v1",
         "class_name": "BalooV1",
-        "time_limit_sec": 15,
+        "time_limit_sec": 30,
         "time_aware_obs": True,
-        "reward_signal": "-distance approach, subproc env test",
+        "reward_signal": "only lift reward",
     }
 
     if USE_WANDB:
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
         callback = WandbCallback(
             # gradient_save_freq=100,
-            model_save_path=f"./experiments/{run.id}/model",
+            model_save_path=f"./experiments/{run.name}/model",
             verbose=2,
         )
 
@@ -81,16 +81,16 @@ if __name__ == "__main__":
 
         #! this eats up a lot of RAM when parallelized
         # env = RecordVideo(env,
-        #                   f"./experiments/{run.id}/rollout_videos",
+        #                   f"./experiments/{run.name}/rollout_videos",
         #                   episode_trigger=lambda x: x % 20 == 0)
 
-        env = Monitor(env, f"./experiments/{run.id}/monitor_logs")
+        env = Monitor(env, f"./experiments/{run.name}/monitor_logs")
 
         return env
 
-    env = make_env()
+    # env = make_env()
 
-    # env = SubprocVecEnv([make_env for _ in range(10)])
+    env = SubprocVecEnv([make_env for _ in range(8)])
 
     # time = 0
     # env.reset()
@@ -99,17 +99,18 @@ if __name__ == "__main__":
     #     # action = [1, -1] * int(env.action_space.shape[0] / 2)
     #     # print(action)
 
+    #     action[0] = -1
     #     obs, reward, terminated, truncated, info = env.step(action)
     #     print(
     #         f"Time: {time}, Reward: {reward}, Terminated: {terminated}, Truncated: {truncated}"
     #     )
-    # env.render()
+    #     env.render()
     #     time += config["ctrl_timestep"]
 
     rl_model = PPO("MlpPolicy",
                    env,
                    verbose=2,
-                   tensorboard_log=f"./experiments/{run.id}/runs")
+                   tensorboard_log=f"./experiments/{run.name}/runs")
     rl_model.learn(
         total_timesteps=config["total_timesteps"],
         progress_bar=True,
@@ -117,6 +118,7 @@ if __name__ == "__main__":
     )
 
     #save a video and upload it to wandb
+    env = make_env()
     frames, rewards = record_rollout(env, rl_model)
 
     import matplotlib.pyplot as plt
@@ -124,15 +126,19 @@ if __name__ == "__main__":
     plt.xlabel("Time Step")
     plt.ylabel("Reward")
 
+    #save video to disk
+    import imageio
+    video_path = f"./experiments/{run.name}/rollout_video.mp4"
+    imageio.mimsave(video_path, frames, fps=1 / config["ctrl_timestep"])
+    plt.savefig(f"./experiments/{run.name}/rollout_rewards.png")
+
     if USE_WANDB:
-        wandb.log({"rollout_video": wandb.Video(frames, fps=30, format="mp4")})
+        wandb.log({
+            "rollout_video":
+            wandb.Video(video_path,
+                        fps=1 / config['ctrl_timestep'],
+                        format="mp4")
+        })
 
         wandb.log({"rewards": plt})
         run.finish()
-    else:
-        #save video to disk
-        import imageio
-        imageio.mimsave(f"./experiments/{run.id}/rollout_video.mp4",
-                        frames,
-                        fps=1 / config["ctrl_timestep"])
-        plt.savefig(f"./experiments/{run.id}/rollout_rewards.png")
