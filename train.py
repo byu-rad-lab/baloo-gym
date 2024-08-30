@@ -1,6 +1,5 @@
-from envs.baloo_v0 import BalooV0
-from gymnasium.wrappers import RecordVideo, TimeLimit, TimeAwareObservation
-from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
+from gymnasium.wrappers import TimeAwareObservation
+from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.monitor import Monitor
@@ -10,8 +9,6 @@ from wandb.integration.sb3 import WandbCallback
 
 from dataclasses import dataclass
 
-from utils.helpers import record_rollout
-
 
 @dataclass
 class Run:
@@ -20,7 +17,7 @@ class Run:
 
 if __name__ == "__main__":
 
-    USE_WANDB = False
+    USE_WANDB = True
 
     config = {
         "total_timesteps": 1000000,
@@ -94,17 +91,16 @@ if __name__ == "__main__":
 
         return env
 
-    env = SubprocVecEnv([make_env for _ in range(8)])
+    env = SubprocVecEnv([make_env for _ in range(4)])
 
-    # #drops to 60 it/s from almost 200 it/s with 8 envs. ouch.
-    #doesn't have episode trigger, only step trigger. meh.
     from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
     env = VecVideoRecorder(env,
                            f"./experiments/{run.name}/rollout_videos",
                            record_video_trigger=lambda x: x % 2 == 0,
                            video_length=config["time_limit_sec"] /
                            config["ctrl_timestep"],
-                           name_prefix="rollout")
+                           name_prefix="rollout",
+                           wandb=USE_WANDB)
 
     # env = make_env()
     # time = 0
@@ -132,29 +128,6 @@ if __name__ == "__main__":
         callback=callback,
     )
 
-    # #save a video and upload it to wandb
-    # env = make_env()
-    # frames, rewards = record_rollout(env, rl_model)
+    if USE_WANDB:
 
-    # import matplotlib.pyplot as plt
-    # plt.plot(rewards)
-    # plt.xlabel("Time Step")
-    # plt.ylabel("Reward")
-
-    # #save video to disk
-    # import imageio
-    # video_path = f"./experiments/{run.name}/rollout_video.mp4"
-    # imageio.mimsave(video_path, frames, fps=1 / config["ctrl_timestep"])
-    # plt.savefig(f"./experiments/{run.name}/rollout_rewards.png")
-
-    # if USE_WANDB:
-    #     wandb.log({
-    #         "rollout_video":
-    #         wandb.Video(video_path,
-    #                     fps=1 / config['ctrl_timestep'],
-    #                     format="mp4")
-    #     })
-
-    #     wandb.log({"rewards": plt})
-
-    #     run.finish()
+        run.finish()
