@@ -10,6 +10,7 @@ from stable_baselines3.common.vec_env.subproc_vec_env import SubprocVecEnv
 from stable_baselines3.common.vec_env.base_vec_env import tile_images
 import numpy as np
 import matplotlib.pyplot as plt
+import wandb
 
 
 def plot2img(plt):
@@ -40,6 +41,7 @@ class VecVideoRecorder(VecEnvWrapper):
         record_video_trigger: Callable[[int], bool],
         video_length: int = 200,
         name_prefix: str = "rl-video",
+        wandb=False,
     ):
         VecEnvWrapper.__init__(self, venv)
 
@@ -77,6 +79,7 @@ class VecVideoRecorder(VecEnvWrapper):
         self.recorded_frames = 0
 
         self.recorded_rewards = []
+        self.USEWANBD = wandb
 
     def reset(self) -> VecEnvObs:
         obs = self.venv.reset()
@@ -132,7 +135,11 @@ class VecVideoRecorder(VecEnvWrapper):
                     plt.clf()
 
                 big_rew_img = tile_images(rew_imgs)
-                plt.imsave(f"{self.video_recorder.path}.png", big_rew_img)
+                filename = f"{self.video_recorder.path}.png"
+                plt.imsave(filename, big_rew_img)
+
+                if self.USEWANBD:
+                    wandb.log({f"rollout_rewards": wandb.Image(filename)})
                 self.recorded_rewards = []
 
         elif self._video_enabled():
