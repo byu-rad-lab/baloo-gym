@@ -20,10 +20,10 @@ class Run:
 
 if __name__ == "__main__":
 
-    USE_WANDB = True
+    USE_WANDB = False
 
     config = {
-        "total_timesteps": 500000,
+        "total_timesteps": 1000000,
         "ctrl_timestep": .1,
         "env_name": "baloo_v1",
         "class_name": "BalooV1",
@@ -44,6 +44,8 @@ if __name__ == "__main__":
             tags=["carlo"],
         )
 
+        wandb.run.log_code("./wrappers/")
+
         callback = WandbCallback(
             # gradient_save_freq=100,
             model_save_path=f"./experiments/{run.name}/model",
@@ -62,7 +64,9 @@ if __name__ == "__main__":
 
         env = EnvClass(render_mode="rgb_array",
                        camera_name="fixedcam",
-                       ctrl_timestep=config["ctrl_timestep"])
+                       ctrl_timestep=config["ctrl_timestep"],
+                       render_width=320,
+                       render_height=240)
 
         check_env(env)
         '''
@@ -79,19 +83,30 @@ if __name__ == "__main__":
         from wrappers.three_part_reward_wrapper import ThreePartRewardWrapper
         env = ThreePartRewardWrapper(env)
 
-        #! this eats up a lot of RAM when parallelized
-        # env = RecordVideo(env,
-        #                   f"./experiments/{run.name}/rollout_videos",
-        #                   episode_trigger=lambda x: x % 20 == 0)
+        # #Ithink all of the subprocesses try to write to the same file...
+        # env = RecordVideo(
+        #     env,
+        #     episode_trigger=lambda x: x % 10 == 0,
+        #     video_folder=f"./experiments/{run.name}/rollout_videos",
+        #     name_prefix="recorded")
 
         env = Monitor(env, f"./experiments/{run.name}/monitor_logs")
 
         return env
 
-    # env = make_env()
-
     env = SubprocVecEnv([make_env for _ in range(8)])
 
+    # #drops to 60 it/s from almost 200 it/s with 8 envs. ouch.
+    #doesn't have episode trigger, only step trigger. meh.
+    from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
+    env = VecVideoRecorder(env,
+                           f"./experiments/{run.name}/rollout_videos",
+                           record_video_trigger=lambda x: x % 2 == 0,
+                           video_length=config["time_limit_sec"] /
+                           config["ctrl_timestep"],
+                           name_prefix="rollout")
+
+    # env = make_env()
     # time = 0
     # env.reset()
     # while True:
@@ -117,28 +132,29 @@ if __name__ == "__main__":
         callback=callback,
     )
 
-    #save a video and upload it to wandb
-    env = make_env()
-    frames, rewards = record_rollout(env, rl_model)
+    # #save a video and upload it to wandb
+    # env = make_env()
+    # frames, rewards = record_rollout(env, rl_model)
 
-    import matplotlib.pyplot as plt
-    plt.plot(rewards)
-    plt.xlabel("Time Step")
-    plt.ylabel("Reward")
+    # import matplotlib.pyplot as plt
+    # plt.plot(rewards)
+    # plt.xlabel("Time Step")
+    # plt.ylabel("Reward")
 
-    #save video to disk
-    import imageio
-    video_path = f"./experiments/{run.name}/rollout_video.mp4"
-    imageio.mimsave(video_path, frames, fps=1 / config["ctrl_timestep"])
-    plt.savefig(f"./experiments/{run.name}/rollout_rewards.png")
+    # #save video to disk
+    # import imageio
+    # video_path = f"./experiments/{run.name}/rollout_video.mp4"
+    # imageio.mimsave(video_path, frames, fps=1 / config["ctrl_timestep"])
+    # plt.savefig(f"./experiments/{run.name}/rollout_rewards.png")
 
-    if USE_WANDB:
-        wandb.log({
-            "rollout_video":
-            wandb.Video(video_path,
-                        fps=1 / config['ctrl_timestep'],
-                        format="mp4")
-        })
+    # if USE_WANDB:
+    #     wandb.log({
+    #         "rollout_video":
+    #         wandb.Video(video_path,
+    #                     fps=1 / config['ctrl_timestep'],
+    #                     format="mp4")
+    #     })
 
-        wandb.log({"rewards": plt})
-        run.finish()
+    #     wandb.log({"rewards": plt})
+
+    #     run.finish()
