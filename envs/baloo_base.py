@@ -31,6 +31,8 @@ class BalooBase(gym.Env, ABC):
         render_mode=None,
         camera_name=None,
         ctrl_timestep=0.01,
+        render_width=320,
+        render_height=240,
     ):
         super().__init__()
 
@@ -40,8 +42,8 @@ class BalooBase(gym.Env, ABC):
         self.camera_name = camera_name
         self.render_mode = render_mode
 
-        self.render_width = 1920
-        self.render_height = 1080
+        self.render_width = render_width
+        self.render_height = render_height
 
         self.xml_path = baloo_mj.XML_PATH
 

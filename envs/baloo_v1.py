@@ -111,11 +111,15 @@ class BalooV1(BalooBase):
         render_mode=None,
         camera_name=None,
         ctrl_timestep=0.01,
+        render_width=320,
+        render_height=240,
     ):
         super().__init__(
             render_mode=render_mode,
             camera_name=camera_name,
             ctrl_timestep=ctrl_timestep,
+            render_width=render_width,
+            render_height=render_height,
         )
 
         # action space is elevator height, pressure commands for each joint (h, left [0,1,2,3], right [0,1,2,3])
