@@ -7,6 +7,18 @@ from stable_baselines3.common.vec_env.base_vec_env import VecEnv, VecEnvObs, Vec
 from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
 from stable_baselines3.common.vec_env.subproc_vec_env import SubprocVecEnv
 
+from stable_baselines3.common.vec_env.base_vec_env import tile_images
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def plot2img(plt):
+    fig = plt.gcf()
+    fig.canvas.draw()
+    img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    img = img.reshape(fig.canvas.get_width_height()[::-1] + (3, ))
+    return img
+
 
 class VecVideoRecorder(VecEnvWrapper):
     """
@@ -64,6 +76,8 @@ class VecVideoRecorder(VecEnvWrapper):
         self.recording = False
         self.recorded_frames = 0
 
+        self.recorded_rewards = []
+
     def reset(self) -> VecEnvObs:
         obs = self.venv.reset()
         # self.start_video_recorder()
@@ -95,12 +109,32 @@ class VecVideoRecorder(VecEnvWrapper):
     def step_wait(self) -> VecEnvStepReturn:
         obs, rews, dones, infos = self.venv.step_wait()
 
+        # capture list of reward trajectories, one for each env.
+        #convert those into plots, then images, then tile_images to save as big_image that matches video.
+
         if self.recording:
             self.video_recorder.capture_frame()
+            self.recorded_rewards.append(rews)
             self.recorded_frames += 1
             if self.recorded_frames > self.video_length:
                 print(f"Saving video to {self.video_recorder.path}")
                 self.close_video_recorder()
+
+                #save rewards corresponding to videos
+                self.recorded_rewards = np.array(self.recorded_rewards)
+                rew_imgs = []
+                for i in range(self.recorded_rewards.shape[1]):
+                    plt.plot(np.arange(0, self.recorded_rewards.shape[0]),
+                             self.recorded_rewards[:, i])
+                    plt.xlabel("Time Step")
+                    plt.ylabel("Reward")
+                    rew_imgs.append(plot2img(plt))
+                    plt.clf()
+
+                big_rew_img = tile_images(rew_imgs)
+                plt.imsave(f"{self.video_recorder.path}.png", big_rew_img)
+                self.recorded_rewards = []
+
         elif self._video_enabled():
             self.start_video_recorder()
 
