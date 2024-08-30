@@ -32,6 +32,12 @@ class ThreePartRewardWrapper(gym.Wrapper):
         #todo: need to truncate if the box tips over?
         return observation, reward, terminated, truncated, info
 
+    def reset(self, seed=None, options=None):
+        """Reset function that calls the parent reset function and then calculates the reward."""
+        # call baloo_base reset function
+        self.state = 'approach'
+        return self.env.reset()
+
     def calculate_reward(self):
         """
         Calculates the reward to return. Used with Carlo Alessi at SSSA
@@ -67,7 +73,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                     left_j2)**2
 
         if self.state == 'approach':
-            r_approach = -10 * np.linalg.norm(chest_pos - box_pos)
+            r_approach = -1 * np.linalg.norm(chest_pos - box_pos)
 
             #penalize touching object until we are ready to grasp
             box_touched = detect_box_touch(self.env.unwrapped.model,
@@ -86,39 +92,38 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
 
         elif self.state == 'grasp':
-            # #reward = r_sensor + r_grasp
-            # L_T0 = get_tactile_image(self.env.unwrapped.model,
-            #                          self.env.unwrapped.data, 'left', 0)
-            # L_T1 = get_tactile_image(self.env.unwrapped.model,
-            #                          self.env.unwrapped.data, 'left', 1)
-            # R_T0 = get_tactile_image(self.env.unwrapped.model,
-            #                          self.env.unwrapped.data, 'right', 0)
-            # R_T1 = get_tactile_image(self.env.unwrapped.model,
-            #                          self.env.unwrapped.data, 'right', 1)
-            # C_T = get_tactile_image(self.env.unwrapped.model,
-            #                         self.env.unwrapped.data, 'chest', None)
+            #reward = r_sensor + r_grasp
+            L_T0 = get_tactile_image(self.env.unwrapped.model,
+                                     self.env.unwrapped.data, 'left', 0)
+            L_T1 = get_tactile_image(self.env.unwrapped.model,
+                                     self.env.unwrapped.data, 'left', 1)
+            R_T0 = get_tactile_image(self.env.unwrapped.model,
+                                     self.env.unwrapped.data, 'right', 0)
+            R_T1 = get_tactile_image(self.env.unwrapped.model,
+                                     self.env.unwrapped.data, 'right', 1)
+            C_T = get_tactile_image(self.env.unwrapped.model,
+                                    self.env.unwrapped.data, 'chest', None)
 
-            # #contact forces on body, or reward making box move up
-            # #encourage grasping with sensor areas
-            # #todo: need to normalize this somehow to make it not so big.
-            # r_sensor = (np.linalg.norm(L_T0, 'fro') +
-            #             np.linalg.norm(L_T1, 'fro') +
-            #             np.linalg.norm(R_T0, 'fro') +
-            #             np.linalg.norm(R_T1, 'fro') +
-            #             np.linalg.norm(C_T, 'fro'))
+            #contact forces on body, or reward making box move up
+            #encourage grasping with sensor areas
+            r_sensor = (np.log(1 + np.linalg.norm(L_T0, 'fro')) +
+                        np.log(1 + np.linalg.norm(L_T1, 'fro')) +
+                        np.log(1 + np.linalg.norm(R_T0, 'fro')) +
+                        np.log(1 + np.linalg.norm(R_T1, 'fro')) +
+                        np.log(1 + np.linalg.norm(C_T, 'fro')))
 
             # #penalize large differences between the two arms.
             # r_grasp = -np.linalg.norm(L_T0 - R_T0, 'fro') + np.linalg.norm(
             #     L_T1 - R_T1, 'fro')
 
-            # reward = r_sensor
+            reward = r_sensor
 
             # elif self.state == 'lift':
             #reward for box moving upwards, implying that it was somehow lifted up.
-            box_pos = get_box_position(self.env.unwrapped.model,
-                                       self.env.unwrapped.data)
-            r_box = box_pos[2] - self.box_pos[2]
+            # box_pos = get_box_position(self.env.unwrapped.model,
+            #                         self.env.unwrapped.data)
+            # r_box = box_pos[2] - self.box_pos[2]
 
-            reward = 10 * r_box
+            # reward = 100 * r_box
 
-        return reward + joint_penalty
+        return reward + .1 * joint_penalty
