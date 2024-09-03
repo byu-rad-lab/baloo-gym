@@ -3,6 +3,7 @@ ale-py==0.8.1
 astunparse==1.6.3
 AutoROM==0.6.1
 AutoROM.accept-rom-license==0.6.1
+-e git+ssh://git@github.com/byu-rad-lab/baloo_mujoco_sim.git@4f19e3bdc66c05224d6fc4f5c280a26ff3324e0a#egg=baloo_mujoco_sim
 cachetools==5.3.3
 certifi==2024.2.2
 charset-normalizer==3.3.2
