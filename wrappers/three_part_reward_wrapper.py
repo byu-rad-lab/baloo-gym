@@ -48,29 +48,31 @@ class ThreePartRewardWrapper(gym.Wrapper):
         reward = R_approach + R_sensor + R_grasp + R_body
         """
 
+        reward = 0
+
         #penalize being far from the box
         chest_pos = self.env.unwrapped.data.geom('chest').xpos
         box_pos = get_box_position(self.env.unwrapped.model,
                                    self.env.unwrapped.data)
 
-        #add joint centering penalty on q^2
-        right_j0 = get_joint_angles(self.env.unwrapped.model,
-                                    self.env.unwrapped.data, 'right', 0)
-        right_j1 = get_joint_angles(self.env.unwrapped.model,
-                                    self.env.unwrapped.data, 'right', 1)
-        right_j2 = get_joint_angles(self.env.unwrapped.model,
-                                    self.env.unwrapped.data, 'right', 2)
-        left_j0 = get_joint_angles(self.env.unwrapped.model,
-                                   self.env.unwrapped.data, 'left', 0)
-        left_j1 = get_joint_angles(self.env.unwrapped.model,
-                                   self.env.unwrapped.data, 'left', 1)
-        left_j2 = get_joint_angles(self.env.unwrapped.model,
-                                   self.env.unwrapped.data, 'left', 2)
+        # #add joint centering penalty on q^2
+        # right_j0 = get_joint_angles(self.env.unwrapped.model,
+        #                             self.env.unwrapped.data, 'right', 0)
+        # right_j1 = get_joint_angles(self.env.unwrapped.model,
+        #                             self.env.unwrapped.data, 'right', 1)
+        # right_j2 = get_joint_angles(self.env.unwrapped.model,
+        #                             self.env.unwrapped.data, 'right', 2)
+        # left_j0 = get_joint_angles(self.env.unwrapped.model,
+        #                            self.env.unwrapped.data, 'left', 0)
+        # left_j1 = get_joint_angles(self.env.unwrapped.model,
+        #                            self.env.unwrapped.data, 'left', 1)
+        # left_j2 = get_joint_angles(self.env.unwrapped.model,
+        #                            self.env.unwrapped.data, 'left', 2)
 
-        joint_penalty = -np.linalg.norm(right_j0)**2 - np.linalg.norm(
-            right_j1)**2 - np.linalg.norm(right_j2)**2 - np.linalg.norm(
-                left_j0)**2 - np.linalg.norm(left_j1)**2 - np.linalg.norm(
-                    left_j2)**2
+        # joint_penalty = -np.linalg.norm(right_j0)**2 - np.linalg.norm(
+        #     right_j1)**2 - np.linalg.norm(right_j2)**2 - np.linalg.norm(
+        #         left_j0)**2 - np.linalg.norm(left_j1)**2 - np.linalg.norm(
+        #             left_j2)**2
 
         if self.state == 'approach':
             r_approach = -1 * np.linalg.norm(chest_pos - box_pos)
@@ -82,7 +84,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             if box_touched:
                 r_approach += -1
 
-            reward = r_approach
+            reward += r_approach
 
             #if height of chest is within a certain range of manipuland centroid, then we are ready to grasp
             if abs(chest_pos[2] - box_pos[2]) < 0.25:
@@ -116,14 +118,13 @@ class ThreePartRewardWrapper(gym.Wrapper):
             # r_grasp = -np.linalg.norm(L_T0 - R_T0, 'fro') + np.linalg.norm(
             #     L_T1 - R_T1, 'fro')
 
-            reward = r_sensor
+            reward += 1 * r_sensor
 
-            # elif self.state == 'lift':
-            #reward for box moving upwards, implying that it was somehow lifted up.
-            # box_pos = get_box_position(self.env.unwrapped.model,
-            #                         self.env.unwrapped.data)
-            # r_box = box_pos[2] - self.box_pos[2]
+            #reward for box moving upwards, implying that it was somehow lifted up. This also penalizes box falling down.
+            box_pos = get_box_position(self.env.unwrapped.model,
+                                       self.env.unwrapped.data)
+            r_box = box_pos[2] - self.box_pos[2]
 
-            # reward = 100 * r_box
+            reward += 10 * r_box
 
-        return reward + .1 * joint_penalty
+        return reward

@@ -1,3 +1,4 @@
+import argparse
 from gymnasium.wrappers import TimeAwareObservation
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3 import PPO
@@ -17,16 +18,33 @@ class Run:
 
 if __name__ == "__main__":
 
-    USE_WANDB = True
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(
+        description="Train a reinforcement learning model.")
+    parser.add_argument('--total_timesteps',
+                        type=int,
+                        default=1000000,
+                        help='Total timesteps for training')
+    parser.add_argument('--num_envs',
+                        type=int,
+                        default=16,
+                        help='Number of environments for SubprocVecEnv')
+    parser.add_argument('--use_wandb',
+                        type=bool,
+                        default=True,
+                        help='Use Weights and Biases for logging')
+    args = parser.parse_args()
+
+    USE_WANDB = args.use_wandb
 
     config = {
-        "total_timesteps": 1000000,
+        "total_timesteps": args.total_timesteps,
         "ctrl_timestep": .1,
         "env_name": "baloo_v1",
         "class_name": "BalooV1",
         "time_limit_sec": 30,
         "time_aware_obs": True,
-        "reward_signal": "only lift reward",
+        "reward_signal": "approach, sensor, lift",
     }
 
     if USE_WANDB:
@@ -80,23 +98,16 @@ if __name__ == "__main__":
         from wrappers.three_part_reward_wrapper import ThreePartRewardWrapper
         env = ThreePartRewardWrapper(env)
 
-        # #Ithink all of the subprocesses try to write to the same file...
-        # env = RecordVideo(
-        #     env,
-        #     episode_trigger=lambda x: x % 10 == 0,
-        #     video_folder=f"./experiments/{run.name}/rollout_videos",
-        #     name_prefix="recorded")
-
         env = Monitor(env, f"./experiments/{run.name}/monitor_logs")
 
         return env
 
-    env = SubprocVecEnv([make_env for _ in range(4)])
+    env = SubprocVecEnv([make_env for _ in range(args.num_envs)])
 
     from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
     env = VecVideoRecorder(env,
                            f"./experiments/{run.name}/rollout_videos",
-                           record_video_trigger=lambda x: x % 2 == 0,
+                           record_video_trigger=lambda x: x % 50 == 0,
                            video_length=config["time_limit_sec"] /
                            config["ctrl_timestep"],
                            name_prefix="rollout",
