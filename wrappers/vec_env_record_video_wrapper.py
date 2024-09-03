@@ -120,9 +120,6 @@ class VecVideoRecorder(VecEnvWrapper):
             self.recorded_rewards.append(rews)
             self.recorded_frames += 1
             if self.recorded_frames > self.video_length:
-                print(f"Saving video to {self.video_recorder.path}")
-                self.close_video_recorder()
-
                 #save rewards corresponding to videos
                 self.recorded_rewards = np.array(self.recorded_rewards)
                 rew_imgs = []
@@ -139,8 +136,13 @@ class VecVideoRecorder(VecEnvWrapper):
                 plt.imsave(filename, big_rew_img)
 
                 if self.USEWANBD:
-                    wandb.log({f"rollout_rewards": wandb.Image(filename)})
+                    wandb.log({f"rollout_rewards": wandb.Image(filename)},
+                              commit=False)
+                #commit=false to log png and video on same wandb step
                 self.recorded_rewards = []
+
+                print(f"Saving video to {self.video_recorder.path}")
+                self.close_video_recorder()
 
         elif self._video_enabled():
             self.start_video_recorder()
