@@ -160,11 +160,9 @@ class BalooV2(BalooBase):
 
         action = np.asarray(action) - 1  # shift to be between -1 and 1.
 
-        print(f"Action: {action}")
-
         self.current_actions.increment(action)
 
-        #make this more concise later
+        #make this more concise later with a loop
         commands = np.zeros(25)
         commands[0] = self.current_actions.elevator_height
         commands[1] = 150 + self.current_actions.left_j0_tau[0] / 2

@@ -103,44 +103,42 @@ if __name__ == "__main__":
 
         return env
 
-    # env = SubprocVecEnv([make_env for _ in range(args.num_envs)])
+    env = SubprocVecEnv([make_env for _ in range(args.num_envs)])
 
-    # from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
-    # env = VecVideoRecorder(env,
-    #                        f"./experiments/{run.name}/rollout_videos",
-    #                        record_video_trigger=lambda x: x % 50 == 0,
-    #                        video_length=config["time_limit_sec"] /
-    #                        config["ctrl_timestep"],
-    #                        name_prefix="rollout",
-    #                        wandb=USE_WANDB)
+    from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
+    env = VecVideoRecorder(env,
+                           f"./experiments/{run.name}/rollout_videos",
+                           record_video_trigger=lambda x: x % 50 == 0,
+                           video_length=config["time_limit_sec"] /
+                           config["ctrl_timestep"],
+                           name_prefix="rollout",
+                           wandb=USE_WANDB)
 
-    env = make_env()
-    time = 0
-    env.reset()
-    while True:
-        action = env.action_space.sample()
-        # action = [1, -1] * int(env.action_space.shape[0] / 2)
-        # print(action)
+    rl_model = PPO("MlpPolicy",
+                   env,
+                   verbose=2,
+                   tensorboard_log=f"./experiments/{run.name}/runs")
+    rl_model.learn(
+        total_timesteps=config["total_timesteps"],
+        progress_bar=True,
+        callback=callback,
+    )
 
-        action[0] = -1
-        obs, reward, terminated, truncated, info = env.step(action)
-        print(
-            f"Time: {time}, Reward: {reward}, Terminated: {terminated}, Truncated: {truncated}"
-        )
-        env.render()
-        print(get_elevator_height(env.unwrapped.model, env.unwrapped.data))
-        time += config["ctrl_timestep"]
+    if USE_WANDB:
 
-    # rl_model = PPO("MlpPolicy",
-    #                env,
-    #                verbose=2,
-    #                tensorboard_log=f"./experiments/{run.name}/runs")
-    # rl_model.learn(
-    #     total_timesteps=config["total_timesteps"],
-    #     progress_bar=True,
-    #     callback=callback,
-    # )
+        run.finish()
 
-    # if USE_WANDB:
+    # env = make_env()
+    # time = 0
+    # env.reset()
+    # while True:
+    #     action = env.action_space.sample()
+    #     print(action)
 
-    #     run.finish()
+    #     obs, reward, terminated, truncated, info = env.step(action)
+    #     print(
+    #         f"Time: {time}, Reward: {reward}, Terminated: {terminated}, Truncated: {truncated}"
+    #     )
+    #     env.render()
+    #     print(get_elevator_height(env.unwrapped.model, env.unwrapped.data))
+    #     time += config["ctrl_timestep"]
