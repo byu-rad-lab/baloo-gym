@@ -90,7 +90,6 @@ class IncrementalAction:
     def increment(self, increment_directions):
         """
         increment_directions is a 25 element vector of +1, 0, or -1.
-        Each on is scaled by 20kpa for pressures and .1m for height.
         """
         self.elevator_height += increment_directions[0] * 50
         self.left_j0_pressure += increment_directions[1:5] * 10

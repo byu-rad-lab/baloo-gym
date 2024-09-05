@@ -26,6 +26,7 @@ class BalooBase(gym.Env, ABC):
     3. Design reward function and implement calculate_reward(). This can be overridden with a wrapper since 
     this will likely change frequently.
     '''
+
     def __init__(
         self,
         render_mode=None,
@@ -125,7 +126,6 @@ class BalooBase(gym.Env, ABC):
 
         # self._setup_visualization()
         self._reinitialize_states()
-        # todo: randomly set position (and size) of box eventually.
 
         observation = self.get_observation_from_mujoco()
         info = {}
