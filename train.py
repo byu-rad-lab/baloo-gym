@@ -33,7 +33,17 @@ if __name__ == "__main__":
     parser.add_argument('--wandb',
                         action='store_true',
                         help='Use Weights and Biases for logging')
+    parser.add_argument(
+        '--remote_train',
+        action='store_false',
+        help=
+        'Run training on remote server. Need to change mujoco graphics backend to egl.'
+    )
     args = parser.parse_args()
+
+    if args.remote_train:
+        import os
+        os.environ["MUJOCO_GL"] = "egl"
 
     print(args)
     USE_WANDB = args.wandb
