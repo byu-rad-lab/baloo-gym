@@ -35,7 +35,7 @@ if __name__ == "__main__":
                         help='Use Weights and Biases for logging')
     parser.add_argument(
         '--remote_train',
-        action='store_false',
+        action='store_true',
         help=
         'Run training on remote server. Need to change mujoco graphics backend to egl.'
     )
