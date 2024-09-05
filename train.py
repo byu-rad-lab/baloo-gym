@@ -30,19 +30,19 @@ if __name__ == "__main__":
                         type=int,
                         default=16,
                         help='Number of environments for SubprocVecEnv')
-    parser.add_argument('--use_wandb',
-                        type=bool,
-                        default=True,
+    parser.add_argument('--wandb',
+                        action='store_true',
                         help='Use Weights and Biases for logging')
     args = parser.parse_args()
 
-    USE_WANDB = args.use_wandb
+    print(args)
+    USE_WANDB = args.wandb
 
     config = {
         "total_timesteps": args.total_timesteps,
         "ctrl_timestep": .1,
-        "env_name": "baloo_v1",
-        "class_name": "BalooV1",
+        "env_name": "baloo_v2",
+        "class_name": "BalooV2",
         "time_limit_sec": 30,
         "time_aware_obs": True,
         "reward_signal": "approach, sensor, lift",
