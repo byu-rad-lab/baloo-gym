@@ -84,7 +84,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             box_touched = detect_box_touch(self.env.unwrapped.model,
                                            self.env.unwrapped.data)
             if box_touched:
-                r_approach += -10
+                reward += -10
 
             #if height of chest is within a certain range of manipuland centroid, then we are ready to grasp
             if abs(chest_pos[2] - box_pos[2]) < 0.25:
