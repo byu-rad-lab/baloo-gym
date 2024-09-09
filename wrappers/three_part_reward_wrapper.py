@@ -51,7 +51,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         reward = R_approach + R_sensor + R_grasp + R_body
         """
 
-        reward = -1
+        reward = 0
 
         # #add joint centering penalty on q^2
         # right_j0 = get_joint_angles(self.env.unwrapped.model,
@@ -95,26 +95,26 @@ class ThreePartRewardWrapper(gym.Wrapper):
         #         #change box color to green
         #         self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
 
-        # elif self.state == 'grasp':
-        #reward = r_sensor + r_grasp
-        L_T0 = get_tactile_image(self.env.unwrapped.model,
-                                 self.env.unwrapped.data, 'left', 0)
-        L_T1 = get_tactile_image(self.env.unwrapped.model,
-                                 self.env.unwrapped.data, 'left', 1)
-        R_T0 = get_tactile_image(self.env.unwrapped.model,
-                                 self.env.unwrapped.data, 'right', 0)
-        R_T1 = get_tactile_image(self.env.unwrapped.model,
-                                 self.env.unwrapped.data, 'right', 1)
-        C_T = get_tactile_image(self.env.unwrapped.model,
-                                self.env.unwrapped.data, 'chest', None)
+        # # elif self.state == 'grasp':
+        # #reward = r_sensor + r_grasp
+        # L_T0 = get_tactile_image(self.env.unwrapped.model,
+        #                          self.env.unwrapped.data, 'left', 0)
+        # L_T1 = get_tactile_image(self.env.unwrapped.model,
+        #                          self.env.unwrapped.data, 'left', 1)
+        # R_T0 = get_tactile_image(self.env.unwrapped.model,
+        #                          self.env.unwrapped.data, 'right', 0)
+        # R_T1 = get_tactile_image(self.env.unwrapped.model,
+        #                          self.env.unwrapped.data, 'right', 1)
+        # C_T = get_tactile_image(self.env.unwrapped.model,
+        #                         self.env.unwrapped.data, 'chest', None)
 
-        #encourage grasping with sensor areas with average frobenius norm
-        r_sensor = (np.log(1 + np.linalg.norm(L_T0, 'fro')) +
-                    np.log(1 + np.linalg.norm(L_T1, 'fro')) +
-                    np.log(1 + np.linalg.norm(R_T0, 'fro')) +
-                    np.log(1 + np.linalg.norm(R_T1, 'fro')) +
-                    np.log(1 + np.linalg.norm(C_T, 'fro')))
-        reward += r_sensor / 5
+        # #encourage grasping with sensor areas with average frobenius norm
+        # r_sensor = (np.log(1 + np.linalg.norm(L_T0, 'fro')) +
+        #             np.log(1 + np.linalg.norm(L_T1, 'fro')) +
+        #             np.log(1 + np.linalg.norm(R_T0, 'fro')) +
+        #             np.log(1 + np.linalg.norm(R_T1, 'fro')) +
+        #             np.log(1 + np.linalg.norm(C_T, 'fro')))
+        # reward += r_sensor / 5
 
         # #penalize large differences between the two arms.
         # r_grasp = -np.linalg.norm(L_T0 - R_T0, 'fro') + np.linalg.norm(
@@ -128,9 +128,11 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         #penalize equally for large changes in the box orientation
         box_quat = R.from_quat(
-            get_box_quat(self.env.unwrapped.model, self.env.unwrapped.data))
+            get_box_quat(self.env.unwrapped.model,
+                         self.env.unwrapped.data,
+                         scalar_first=False))
 
         diff = box_quat.inv() * self.box_quat
-        reward += -10 * np.linalg.norm(diff.magnitude())
+        reward += -1 * np.linalg.norm(diff.magnitude())
 
         return reward

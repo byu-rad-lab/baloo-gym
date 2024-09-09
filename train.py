@@ -55,7 +55,8 @@ if __name__ == "__main__":
         "class_name": "BalooV2",
         "time_limit_sec": 30,
         "time_aware_obs": True,
-        "reward_signal": "approach, sensor, lift",
+        "reward_signal":
+        "get chest close, lift object, don't tilt, use sensors",
     }
 
     if USE_WANDB:
@@ -100,6 +101,8 @@ if __name__ == "__main__":
         #! requires float 32, but then np.appends self.t on line 51, which numpy casts as float64. 
         #! Looks like this wrapper will change alot with new release of gymnasium (not on pip yet). this is v0.29.1.
         '''
+        env = Monitor(env, f"./experiments/{run.name}/monitor_logs")
+
         if config["time_aware_obs"]:
             env = TimeAwareObservation(env)
 
@@ -108,8 +111,6 @@ if __name__ == "__main__":
 
         from wrappers.three_part_reward_wrapper import ThreePartRewardWrapper
         env = ThreePartRewardWrapper(env)
-
-        env = Monitor(env, f"./experiments/{run.name}/monitor_logs")
 
         return env
 
