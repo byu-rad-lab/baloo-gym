@@ -21,7 +21,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                         self.env.unwrapped.data)
 
         self.box_quat = R.from_quat(
-            get_box_quat(self.env.unwrapped.model, self.env.unwrapped.data))
+            get_box_quat(self.env.unwrapped.model,
+                         self.env.unwrapped.data,
+                         scalar_first=False))
 
         self.state = 'approach'
 
