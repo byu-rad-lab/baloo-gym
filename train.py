@@ -1,18 +1,15 @@
 import argparse
-from gymnasium.wrappers import TimeAwareObservation
+
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3 import PPO
-from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.monitor import Monitor
+
 from stable_baselines3.common.callbacks import CallbackList, EvalCallback
-import importlib
 import wandb
 from wandb.integration.sb3 import WandbCallback
-from baloo_mujoco_sim.utils.baloo_mj_api import get_elevator_height
 
 from dataclasses import dataclass
-from wrappers.time_limit_termination_wrapper import TimeLimitTerminationWrapper
-from wrappers.three_part_reward_wrapper import ThreePartRewardWrapper
+from utils.helpers import build_env
+from stable_baselines3.common.monitor import Monitor
 
 
 @dataclass
@@ -59,36 +56,13 @@ if __name__ == "__main__":
         "time_aware_obs": True,
     }
 
-    def build_env():
-        EnvClass = getattr(
-            importlib.import_module(f"envs.{config['env_name']}"),
-            config['class_name'])
-
-        env = EnvClass(render_mode="rgb_array",
-                       camera_name="fixedcam",
-                       ctrl_timestep=config["ctrl_timestep"],
-                       render_width=320,
-                       render_height=240)
-
-        check_env(env)
-        '''
-        When using time aware observation, I should use terminated instead of truncated. 
-        #! requires float 32, but then np.appends self.t on line 51, which numpy casts as float64. 
-        #! Looks like this wrapper will change alot with new release of gymnasium (not on pip yet). this is v0.29.1.
-        '''
-
-        if config["time_aware_obs"]:
-            env = TimeAwareObservation(env)
-
-        env = TimeLimitTerminationWrapper(env, config["time_limit_sec"])
-
-        env = ThreePartRewardWrapper(env)
-
+    def build_monitor_env():
+        env = build_env(config)
         env = Monitor(env, f"./experiments/{run.name}/monitor_logs")
         return env
 
     def make_parallel_env():
-        env = SubprocVecEnv([build_env for _ in range(args.num_envs)])
+        env = SubprocVecEnv([build_monitor_env for _ in range(args.num_envs)])
 
         from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
         env = VecVideoRecorder(env,
