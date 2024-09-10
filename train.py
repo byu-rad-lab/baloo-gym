@@ -4,12 +4,15 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.callbacks import CallbackList, EvalCallback
 import importlib
 import wandb
 from wandb.integration.sb3 import WandbCallback
 from baloo_mujoco_sim.utils.baloo_mj_api import get_elevator_height
 
 from dataclasses import dataclass
+from wrappers.time_limit_termination_wrapper import TimeLimitTerminationWrapper
+from wrappers.three_part_reward_wrapper import ThreePartRewardWrapper
 
 
 @dataclass
@@ -39,14 +42,13 @@ if __name__ == "__main__":
         help=
         'Run training on remote server. Need to change mujoco graphics backend to egl.'
     )
-    args = parser.parse_args()
 
+    args = parser.parse_args()
     if args.remote_train:
         import os
         os.environ["MUJOCO_GL"] = "egl"
 
     print(args)
-    USE_WANDB = args.wandb
 
     config = {
         "total_timesteps": args.total_timesteps,
@@ -55,36 +57,9 @@ if __name__ == "__main__":
         "class_name": "BalooV2",
         "time_limit_sec": 30,
         "time_aware_obs": True,
-        "reward_signal":
-        "get chest close, lift object, don't tilt, use sensors",
     }
 
-    if USE_WANDB:
-
-        run = wandb.init(
-            project="ppo_baloo",
-            config=config,
-            sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
-            monitor_gym=
-            True,  # auto-upload the videos of agents playing the game
-            save_code=True,  # optional
-            tags=["carlo"],
-        )
-
-        wandb.run.log_code("./wrappers/")
-
-        callback = WandbCallback(
-            # gradient_save_freq=100,
-            model_save_path=f"./experiments/{run.name}/model",
-            verbose=2,
-        )
-
-    else:
-
-        run = Run("test")
-        callback = None
-
-    def make_env():
+    def build_env():
         EnvClass = getattr(
             importlib.import_module(f"envs.{config['env_name']}"),
             config['class_name'])
@@ -105,51 +80,85 @@ if __name__ == "__main__":
         if config["time_aware_obs"]:
             env = TimeAwareObservation(env)
 
-        from wrappers.time_limit_termination_wrapper import TimeLimitTerminationWrapper
         env = TimeLimitTerminationWrapper(env, config["time_limit_sec"])
 
-        from wrappers.three_part_reward_wrapper import ThreePartRewardWrapper
         env = ThreePartRewardWrapper(env)
 
         env = Monitor(env, f"./experiments/{run.name}/monitor_logs")
         return env
 
-    env = SubprocVecEnv([make_env for _ in range(args.num_envs)])
+    def make_parallel_env():
+        env = SubprocVecEnv([build_env for _ in range(args.num_envs)])
 
-    from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
-    env = VecVideoRecorder(env,
-                           f"./experiments/{run.name}/rollout_videos",
-                           record_video_trigger=lambda x: x % 50 == 0,
-                           video_length=config["time_limit_sec"] /
-                           config["ctrl_timestep"],
-                           name_prefix="rollout",
-                           wandb=USE_WANDB)
+        from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
+        env = VecVideoRecorder(env,
+                               f"./experiments/{run.name}/rollout_videos",
+                               record_video_trigger=lambda x: x % 50 == 0,
+                               video_length=config["time_limit_sec"] /
+                               config["ctrl_timestep"],
+                               name_prefix="rollout",
+                               wandb=args.wandb)
 
-    rl_model = PPO("MlpPolicy",
-                   env,
-                   verbose=2,
-                   tensorboard_log=f"./experiments/{run.name}/runs")
+        return env
+
+    if args.wandb:
+
+        run = wandb.init(
+            project="ppo_baloo",
+            config=config,
+            sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
+            monitor_gym=
+            True,  # auto-upload the videos of agents playing the game
+            save_code=True,  # optional
+            tags=["carlo"],
+        )
+
+        wandb.run.log_code("./wrappers/")
+
+        wandb_callback = WandbCallback(
+            # gradient_save_freq=100,
+            model_save_path=f"./experiments/{run.name}/model",
+            verbose=2,
+        )
+
+        #make separate evaluation environment for evaluation, not parallelized
+        eval_env = build_env()
+
+        eval_callback = EvalCallback(
+            eval_env=eval_env,
+            n_eval_episodes=5,
+            eval_freq=int(
+                config["total_timesteps"] / 10 /
+                args.num_envs),  #eval_num_timesteps = eval_freq * num_envs
+            deterministic=True,
+            best_model_save_path=f"./experiments/{run.name}/best_model",
+            render=False,
+            verbose=1,
+        )
+
+        callback = CallbackList([wandb_callback, eval_callback])
+
+    else:
+
+        run = Run("test")
+        callback = None
+
+    env = make_parallel_env()
+
+    rl_model = PPO(
+        "MlpPolicy",
+        env,
+        ent_coef=0.01,
+        #    use_sde=True, #usually for continuous action spaces.
+        verbose=2,
+        tensorboard_log=f"./experiments/{run.name}/runs")
+
     rl_model.learn(
         total_timesteps=config["total_timesteps"],
         progress_bar=True,
         callback=callback,
     )
 
-    if USE_WANDB:
+    if args.wandb:
 
         run.finish()
-
-    # env = make_env()
-    # time = 0
-    # env.reset()
-    # while True:
-    #     action = env.action_space.sample()
-    #     print(action)
-
-    #     obs, reward, terminated, truncated, info = env.step(action)
-    #     print(
-    #         f"Time: {time}, Reward: {reward}, Terminated: {terminated}, Truncated: {truncated}"
-    #     )
-    #     env.render()
-    #     print(get_elevator_height(env.unwrapped.model, env.unwrapped.data))
-    #     time += config["ctrl_timestep"]
