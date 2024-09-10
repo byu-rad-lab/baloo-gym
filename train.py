@@ -96,7 +96,7 @@ if __name__ == "__main__":
         )
 
         #make separate evaluation environment for evaluation, not parallelized
-        eval_env = build_env()
+        eval_env = build_env(config)
 
         eval_callback = EvalCallback(
             eval_env=eval_env,
