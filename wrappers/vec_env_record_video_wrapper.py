@@ -34,6 +34,7 @@ class VecVideoRecorder(VecEnvWrapper):
     :param video_length:  Length of recorded videos
     :param name_prefix: Prefix to the video name
     """
+
     def __init__(
         self,
         venv: VecEnv,
@@ -115,6 +116,7 @@ class VecVideoRecorder(VecEnvWrapper):
         # capture list of reward trajectories, one for each env.
         #convert those into plots, then images, then tile_images to save as big_image that matches video.
 
+        #TODO: doesn't work if any envs truncate.... restarts and rewards are out of sync
         if self.recording:
             self.video_recorder.capture_frame()
             self.recorded_rewards.append(rews)

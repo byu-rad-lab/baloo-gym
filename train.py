@@ -67,7 +67,7 @@ if __name__ == "__main__":
         from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
         env = VecVideoRecorder(env,
                                f"./experiments/{run.name}/rollout_videos",
-                               record_video_trigger=lambda x: x % 50 == 0,
+                               record_video_trigger=lambda x: x % 20 == 0,
                                video_length=config["time_limit_sec"] /
                                config["ctrl_timestep"],
                                name_prefix="rollout",
@@ -92,11 +92,14 @@ if __name__ == "__main__":
         wandb_callback = WandbCallback(
             # gradient_save_freq=100,
             model_save_path=f"./experiments/{run.name}/model",
-            verbose=2,
+            model_save_freq=config["total_timesteps"] / 10 / args.num_envs,
+            verbose=1,
         )
 
         #make separate evaluation environment for evaluation, not parallelized
         eval_env = build_env(config)
+
+        eval_env = Monitor(eval_env, f"./experiments/{run.name}/eval_logs")
 
         eval_callback = EvalCallback(
             eval_env=eval_env,
@@ -124,7 +127,7 @@ if __name__ == "__main__":
         env,
         ent_coef=0.01,
         #    use_sde=True, #usually for continuous action spaces.
-        verbose=2,
+        verbose=1,
         tensorboard_log=f"./experiments/{run.name}/runs")
 
     rl_model.learn(
