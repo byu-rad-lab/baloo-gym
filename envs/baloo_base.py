@@ -74,6 +74,29 @@ class BalooBase(gym.Env, ABC):
     def _reinitialize_states(self):
         self._initialize_model_from_xml()
 
+    def _get_to_equilibrium(self):
+        #set pressures to mean pressure and wait for arms to settle.
+        set_joint_pressure_commands(self.model, self.data, "left", 0,
+                                    [150] * 4)
+        set_joint_pressure_commands(self.model, self.data, "left", 1,
+                                    [150] * 4)
+        set_joint_pressure_commands(self.model, self.data, "left", 2,
+                                    [150] * 4)
+        set_joint_pressure_commands(self.model, self.data, "right", 0,
+                                    [150] * 4)
+        set_joint_pressure_commands(self.model, self.data, "right", 1,
+                                    [150] * 4)
+        set_joint_pressure_commands(self.model, self.data, "right", 2,
+                                    [150] * 4)
+
+        set_elevator_cmd(self.model, self.data, -900)
+
+        mujoco.mj_step(self.model,
+                       self.data,
+                       nstep=int(15 / self.model.opt.timestep))
+
+        self.data.time = 0
+
     def _initialize_model_from_xml(self):
         if self.first_load:
             print(f"Loading {os.path.basename(self.xml_path)} model.")
@@ -91,6 +114,8 @@ class BalooBase(gym.Env, ABC):
                                               height=self.render_height,
                                               camera_name=self.camera_name,
                                               max_geom=100000)
+
+        self._get_to_equilibrium()
 
     def step(self, action):
         commands = self.map_action_to_commands(action)
