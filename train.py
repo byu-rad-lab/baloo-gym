@@ -67,7 +67,7 @@ if __name__ == "__main__":
         from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
         env = VecVideoRecorder(env,
                                f"./experiments/{run.name}/rollout_videos",
-                               record_video_trigger=lambda x: x % 50 == 0,
+                               record_video_trigger=lambda x: int(x % 20) == 0,
                                video_length=config["time_limit_sec"] /
                                config["ctrl_timestep"],
                                name_prefix="rollout",
@@ -91,10 +91,11 @@ if __name__ == "__main__":
 
         wandb_callback = WandbCallback(
             model_save_path=f"./experiments/{run.name}/recent_model",
-            model_save_freq=config["total_timesteps"] / 10 / args.num_envs,
+            model_save_freq=int(config["total_timesteps"] / 10 /
+                                args.num_envs),
             verbose=1,
         )
-        
+
         #!throws a warning, but the env IS the same, just not vectorized to save RAM.
         eval_env = build_monitor_env()
 
@@ -102,7 +103,7 @@ if __name__ == "__main__":
             eval_env=eval_env,
             n_eval_episodes=5,
             eval_freq=int(
-                config["total_timesteps"] / 10 /
+                config["total_timesteps"] / 5 /
                 args.num_envs),  #eval_num_timesteps = eval_freq * num_envs
             deterministic=True,
             best_model_save_path=f"./experiments/{run.name}/best_model",
