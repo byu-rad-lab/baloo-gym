@@ -94,8 +94,9 @@ if __name__ == "__main__":
             model_save_freq=config["total_timesteps"] / 10 / args.num_envs,
             verbose=1,
         )
-
-        eval_env = make_parallel_env()
+        
+        #!throws a warning, but the env IS the same, just not vectorized to save RAM.
+        eval_env = build_monitor_env()
 
         eval_callback = EvalCallback(
             eval_env=eval_env,
