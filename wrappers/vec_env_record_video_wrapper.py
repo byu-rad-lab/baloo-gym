@@ -116,7 +116,7 @@ class VecVideoRecorder(VecEnvWrapper):
         # capture list of reward trajectories, one for each env.
         #convert those into plots, then images, then tile_images to save as big_image that matches video.
 
-        #TODO: doesn't work if any envs truncate.... restarts and rewards are out of sync
+        #!doesn't work if any envs truncate--restarts and rewards are out of sync but will be a lot of work to fix.
         if self.recording:
             self.video_recorder.capture_frame()
             self.recorded_rewards.append(rews)
