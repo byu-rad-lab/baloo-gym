@@ -12,7 +12,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
     """
     Now this class can just overrides the calculate_reward() method to return a force based reward. 
     """
-
     def __init__(self, env):
         """Constructor for the Reward wrapper."""
         super().__init__(env)
@@ -108,7 +107,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                    self.env.unwrapped.data)
 
         #
-        reward += np.exp(-10 * np.linalg.norm(chest_pos - box_pos))
+        reward += np.exp(
+            -1 * np.linalg.norm(chest_pos - box_pos)
+        )  #maybe 10 is too large. If starting too far away, not enough directtion.
 
         if np.linalg.norm(chest_pos - box_pos) < 0.5:
             #if we are close to the box, then we want the box to have a similar velocity as the chest.
