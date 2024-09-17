@@ -9,6 +9,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     set_joint_pressure_commands,
 )
 import os
+import numpy as np
 
 
 class BalooBase(gym.Env, ABC):
@@ -89,7 +90,9 @@ class BalooBase(gym.Env, ABC):
         set_joint_pressure_commands(self.model, self.data, "right", 2,
                                     [150] * 4)
 
-        set_elevator_cmd(self.model, self.data, -900)
+        #elevator height = something in between -1000 and 0
+        initial_height = np.random.uniform(-900, 0)
+        set_elevator_cmd(self.model, self.data, initial_height)
 
         mujoco.mj_step(self.model,
                        self.data,
@@ -149,7 +152,6 @@ class BalooBase(gym.Env, ABC):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
-        # self._setup_visualization()
         self._reinitialize_states()
 
         observation = self.get_observation_from_mujoco()
