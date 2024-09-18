@@ -111,37 +111,36 @@ class ThreePartRewardWrapper(gym.Wrapper):
             -1 * np.linalg.norm(chest_pos - box_pos)
         )  #maybe 10 is too large. If starting too far away, not enough directtion.
 
-        if np.linalg.norm(chest_pos - box_pos) < 0.5:
-            #if we are close to the box, then we want the box to have a similar velocity as the chest.
+        # if np.linalg.norm(chest_pos - box_pos) < 0.5:
+        #if we are close to the box, then we want the box to have a similar velocity as the chest.
+        #OR reward for chest and box having the same velocity.
+        #full reward if they are close to the same vector, direction and magnitude.
+        # chest_vel = np.array([
+        #     0, 0,
+        #     get_elevator_vel(self.env.unwrapped.model,
+        #                      self.env.unwrapped.data)[0]
+        # ])
+
+        box_vel = get_box_vel(self.env.unwrapped.model,
+                              self.env.unwrapped.data)
+
+        # # up to 1 for direction similarity, up to 1 for magnitude similarity.
+        # direction_similarity = self._cosine_similarity(chest_vel, box_vel)
+
+        # #check for division by zero
+        # if np.linalg.norm(chest_vel) <= 1e-6 or np.linalg.norm(
+        #         box_vel) <= 1e-6:
+        #     magnitude_similarity = 0
+        # else:
+        #     magnitude_similarity = min(
+        #         np.linalg.norm(chest_vel), np.linalg.norm(box_vel)) / max(
+        #             np.linalg.norm(chest_vel), np.linalg.norm(box_vel))
+
+        # reward += direction_similarity * magnitude_similarity
+
+        if box_vel[2] > 1e-3:
             self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
-            #OR reward for chest and box having the same velocity.
-            #full reward if they are close to the same vector, direction and magnitude.
-            # chest_vel = np.array([
-            #     0, 0,
-            #     get_elevator_vel(self.env.unwrapped.model,
-            #                      self.env.unwrapped.data)[0]
-            # ])
-
-            box_vel = get_box_vel(self.env.unwrapped.model,
-                                  self.env.unwrapped.data)
-
-            # # up to 1 for direction similarity, up to 1 for magnitude similarity.
-            # direction_similarity = self._cosine_similarity(chest_vel, box_vel)
-
-            # #check for division by zero
-            # if np.linalg.norm(chest_vel) <= 1e-6 or np.linalg.norm(
-            #         box_vel) <= 1e-6:
-            #     magnitude_similarity = 0
-            # else:
-            #     magnitude_similarity = min(
-            #         np.linalg.norm(chest_vel), np.linalg.norm(box_vel)) / max(
-            #             np.linalg.norm(chest_vel), np.linalg.norm(box_vel))
-
-            # reward += direction_similarity * magnitude_similarity
-
-            if box_vel[2] > 1e-3:
-                reward += 1
-
+            reward += 1
         else:
             self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
 
