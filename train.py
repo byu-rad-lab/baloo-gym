@@ -122,13 +122,17 @@ if __name__ == "__main__":
 
     env = make_parallel_env()
 
+    policy_kwargs = dict(net_arch=[128, 128, 128])
+
     rl_model = PPO(
         "MlpPolicy",
         env,
         ent_coef=0.01,
         #    use_sde=True, #usually for continuous action spaces.
         verbose=1,
-        tensorboard_log=f"./experiments/{run.name}/runs")
+        tensorboard_log=f"./experiments/{run.name}/runs",
+        policy_kwargs=policy_kwargs,
+    )
 
     rl_model.learn(
         total_timesteps=config["total_timesteps"],
