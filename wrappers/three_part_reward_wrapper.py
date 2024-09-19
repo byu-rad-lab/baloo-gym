@@ -21,7 +21,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                         self.env.unwrapped.data)
 
         self.desired_box_pos = self.box_pos.copy()
-        self.desired_box_pos[2] += 0.3
+        self.desired_box_pos[2] += 0.5
+        self.prev_box_error = np.linalg.norm(self.desired_box_pos -
+                                             self.box_pos)
 
         self.box_quat = R.from_quat(
             get_box_quat(self.env.unwrapped.model,
@@ -29,8 +31,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
                          scalar_first=False))
 
         self.state = 'approach'
-
-        self.prev_intrinsic_reward = 0
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
@@ -80,23 +80,36 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                    self.env.unwrapped.data)
 
         #shaped reward to approach box
-        reward += np.exp(
-            -1 * np.linalg.norm(chest_pos - box_pos)
-        )  
+        reward += np.exp(-1 * np.linalg.norm(chest_pos - box_pos))
 
-        #if chest is close to box, reward for lifting object
-        if np.linalg.norm(chest_pos - box_pos) < 0.5:
+        box_error = np.linalg.norm(self.desired_box_pos - box_pos)
 
-            box_vel = get_box_vel(self.env.unwrapped.model,
-                                  self.env.unwrapped.data)
+        reward += (self.prev_box_error - box_error) * 10
+        # current_box_quat = R.from_quat(
+        #     get_box_quat(self.env.unwrapped.model, self.env.unwrapped.data,scalar_first=False)
+        # )
 
-            if box_vel[2] > 1e-2:
-                #turn box green and +1
-                self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
-                reward += 1
+        # #orientation error
+        # orientation_error = (current_box_quat.inv() * self.box_quat).magnitude() #always [0,pi]
 
-            else:
-                #box back to red, no reward if not lifted
-                self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
+        # #if chest is close to box, reward for lifting object
+        # if np.linalg.norm(chest_pos - box_pos) < 0.5:
+
+        #     box_vel = get_box_vel(self.env.unwrapped.model,
+        #                           self.env.unwrapped.data)
+
+        #     if box_vel[2] > 1e-2:
+        #         #turn box green and +1
+        #         self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
+        #         reward += 1
+
+        #     else:
+        #         #box back to red, no reward if not lifted
+        #         self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
+
+        #update previous box error
+        self.prev_box_error = box_error
+
+        self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
 
         return reward
