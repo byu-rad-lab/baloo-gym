@@ -50,8 +50,8 @@ if __name__ == "__main__":
     config = {
         "total_timesteps": args.total_timesteps,
         "ctrl_timestep": .1,
-        "env_name": "baloo_v2",
-        "class_name": "BalooV2",
+        "env_name": "baloo_v3",
+        "class_name": "BalooV3",
         "time_limit_sec": 30,
         "time_aware_obs": True,
     }

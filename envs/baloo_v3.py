@@ -152,12 +152,9 @@ class BalooV3(BalooBase):
         self.current_actions = IncrementalTorques(np.zeros(13))
 
     def get_observation_from_mujoco(self):
-        chest_pos = self.env.unwrapped.data.geom('chest').xpos
-        chest_vel = np.array([
-            0, 0,
-            get_elevator_vel(self.env.unwrapped.model,
-                             self.env.unwrapped.data)[0]
-        ])
+        chest_pos = self.data.geom('chest').xpos
+        chest_vel = np.array(
+            [0, 0, get_elevator_vel(self.model, self.data)[0]])
         rawObs = RelativeObservation(**get_sensor_data(self.model, self.data),
                                      chest_pos=chest_pos,
                                      chest_vel=chest_vel)
