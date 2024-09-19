@@ -92,10 +92,12 @@ class ThreePartRewardWrapper(gym.Wrapper):
         # orientation_error = (current_box_quat.inv() * self.box_quat).magnitude() #always [0,pi]
 
         # #if chest is close to box, reward for lifting object
-        if np.linalg.norm(chest_pos - box_pos) < 0.5:
+        if (self.prev_box_error - box_error) > 0:
+            #if box is getting closer, reward
+            reward += 1
+        # if np.linalg.norm(chest_pos - box_pos) < 0.5:
 
-            reward += (self.prev_box_error - box_error) * 10
-            self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
+    #         self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
         #     box_vel = get_box_vel(self.env.unwrapped.model,
         #                           self.env.unwrapped.data)
 
