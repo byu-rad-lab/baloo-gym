@@ -31,13 +31,57 @@ class Observation:
         self.right_j1_vel = right_vel[2:4]
         self.right_j2_vel = right_vel[4:6]
 
-        self.obs_lower_bound = np.asarray([-2, -2, 0] + [-2] * 3 + [-1.5] +
-                                          [-5] + [-np.pi] * 6 + [-np.pi] * 6 +
-                                          [-2 * np.pi] * 6 + [-2 * np.pi] * 6)
+        object_pos_lb = [-2, -2, 0]
+        object_vel_lb = [-2] * 3
+        elevator_pos_lb = [-1.5]
+        elevator_vel_lb = [-5]
+        left_j0_pos_lb = [-np.pi] * 2
+        left_j1_pos_lb = [-np.pi] * 2
+        left_j2_pos_lb = [-np.pi] * 2
+        right_j0_pos_lb = [-np.pi] * 2
+        right_j1_pos_lb = [-np.pi] * 2
+        right_j2_pos_lb = [-np.pi] * 2
+        left_j0_vel_lb = [-2 * np.pi] * 2
+        left_j1_vel_lb = [-2 * np.pi] * 2
+        left_j2_vel_lb = [-2 * np.pi] * 2
+        right_j0_vel_lb = [-2 * np.pi] * 2
+        right_j1_vel_lb = [-2 * np.pi] * 2
+        right_j2_vel_lb = [-2 * np.pi] * 2
 
-        self.obs_upper_bound = np.asarray([2, 2, 2] + [2] * 3 + [0] + [5] +
-                                          [np.pi] * 6 + [np.pi] * 6 +
-                                          [2 * np.pi] * 6 + [2 * np.pi] * 6)
+        self.obs_lower_bound = np.asarray(object_pos_lb + object_vel_lb +
+                                          elevator_pos_lb + elevator_vel_lb +
+                                          left_j0_pos_lb + left_j1_pos_lb +
+                                          left_j2_pos_lb + right_j0_pos_lb +
+                                          right_j1_pos_lb + right_j2_pos_lb +
+                                          left_j0_vel_lb + left_j1_vel_lb +
+                                          left_j2_vel_lb + right_j0_vel_lb +
+                                          right_j1_vel_lb + right_j2_vel_lb)
+
+        object_pos_ub = [2, 2, 2]
+        object_vel_ub = [2] * 3
+        elevator_pos_ub = [0]
+        elevator_vel_ub = [5]
+        left_j0_pos_ub = [np.pi] * 2
+        left_j1_pos_ub = [np.pi] * 2
+        left_j2_pos_ub = [np.pi] * 2
+        right_j0_pos_ub = [np.pi] * 2
+        right_j1_pos_ub = [np.pi] * 2
+        right_j2_pos_ub = [np.pi] * 2
+        left_j0_vel_ub = [2 * np.pi] * 2
+        left_j1_vel_ub = [2 * np.pi] * 2
+        left_j2_vel_ub = [2 * np.pi] * 2
+        right_j0_vel_ub = [2 * np.pi] * 2
+        right_j1_vel_ub = [2 * np.pi] * 2
+        right_j2_vel_ub = [2 * np.pi] * 2
+
+        self.obs_upper_bound = np.asarray(object_pos_ub + object_vel_ub +
+                                          elevator_pos_ub + elevator_vel_ub +
+                                          left_j0_pos_ub + left_j1_pos_ub +
+                                          left_j2_pos_ub + right_j0_pos_ub +
+                                          right_j1_pos_ub + right_j2_pos_ub +
+                                          left_j0_vel_ub + left_j1_vel_ub +
+                                          left_j2_vel_ub + right_j0_vel_ub +
+                                          right_j1_vel_ub + right_j2_vel_ub)
 
     def to_array(self):
         return np.hstack([
