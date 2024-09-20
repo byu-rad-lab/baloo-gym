@@ -99,12 +99,12 @@ class IncrementalTorques:
         increment_directions is a 13 element vector of +1, 0, or -1.
         """
         self.elevator_height += increment_directions[0] * 50
-        self.left_j0_tau += increment_directions[1:3] * 10
-        self.left_j1_tau += increment_directions[3:5] * 10
-        self.left_j2_tau += increment_directions[5:7] * 10
-        self.right_j0_tau += increment_directions[7:9] * 10
-        self.right_j1_tau += increment_directions[9:11] * 10
-        self.right_j2_tau += increment_directions[11:] * 10
+        self.left_j0_tau += increment_directions[1:3] * 1
+        self.left_j1_tau += increment_directions[3:5] * 1
+        self.left_j2_tau += increment_directions[5:7] * 1
+        self.right_j0_tau += increment_directions[7:9] * 1
+        self.right_j1_tau += increment_directions[9:11] * 1
+        self.right_j2_tau += increment_directions[11:] * 1
 
         self._saturate()
 
