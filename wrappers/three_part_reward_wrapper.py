@@ -97,7 +97,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         #todo: form a sphere around the object, centered at the objects geom frame.
         sphere_center = box_pos
-        sphere_radius = 1.0  #for now
+        sphere_radius = .5  #for now
 
         #todo: get distance from each point to the sphere's surface.
         chest_dist = self.distance_to_sphere(chest_xpos, sphere_center,
