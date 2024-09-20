@@ -1,8 +1,17 @@
 import gymnasium as gym
 from baloo_mujoco_sim.utils.baloo_mj_api import (
-    get_contact_forces_on_body, get_tactile_image, get_box_position,
-    get_box_vel, detect_box_touch, get_joint_angles, get_box_quat,
-    get_elevator_vel, get_link_position, get_chest_position)
+    get_contact_forces_on_body,
+    get_tactile_image,
+    get_box_position,
+    get_box_vel,
+    detect_box_touch,
+    get_joint_angles,
+    get_box_quat,
+    get_elevator_vel,
+    get_link_position,
+    get_chest_position,
+    set_mocap_pose,
+)
 import numpy as np
 import mujoco
 from scipy.spatial.transform import Rotation as R
@@ -83,9 +92,12 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                         self.env.unwrapped.data)
 
         if np.linalg.norm(chest_xpos - box_xpos) > 0.5:
-            self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
-
             #### APPROACH PHASE ####
+            self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
+            self.env.unwrapped.model.geom("object_force_field").rgba = [
+                1, 0, 0, 1
+            ]
+
             left_link0_xpos = get_link_position(self.env.unwrapped.model,
                                                 self.env.unwrapped.data,
                                                 'left', 0)
@@ -102,11 +114,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
             sphere_center = box_xpos
             sphere_radius = .5  #for now
 
-            #update mujoco model to show sphere
-            self.env.unwrapped.model.geom(
-                'object_force_field').pos = sphere_center
-            self.env.unwrapped.model.geom(
-                'object_force_field').size = [sphere_radius] * 3
+            #update mujoco model to show sphere. this isn't working rn. the sphere isn't
+            set_mocap_pose(self.env.unwrapped.model, self.env.unwrapped.data,
+                           "object_force_field", sphere_center)
 
             chest_dist = self.distance_to_sphere(chest_xpos, sphere_center,
                                                  sphere_radius)
@@ -147,13 +157,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
             #reward if box is lifted
             if box_xvel[2] > 1e-2:
                 self.env.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
-                reward += 1
-
-        # #     #turn box green and +1
-        # # if (self.prev_box_error - box_error) > 0:
-        # #     reward += 1
-
-        # #update previous box error
-        #     self.prev_box_error = box_error
+                reward += 10
 
         return reward
