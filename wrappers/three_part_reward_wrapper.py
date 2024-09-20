@@ -79,13 +79,13 @@ class ThreePartRewardWrapper(gym.Wrapper):
         reward = 0
         box_xpos = get_box_position(self.env.unwrapped.model,
                                     self.env.unwrapped.data)
+        chest_xpos = get_chest_position(self.env.unwrapped.model,
+                                        self.env.unwrapped.data)
 
         if np.linalg.norm(chest_xpos - box_xpos) > 0.5:
             self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
 
             #### APPROACH PHASE ####
-            chest_xpos = get_chest_position(self.env.unwrapped.model,
-                                            self.env.unwrapped.data)
             left_link0_xpos = get_link_position(self.env.unwrapped.model,
                                                 self.env.unwrapped.data,
                                                 'left', 0)
