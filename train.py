@@ -84,7 +84,7 @@ if __name__ == "__main__":
             monitor_gym=
             True,  # auto-upload the videos of agents playing the game
             save_code=True,  # optional
-            tags=["carlo", "change-initial-height", "change-in-error"],
+            tags=["carlo", "change-initial-height", "sphere-approach-only"],
             notes=
             "testing changing initial height of elevator to see how it compares to the other runs starting at just the bottom",
         )
