@@ -95,7 +95,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             #### APPROACH PHASE ####
             self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
             self.env.unwrapped.model.geom("object_force_field").rgba = [
-                1, 0, 0, 1
+                1, 0, 0, .3
             ]
 
             left_link0_xpos = get_link_position(self.env.unwrapped.model,
@@ -150,13 +150,13 @@ class ThreePartRewardWrapper(gym.Wrapper):
             ]
             self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
 
-            #get box velocity
-            box_xvel = get_box_vel(self.env.unwrapped.model,
-                                   self.env.unwrapped.data)
+            # #get box velocity
+            # box_xvel = get_box_vel(self.env.unwrapped.model,
+            #                        self.env.unwrapped.data)
 
-            #reward if box is lifted
-            if box_xvel[2] > 1e-2:
-                self.env.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
-                reward += 10
+            # #reward if box is lifted
+            # if box_xvel[2] > 1e-2:
+            #     self.env.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
+            #     reward += 10
 
         return reward
