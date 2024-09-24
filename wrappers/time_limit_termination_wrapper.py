@@ -23,7 +23,7 @@ class TimeLimitTerminationWrapper(gym.Wrapper):
             action)
 
         self.step_count += 1
-        print(self.step_count)
+        # print(self.step_count)
 
         if self.step_count == int(self.time_limit_sec / self.control_timestep):
             terminated = True
