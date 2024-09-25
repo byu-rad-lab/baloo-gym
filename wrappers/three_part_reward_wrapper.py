@@ -91,58 +91,58 @@ class ThreePartRewardWrapper(gym.Wrapper):
         chest_xpos = get_chest_position(self.env.unwrapped.model,
                                         self.env.unwrapped.data)
 
-        if np.linalg.norm(chest_xpos - box_xpos) < 0.5:
-            reward += 1
-        # if True:
-        #     #### APPROACH PHASE ####
-        #     self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
-        #     self.env.unwrapped.model.geom("object_force_field").rgba = [
-        #         1, 0, 0, .3
-        #     ]
+        # if np.linalg.norm(chest_xpos - box_xpos) < 0.5:
+        #     reward += 1
+        if True:
+            #### APPROACH PHASE ####
+            self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
+            self.env.unwrapped.model.geom("object_force_field").rgba = [
+                1, 0, 0, .3
+            ]
 
-        #     left_link0_xpos = get_link_position(self.env.unwrapped.model,
-        #                                         self.env.unwrapped.data,
-        #                                         'left', 0)
-        #     left_link1_xpos = get_link_position(self.env.unwrapped.model,
-        #                                         self.env.unwrapped.data,
-        #                                         'left', 1)
-        #     right_link0_xpos = get_link_position(self.env.unwrapped.model,
-        #                                          self.env.unwrapped.data,
-        #                                          'right', 0)
-        #     right_link1_xpos = get_link_position(self.env.unwrapped.model,
-        #                                          self.env.unwrapped.data,
-        #                                          'right', 1)
+            left_link0_xpos = get_link_position(self.env.unwrapped.model,
+                                                self.env.unwrapped.data,
+                                                'left', 0)
+            left_link1_xpos = get_link_position(self.env.unwrapped.model,
+                                                self.env.unwrapped.data,
+                                                'left', 1)
+            right_link0_xpos = get_link_position(self.env.unwrapped.model,
+                                                 self.env.unwrapped.data,
+                                                 'right', 0)
+            right_link1_xpos = get_link_position(self.env.unwrapped.model,
+                                                 self.env.unwrapped.data,
+                                                 'right', 1)
 
-        #     sphere_center = box_xpos
-        #     sphere_radius = .75  #for now
+            sphere_center = box_xpos
+            sphere_radius = .75  #for now
 
-        #     #update mujoco model to show sphere. this isn't working rn. the sphere isn't
-        #     set_mocap_pose(self.env.unwrapped.model, self.env.unwrapped.data,
-        #                    "object_force_field", sphere_center)
+            #update mujoco model to show sphere. this isn't working rn. the sphere isn't
+            set_mocap_pose(self.env.unwrapped.model, self.env.unwrapped.data,
+                           "object_force_field", sphere_center)
 
-        #     chest_dist = self.distance_to_sphere(chest_xpos, sphere_center,
-        #                                          sphere_radius)
-        #     left_link0_dist = self.distance_to_sphere(left_link0_xpos,
-        #                                               sphere_center,
-        #                                               sphere_radius)
-        #     left_link1_dist = self.distance_to_sphere(left_link1_xpos,
-        #                                               sphere_center,
-        #                                               sphere_radius)
-        #     right_link0_dist = self.distance_to_sphere(right_link0_xpos,
-        #                                                sphere_center,
-        #                                                sphere_radius)
-        #     right_link1_dist = self.distance_to_sphere(right_link1_xpos,
-        #                                                sphere_center,
-        #                                                sphere_radius)
+            chest_dist = self.distance_to_sphere(chest_xpos, sphere_center,
+                                                 sphere_radius)
+            left_link0_dist = self.distance_to_sphere(left_link0_xpos,
+                                                      sphere_center,
+                                                      sphere_radius)
+            left_link1_dist = self.distance_to_sphere(left_link1_xpos,
+                                                      sphere_center,
+                                                      sphere_radius)
+            right_link0_dist = self.distance_to_sphere(right_link0_xpos,
+                                                       sphere_center,
+                                                       sphere_radius)
+            right_link1_dist = self.distance_to_sphere(right_link1_xpos,
+                                                       sphere_center,
+                                                       sphere_radius)
 
-        #     rms_dist = np.sqrt(
-        #         np.mean(
-        #             np.array([
-        #                 chest_dist, left_link0_dist, left_link1_dist,
-        #                 right_link0_dist, right_link1_dist
-        #             ])**2))
+            rms_dist = np.sqrt(
+                np.mean(
+                    np.array([
+                        chest_dist, left_link0_dist, left_link1_dist,
+                        right_link0_dist, right_link1_dist
+                    ])**2))
 
-        #     reward -= rms_dist
+            reward -= rms_dist
 
         # else:
         #     ### Grasp phase ###
