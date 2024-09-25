@@ -34,7 +34,6 @@ class VecVideoRecorder(VecEnvWrapper):
     :param video_length:  Length of recorded videos
     :param name_prefix: Prefix to the video name
     """
-
     def __init__(
         self,
         venv: VecEnv,
@@ -74,7 +73,7 @@ class VecVideoRecorder(VecEnvWrapper):
         self.name_prefix = name_prefix
         self.episode_id = 0
         self.step_id = 0
-        self.video_length = video_length
+        self.video_length = int(video_length)
 
         self.recording = False
         self.recorded_frames = 0
@@ -84,7 +83,6 @@ class VecVideoRecorder(VecEnvWrapper):
 
     def reset(self) -> VecEnvObs:
         obs = self.venv.reset()
-        # self.start_video_recorder()
         return obs
 
     def start_video_recorder(self) -> None:
@@ -102,9 +100,6 @@ class VecVideoRecorder(VecEnvWrapper):
                 "video_length": self.video_length
             },
         )
-
-        self.video_recorder.capture_frame()
-        self.recorded_frames = 1
         self.recording = True
 
     def _video_enabled(self) -> bool:
@@ -119,10 +114,9 @@ class VecVideoRecorder(VecEnvWrapper):
         #!doesn't work if any envs truncate--restarts and rewards are out of sync but will be a lot of work to fix.
         if self.recording:
             self.video_recorder.capture_frame()
-            self.recorded_rewards.append(rews)
             self.recorded_frames += 1
-            if self.recorded_frames > self.video_length:
-                #save rewards corresponding to videos
+            self.recorded_rewards.append(rews)
+            if any(dones):
                 self.recorded_rewards = np.array(self.recorded_rewards)
                 rew_imgs = []
                 for i in range(self.recorded_rewards.shape[1]):
@@ -141,7 +135,6 @@ class VecVideoRecorder(VecEnvWrapper):
                     wandb.log({f"rollout_rewards": wandb.Image(filename)},
                               commit=False)
                 #commit=false to log png and video on same wandb step
-                self.recorded_rewards = []
 
                 print(f"Saving video to {self.video_recorder.path}")
                 self.close_video_recorder()
@@ -150,6 +143,7 @@ class VecVideoRecorder(VecEnvWrapper):
             self.start_video_recorder()
 
         self.step_id += 1
+        # print(self.step_id)
         if any(dones):
             self.episode_id += 1
             print(f"Episode {self.episode_id}")
@@ -160,7 +154,8 @@ class VecVideoRecorder(VecEnvWrapper):
         if self.recording:
             self.video_recorder.close()
         self.recording = False
-        self.recorded_frames = 1
+        self.recorded_frames = 0
+        self.recorded_rewards = []
 
     def close(self) -> None:
         VecEnvWrapper.close(self)
