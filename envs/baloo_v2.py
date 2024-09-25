@@ -9,7 +9,6 @@ class IncrementalTorques:
     """
     This class is used to store the action vector.
     """
-
     def __init__(self, normalized_action_vector):
         """_summary_
         taus represent the delta pressures between opposing pressure chambers, with x and y
@@ -119,7 +118,6 @@ class BalooV2(BalooBase):
     This was done in an effort to shrink the action space
     to hopefully speed up learning. 
     '''
-
     def __init__(
         self,
         render_mode=None,
@@ -205,3 +203,7 @@ class BalooV2(BalooBase):
 
     def calculate_reward(self):
         return 0
+
+    def reset(self, seed=None, options=None):
+        self.current_actions = IncrementalTorques(np.zeros(13))
+        return super().reset(seed=seed, options=options)

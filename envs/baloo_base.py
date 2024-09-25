@@ -27,7 +27,6 @@ class BalooBase(gym.Env, ABC):
     3. Design reward function and implement calculate_reward(). This can be overridden with a wrapper since 
     this will likely change frequently.
     '''
-
     def __init__(
         self,
         render_mode=None,
@@ -91,13 +90,14 @@ class BalooBase(gym.Env, ABC):
                                     [150] * 4)
 
         #elevator height = something in between -1000 and 0
-        initial_height = np.random.uniform(-900, 0)
+        # initial_height = np.random.uniform(-900, 0)
+        initial_height = -800
         set_elevator_cmd(self.model, self.data, initial_height)
 
         mujoco.mj_step(self.model,
                        self.data,
                        nstep=int(15 / self.model.opt.timestep))
-
+        
         self.data.time = 0
 
     def _initialize_model_from_xml(self):
@@ -150,6 +150,7 @@ class BalooBase(gym.Env, ABC):
 
     def reset(self, seed=None, options=None):
         # We need the following line to seed self.np_random
+        print("resetting")
         super().reset(seed=seed)
 
         self._reinitialize_states()

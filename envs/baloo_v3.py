@@ -3,7 +3,7 @@ from gymnasium import spaces
 import numpy as np
 from utils.observation import RelativeObservation
 from utils.helpers import get_sensor_data
-from baloo_mujoco_sim.utils.baloo_mj_api import get_elevator_vel
+from baloo_mujoco_sim.utils.baloo_mj_api import get_elevator_vel, get_joint_pressures
 
 
 class IncrementalTorques:
@@ -159,6 +159,11 @@ class BalooV3(BalooBase):
                                      chest_pos=chest_pos,
                                      chest_vel=chest_vel)
 
+        # print(rawObs.left_j0_pos)
+        print(
+            f"Joint0 Pressures: {get_joint_pressures(self.model, self.data, 'left', 0)}"
+        )
+
         return rawObs.normalize_and_center().astype(
             self.observation_space.dtype)
 
@@ -213,3 +218,7 @@ class BalooV3(BalooBase):
 
     def calculate_reward(self):
         return 0
+
+    def reset(self, seed=None, options=None):
+        self.current_actions = IncrementalTorques(np.zeros(13))
+        return super().reset(seed=seed, options=options)
