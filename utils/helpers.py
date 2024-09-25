@@ -106,7 +106,7 @@ def build_env(config: dict, render_mode: str = "rgb_array"):
     if config["time_aware_obs"]:
         env = TimeAwareObservation(env)
 
-    env = TimeLimitTerminationWrapper(env, config["time_limit_sec"])
+    env = TimeLimitTerminationWrapper(env, config["time_limit_sec"], config["ctrl_timestep"])
 
     env = ThreePartRewardWrapper(env)
 

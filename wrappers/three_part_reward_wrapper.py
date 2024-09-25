@@ -91,72 +91,74 @@ class ThreePartRewardWrapper(gym.Wrapper):
         chest_xpos = get_chest_position(self.env.unwrapped.model,
                                         self.env.unwrapped.data)
 
-        if np.linalg.norm(chest_xpos - box_xpos) > 0.5:
-            #### APPROACH PHASE ####
-            self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
-            self.env.unwrapped.model.geom("object_force_field").rgba = [
-                1, 0, 0, .3
-            ]
-
-            left_link0_xpos = get_link_position(self.env.unwrapped.model,
-                                                self.env.unwrapped.data,
-                                                'left', 0)
-            left_link1_xpos = get_link_position(self.env.unwrapped.model,
-                                                self.env.unwrapped.data,
-                                                'left', 1)
-            right_link0_xpos = get_link_position(self.env.unwrapped.model,
-                                                 self.env.unwrapped.data,
-                                                 'right', 0)
-            right_link1_xpos = get_link_position(self.env.unwrapped.model,
-                                                 self.env.unwrapped.data,
-                                                 'right', 1)
-
-            sphere_center = box_xpos
-            sphere_radius = .5  #for now
-
-            #update mujoco model to show sphere. this isn't working rn. the sphere isn't
-            set_mocap_pose(self.env.unwrapped.model, self.env.unwrapped.data,
-                           "object_force_field", sphere_center)
-
-            chest_dist = self.distance_to_sphere(chest_xpos, sphere_center,
-                                                 sphere_radius)
-            left_link0_dist = self.distance_to_sphere(left_link0_xpos,
-                                                      sphere_center,
-                                                      sphere_radius)
-            left_link1_dist = self.distance_to_sphere(left_link1_xpos,
-                                                      sphere_center,
-                                                      sphere_radius)
-            right_link0_dist = self.distance_to_sphere(right_link0_xpos,
-                                                       sphere_center,
-                                                       sphere_radius)
-            right_link1_dist = self.distance_to_sphere(right_link1_xpos,
-                                                       sphere_center,
-                                                       sphere_radius)
-
-            rms_dist = np.sqrt(
-                np.mean(
-                    np.array([
-                        chest_dist, left_link0_dist, left_link1_dist,
-                        right_link0_dist, right_link1_dist
-                    ])**2))
-
-            reward -= rms_dist
-
-        else:
-            ### Grasp phase ###
+        if np.linalg.norm(chest_xpos - box_xpos) < 0.5:
             reward += 1
-            self.env.unwrapped.model.geom("object_force_field").rgba = [
-                0, 0, 0, 0
-            ]
-            self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
+        # if True:
+        #     #### APPROACH PHASE ####
+        #     self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
+        #     self.env.unwrapped.model.geom("object_force_field").rgba = [
+        #         1, 0, 0, .3
+        #     ]
 
-            # #get box velocity
-            # box_xvel = get_box_vel(self.env.unwrapped.model,
-            #                        self.env.unwrapped.data)
+        #     left_link0_xpos = get_link_position(self.env.unwrapped.model,
+        #                                         self.env.unwrapped.data,
+        #                                         'left', 0)
+        #     left_link1_xpos = get_link_position(self.env.unwrapped.model,
+        #                                         self.env.unwrapped.data,
+        #                                         'left', 1)
+        #     right_link0_xpos = get_link_position(self.env.unwrapped.model,
+        #                                          self.env.unwrapped.data,
+        #                                          'right', 0)
+        #     right_link1_xpos = get_link_position(self.env.unwrapped.model,
+        #                                          self.env.unwrapped.data,
+        #                                          'right', 1)
 
-            # #reward if box is lifted
-            # if box_xvel[2] > 1e-2:
-            #     self.env.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
-            #     reward += 10
+        #     sphere_center = box_xpos
+        #     sphere_radius = .75  #for now
+
+        #     #update mujoco model to show sphere. this isn't working rn. the sphere isn't
+        #     set_mocap_pose(self.env.unwrapped.model, self.env.unwrapped.data,
+        #                    "object_force_field", sphere_center)
+
+        #     chest_dist = self.distance_to_sphere(chest_xpos, sphere_center,
+        #                                          sphere_radius)
+        #     left_link0_dist = self.distance_to_sphere(left_link0_xpos,
+        #                                               sphere_center,
+        #                                               sphere_radius)
+        #     left_link1_dist = self.distance_to_sphere(left_link1_xpos,
+        #                                               sphere_center,
+        #                                               sphere_radius)
+        #     right_link0_dist = self.distance_to_sphere(right_link0_xpos,
+        #                                                sphere_center,
+        #                                                sphere_radius)
+        #     right_link1_dist = self.distance_to_sphere(right_link1_xpos,
+        #                                                sphere_center,
+        #                                                sphere_radius)
+
+        #     rms_dist = np.sqrt(
+        #         np.mean(
+        #             np.array([
+        #                 chest_dist, left_link0_dist, left_link1_dist,
+        #                 right_link0_dist, right_link1_dist
+        #             ])**2))
+
+        #     reward -= rms_dist
+
+        # else:
+        #     ### Grasp phase ###
+        #     reward += 1
+        #     self.env.unwrapped.model.geom("object_force_field").rgba = [
+        #         0, 0, 0, 0
+        #     ]
+        #     self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
+
+        #     # #get box velocity
+        #     # box_xvel = get_box_vel(self.env.unwrapped.model,
+        #     #                        self.env.unwrapped.data)
+
+        #     # #reward if box is lifted
+        #     # if box_xvel[2] > 1e-2:
+        #     #     self.env.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
+        #     #     reward += 10
 
         return reward

@@ -150,7 +150,7 @@ class BalooBase(gym.Env, ABC):
 
     def reset(self, seed=None, options=None):
         # We need the following line to seed self.np_random
-        print("resetting")
+        # print("resetting")
         super().reset(seed=seed)
 
         self._reinitialize_states()
