@@ -82,13 +82,21 @@ def build_env(config: dict, render_mode: str = "rgb_array"):
             total_timesteps (int): The total number of timesteps to train the model.
             ctrl_timestep (float): The duration of a single control timestep.
             env_name (str): The name of the environment to build.
-            class_name (str): The name of the class to instantiate.
             time_limit_sec (float): The time limit for each episode.
             time_aware_obs (bool): Whether to use time-aware observations.
     """
 
+    name2class = {
+        'baloo_v0': 'BalooV0',
+        'baloo_v1': 'BalooV1',
+        'baloo_v2': 'BalooV2',
+        'baloo_v3': 'BalooV3',
+        'baloo_v4': 'BalooV4',
+    }
+
+    class_name = name2class[config["env_name"]]
     EnvClass = getattr(importlib.import_module(f"envs.{config['env_name']}"),
-                       config['class_name'])
+                       class_name)
 
     env = EnvClass(render_mode=render_mode,
                    camera_name="fixedcam",
@@ -106,7 +114,8 @@ def build_env(config: dict, render_mode: str = "rgb_array"):
     if config["time_aware_obs"]:
         env = TimeAwareObservation(env)
 
-    env = TimeLimitTerminationWrapper(env, config["time_limit_sec"], config["ctrl_timestep"])
+        env = TimeLimitTerminationWrapper(env, config["time_limit_sec"],
+                                          config["ctrl_timestep"])
 
     env = ThreePartRewardWrapper(env)
 

@@ -28,11 +28,15 @@ if __name__ == "__main__":
                         help='Total timesteps for training')
     parser.add_argument('--num_envs',
                         type=int,
-                        default=16,
+                        default=9,
                         help='Number of environments for SubprocVecEnv')
     parser.add_argument('--wandb',
                         action='store_true',
                         help='Use Weights and Biases for logging')
+    parser.add_argument('--env_name',
+                        type=str,
+                        default='baloo_v3',
+                        help='Name of the environment')
     parser.add_argument(
         '--remote_train',
         action='store_true',
@@ -50,8 +54,7 @@ if __name__ == "__main__":
     config = {
         "total_timesteps": args.total_timesteps,
         "ctrl_timestep": .1,
-        "env_name": "baloo_v3",
-        "class_name": "BalooV3",
+        "env_name": args.env_name,
         "time_limit_sec": 30,
         "time_aware_obs": True,
     }
@@ -65,13 +68,19 @@ if __name__ == "__main__":
         env = SubprocVecEnv([build_monitor_env for _ in range(args.num_envs)])
 
         from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
-        env = VecVideoRecorder(env,
-                               f"./experiments/{run.name}/rollout_videos",
-                               record_video_trigger=lambda x: int(x % 20) == 0,
-                               video_length=config["time_limit_sec"] /
-                               config["ctrl_timestep"],
-                               name_prefix="rollout",
-                               wandb=args.wandb)
+        total_episodes = config["total_timesteps"] / (
+            (config["time_limit_sec"] / config["ctrl_timestep"]) *
+            args.num_envs)
+
+        ten_every_run = int(total_episodes / 10)
+
+        env = VecVideoRecorder(
+            env,
+            f"./experiments/{run.name}/rollout_videos",
+            record_video_trigger=lambda x: int(x % ten_every_run) == 0,
+            video_length=config["time_limit_sec"] / config["ctrl_timestep"],
+            name_prefix="rollout",
+            wandb=args.wandb)
 
         return env
 
@@ -84,10 +93,8 @@ if __name__ == "__main__":
             monitor_gym=
             True,  # auto-upload the videos of agents playing the game
             save_code=True,  # optional
-            tags=["carlo", "change-initial-height", "sphere-approach-only"],
-            notes=
-            "testing changing initial height of elevator to see how it compares to the other runs starting at just the bottom",
-        )
+            tags=["carlo", "post-bug", "sphere-approach-only"],
+            notes="")
 
         wandb.run.log_code("./wrappers/")
 
@@ -105,7 +112,7 @@ if __name__ == "__main__":
             eval_env=eval_env,
             n_eval_episodes=5,
             eval_freq=int(
-                config["total_timesteps"] / 5 /
+                config["total_timesteps"] / 10 /
                 args.num_envs),  #eval_num_timesteps = eval_freq * num_envs
             deterministic=True,
             best_model_save_path=f"./experiments/{run.name}/best_model",
@@ -113,7 +120,7 @@ if __name__ == "__main__":
             verbose=1,
         )
 
-        callback = CallbackList([wandb_callback, eval_callback])
+        callback = CallbackList([eval_callback, wandb_callback])
 
     else:
 
@@ -122,8 +129,6 @@ if __name__ == "__main__":
 
     env = make_parallel_env()
 
-    policy_kwargs = dict(net_arch=[128, 128, 128])
-
     rl_model = PPO(
         "MlpPolicy",
         env,
@@ -131,7 +136,6 @@ if __name__ == "__main__":
         #    use_sde=True, #usually for continuous action spaces.
         verbose=1,
         tensorboard_log=f"./experiments/{run.name}/runs",
-        policy_kwargs=policy_kwargs,
     )
 
     rl_model.learn(
