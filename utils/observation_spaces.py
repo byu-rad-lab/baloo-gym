@@ -15,7 +15,7 @@ class StateObservation:
         left_vel,
         right_vel,
     ):
-        self.object_pos = object_pos
+        self.object_pos_error = object_pos
         self.object_vel = object_vel
         self.elevator_pos = elevator_pos
         self.elevator_vel = elevator_vel
@@ -32,7 +32,7 @@ class StateObservation:
         self.right_j1_vel = right_vel[2:4]
         self.right_j2_vel = right_vel[4:6]
 
-        object_pos_lb = [-2, -2, 0]
+        object_pos_error_lb = [-2, -2, 0]
         object_vel_lb = [-2] * 3
         elevator_pos_lb = [-1.5]
         elevator_vel_lb = [-5]
@@ -49,7 +49,7 @@ class StateObservation:
         right_j1_vel_lb = [-2 * np.pi] * 2
         right_j2_vel_lb = [-2 * np.pi] * 2
 
-        self.obs_lower_bound = np.asarray(object_pos_lb + object_vel_lb +
+        self.obs_lower_bound = np.asarray(object_pos_error_lb + object_vel_lb +
                                           elevator_pos_lb + elevator_vel_lb +
                                           left_j0_pos_lb + left_j1_pos_lb +
                                           left_j2_pos_lb + right_j0_pos_lb +
@@ -58,7 +58,7 @@ class StateObservation:
                                           left_j2_vel_lb + right_j0_vel_lb +
                                           right_j1_vel_lb + right_j2_vel_lb)
 
-        object_pos_ub = [2, 2, 2]
+        object_pos_error_ub = [2, 2, 2]
         object_vel_ub = [2] * 3
         elevator_pos_ub = [0]
         elevator_vel_ub = [5]
@@ -75,7 +75,7 @@ class StateObservation:
         right_j1_vel_ub = [2 * np.pi] * 2
         right_j2_vel_ub = [2 * np.pi] * 2
 
-        self.obs_upper_bound = np.asarray(object_pos_ub + object_vel_ub +
+        self.obs_upper_bound = np.asarray(object_pos_error_ub + object_vel_ub +
                                           elevator_pos_ub + elevator_vel_ub +
                                           left_j0_pos_ub + left_j1_pos_ub +
                                           left_j2_pos_ub + right_j0_pos_ub +
@@ -86,7 +86,7 @@ class StateObservation:
 
     def to_array(self):
         return np.hstack([
-            self.object_pos,
+            self.object_pos_error,
             self.object_vel,
             self.elevator_pos,
             self.elevator_vel,
@@ -138,7 +138,7 @@ class RelativeObservation:
         chest_pos,
         chest_vel,
     ):
-        self.object_pos = object_pos
+        self.object_pos_error = object_pos
         self.object_vel = object_vel
         self.elevator_pos = elevator_pos
         self.elevator_vel = elevator_vel
@@ -158,7 +158,7 @@ class RelativeObservation:
         self.relative_object_pos = object_pos - chest_pos
         self.relative_object_vel = object_vel - chest_vel
 
-        object_pos_lb = [-2, -2, 0]
+        object_pos_error_lb = [-2, -2, 0]
         object_vel_lb = [-2] * 3
         elevator_pos_lb = [-1.5]
         elevator_vel_lb = [-5]
@@ -175,10 +175,10 @@ class RelativeObservation:
         right_j1_vel_lb = [-2 * np.pi] * 2
         right_j2_vel_lb = [-2 * np.pi] * 2
 
-        relative_object_pos_lb = [-2, -2, -2]
+        relative_object_pos_error_lb = [-2, -2, -2]
         relative_object_vel_lb = [-2] * 3
 
-        self.obs_lower_bound = np.asarray(object_pos_lb + object_vel_lb +
+        self.obs_lower_bound = np.asarray(object_pos_error_lb + object_vel_lb +
                                           elevator_pos_lb + elevator_vel_lb +
                                           left_j0_pos_lb + left_j1_pos_lb +
                                           left_j2_pos_lb + right_j0_pos_lb +
@@ -186,9 +186,9 @@ class RelativeObservation:
                                           left_j0_vel_lb + left_j1_vel_lb +
                                           left_j2_vel_lb + right_j0_vel_lb +
                                           right_j1_vel_lb + right_j2_vel_lb +
-                                          relative_object_pos_lb +
+                                          relative_object_pos_error_lb +
                                           relative_object_vel_lb)
-        object_pos_ub = [2, 2, 2]
+        object_pos_error_ub = [2, 2, 2]
         object_vel_ub = [2] * 3
         elevator_pos_ub = [0]
         elevator_vel_ub = [5]
@@ -205,10 +205,10 @@ class RelativeObservation:
         right_j1_vel_ub = [2 * np.pi] * 2
         right_j2_vel_ub = [2 * np.pi] * 2
 
-        relative_object_pos_ub = [2, 2, 2]
+        relative_object_pos_error_ub = [2, 2, 2]
         relative_object_vel_ub = [2] * 3
 
-        self.obs_upper_bound = np.asarray(object_pos_ub + object_vel_ub +
+        self.obs_upper_bound = np.asarray(object_pos_error_ub + object_vel_ub +
                                           elevator_pos_ub + elevator_vel_ub +
                                           left_j0_pos_ub + left_j1_pos_ub +
                                           left_j2_pos_ub + right_j0_pos_ub +
@@ -216,12 +216,12 @@ class RelativeObservation:
                                           left_j0_vel_ub + left_j1_vel_ub +
                                           left_j2_vel_ub + right_j0_vel_ub +
                                           right_j1_vel_ub + right_j2_vel_ub +
-                                          relative_object_pos_ub +
+                                          relative_object_pos_error_ub +
                                           relative_object_vel_ub)
 
     def to_array(self):
         return np.hstack([
-            self.object_pos,
+            self.object_pos_error,
             self.object_vel,
             self.elevator_pos,
             self.elevator_vel,
@@ -252,9 +252,10 @@ class RelativeObservation:
 class StateObservationPressure:
     shape = (32 + 24, )
 
+    #probably need to add in the desired object pose, maybe as object_error_pos and object_error_vel
     def __init__(
         self,
-        object_pos,
+        object_pos_error,
         object_vel,
         elevator_pos,
         elevator_vel,
@@ -269,7 +270,7 @@ class StateObservationPressure:
         right_j1_pressures,
         right_j2_pressures,
     ):
-        self.object_pos = object_pos
+        self.object_pos_error = object_pos_error  #defined as des_position - actual_position
         self.object_vel = object_vel
         self.elevator_pos = elevator_pos
         self.elevator_vel = elevator_vel
@@ -292,7 +293,7 @@ class StateObservationPressure:
         self.right_j1_p = right_j1_pressures
         self.right_j2_p = right_j2_pressures
 
-        object_pos_lb = [-2, -2, 0]
+        object_pos_error_lb = [-2, -2, -2]
         object_vel_lb = [-2] * 3
         elevator_pos_lb = [-1.5]
         elevator_vel_lb = [-5]
@@ -316,7 +317,7 @@ class StateObservationPressure:
         self.right_j2_p_lb = [0] * 4
 
         self.obs_lower_bound = np.asarray(
-            object_pos_lb + object_vel_lb + elevator_pos_lb + elevator_vel_lb +
+            object_pos_error_lb + object_vel_lb + elevator_pos_lb + elevator_vel_lb +
             left_j0_pos_lb + left_j1_pos_lb + left_j2_pos_lb +
             right_j0_pos_lb + right_j1_pos_lb + right_j2_pos_lb +
             left_j0_vel_lb + left_j1_vel_lb + left_j2_vel_lb +
@@ -324,7 +325,7 @@ class StateObservationPressure:
             self.left_j0_p_lb + self.left_j1_p_lb + self.left_j2_p_lb +
             self.right_j0_p_lb + self.right_j1_p_lb + self.right_j2_p_lb)
 
-        object_pos_ub = [2, 2, 2]
+        object_pos_error_ub = [2, 2, 2]
         object_vel_ub = [2] * 3
         elevator_pos_ub = [0]
         elevator_vel_ub = [5]
@@ -348,7 +349,7 @@ class StateObservationPressure:
         self.right_j2_p_ub = [400] * 4
 
         self.obs_upper_bound = np.asarray(
-            object_pos_ub + object_vel_ub + elevator_pos_ub + elevator_vel_ub +
+            object_pos_error_ub + object_vel_ub + elevator_pos_ub + elevator_vel_ub +
             left_j0_pos_ub + left_j1_pos_ub + left_j2_pos_ub +
             right_j0_pos_ub + right_j1_pos_ub + right_j2_pos_ub +
             left_j0_vel_ub + left_j1_vel_ub + left_j2_vel_ub +
@@ -358,7 +359,7 @@ class StateObservationPressure:
 
     def to_array(self):
         return np.hstack([
-            self.object_pos,
+            self.object_pos_error,
             self.object_vel,
             self.elevator_pos,
             self.elevator_vel,

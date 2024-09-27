@@ -93,7 +93,7 @@ if __name__ == "__main__":
             monitor_gym=
             True,  # auto-upload the videos of agents playing the game
             save_code=True,  # optional
-            tags=["carlo", "post-bug", "sphere-approach-only"],
+            tags=["carlo", "post-bug"],
             notes="")
 
         wandb.run.log_code("./wrappers/")

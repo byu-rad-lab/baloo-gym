@@ -11,6 +11,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_link_position,
     get_chest_position,
     set_mocap_pose,
+    set_mocap_size,
 )
 import numpy as np
 import mujoco
@@ -40,6 +41,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                          scalar_first=False))
 
         self.state = 'approach'
+        self.sphere_radius = 0.5
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
@@ -91,9 +93,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         chest_xpos = get_chest_position(self.env.unwrapped.model,
                                         self.env.unwrapped.data)
 
-        # if np.linalg.norm(chest_xpos - box_xpos) < 0.5:
-        #     reward += 1
-        if True:
+        if np.linalg.norm(chest_xpos - box_xpos) > .5:
             #### APPROACH PHASE ####
             self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
             self.env.unwrapped.model.geom("object_force_field").rgba = [
@@ -114,26 +114,29 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                                  'right', 1)
 
             sphere_center = box_xpos
-            sphere_radius = .75  #for now
+            # self.sphere_radius -= .01  #for now
 
             #update mujoco model to show sphere. this isn't working rn. the sphere isn't
+            set_mocap_size(self.env.unwrapped.model, self.env.unwrapped.data,
+                           "object_force_field", [self.sphere_radius])
+
             set_mocap_pose(self.env.unwrapped.model, self.env.unwrapped.data,
                            "object_force_field", sphere_center)
 
             chest_dist = self.distance_to_sphere(chest_xpos, sphere_center,
-                                                 sphere_radius)
+                                                 self.sphere_radius)
             left_link0_dist = self.distance_to_sphere(left_link0_xpos,
                                                       sphere_center,
-                                                      sphere_radius)
+                                                      self.sphere_radius)
             left_link1_dist = self.distance_to_sphere(left_link1_xpos,
                                                       sphere_center,
-                                                      sphere_radius)
+                                                      self.sphere_radius)
             right_link0_dist = self.distance_to_sphere(right_link0_xpos,
                                                        sphere_center,
-                                                       sphere_radius)
+                                                       self.sphere_radius)
             right_link1_dist = self.distance_to_sphere(right_link1_xpos,
                                                        sphere_center,
-                                                       sphere_radius)
+                                                       self.sphere_radius)
 
             rms_dist = np.sqrt(
                 np.mean(
@@ -144,21 +147,28 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
             reward -= rms_dist
 
-        # else:
-        #     ### Grasp phase ###
-        #     reward += 1
-        #     self.env.unwrapped.model.geom("object_force_field").rgba = [
-        #         0, 0, 0, 0
-        #     ]
-        #     self.env.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
+        else:
+            ### Grasp phase ###
+            self.env.unwrapped.model.geom("object_force_field").rgba = [
+                0, 0, 0, 0
+            ]
 
-        #     # #get box velocity
-        #     # box_xvel = get_box_vel(self.env.unwrapped.model,
-        #     #                        self.env.unwrapped.data)
+            #get box velocity
+            box_xvel = get_box_vel(self.env.unwrapped.model,
+                                   self.env.unwrapped.data)
 
-        #     # #reward if box is lifted
-        #     # if box_xvel[2] > 1e-2:
-        #     #     self.env.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
-        #     #     reward += 10
+            desired_box_pos = self.get_wrapper_attr("desired_box_pos")
+            box_error_pos = np.linalg.norm(desired_box_pos - box_xpos)
+
+            if box_error_pos < 0.2:
+                # or if box is close, stay close to desired position
+                self.env.unwrapped.model.geom('box').rgba = [0, 0, 1,
+                                                             1]  #green
+                reward += 1
+            elif box_xvel[2] > 1e-2:
+                #reward if box is lifted towards desired position since we are not close to position yet.
+                self.env.unwrapped.model.geom('box').rgba = [1, 1, 0,
+                                                             1]  #yellow
+                reward += 1
 
         return reward
