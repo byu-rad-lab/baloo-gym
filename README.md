@@ -56,12 +56,13 @@ I've implemented various observation spaces that can be used in the Baloo enviro
 These are implemented in the [```action_spaces```](./utils/action_spaces.py) module. 
 
 ## Environments ##
-| **Environment**                     | **Observation Space**                                      | **Action Space**                                     |
-| ----------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------- |
-| [```BalooV0```](./envs/baloo_v0.py) | [```StateObservation```](./utils/observation_spaces.py)    | [```NormalizedAction```](./utils/action_spaces.py)   |
-| [```BalooV1```](./envs/baloo_v1.py) | [```StateObservation```](./utils/observation_spaces.py)    | [```IncrementalAction```](./utils/action_spaces.py)  |
-| [```BalooV2```](./envs/baloo_v2.py) | [```StateObservation```](./utils/observation_spaces.py)    | [```IncrementalTorques```](./utils/action_spaces.py) |
-| [```BalooV3```](./envs/baloo_v3.py) | [```RelativeObservation```](./utils/observation_spaces.py) | [```IncrementalTorques```](./utils/action_spaces.py) |
+| **Environment**                     | **Observation Space**                                           | **Action Space**                                     |
+| ----------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| [```BalooV0```](./envs/baloo_v0.py) | [```StateObservation```](./utils/observation_spaces.py)         | [```NormalizedAction```](./utils/action_spaces.py)   |
+| [```BalooV1```](./envs/baloo_v1.py) | [```StateObservation```](./utils/observation_spaces.py)         | [```IncrementalAction```](./utils/action_spaces.py)  |
+| [```BalooV2```](./envs/baloo_v2.py) | [```StateObservation```](./utils/observation_spaces.py)         | [```IncrementalTorques```](./utils/action_spaces.py) |
+| [```BalooV3```](./envs/baloo_v3.py) | [```RelativeObservation```](./utils/observation_spaces.py)      | [```IncrementalTorques```](./utils/action_spaces.py) |
+| [```BalooV4```](./envs/baloo_v4.py) | [```StateObservationPressure```](./utils/observation_spaces.py) | [```IncrementalTorques```](./utils/action_spaces.py) |
 
 
 
