@@ -2,6 +2,8 @@ import numpy as np
 
 
 class NormalizedAction:
+    shape = (25, )
+
     def __init__(self, normalized_action_vector):
         self.elevator_height = normalized_action_vector[0]
         self.left_j0_pressure = normalized_action_vector[1:5]
@@ -48,6 +50,8 @@ class IncrementalAction:
     """
     This class is used to store the action vector.
     """
+    shape = (25, )
+
     def __init__(self, normalized_action_vector):
         self.elevator_height = np.asarray(normalized_action_vector[0])
         self.left_j0_pressure = np.asarray(normalized_action_vector[1:5])
@@ -142,6 +146,8 @@ class IncrementalTorques:
     """
     This class is used to store the action vector.
     """
+    shape = (13, )
+
     def __init__(self, normalized_action_vector):
         """_summary_
         taus represent the delta pressures between opposing pressure chambers, with x and y
