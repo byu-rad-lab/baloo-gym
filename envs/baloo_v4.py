@@ -3,7 +3,7 @@ from gymnasium import spaces
 import numpy as np
 from utils.observation_spaces import StateObservationPressure
 from utils.helpers import get_sensor_data
-from baloo_mujoco_sim.utils.baloo_mj_api import get_elevator_vel, get_joint_pressures
+from baloo_mujoco_sim.utils.baloo_mj_api import get_elevator_vel, get_joint_pressures, set_mocap_pose
 from utils.action_spaces import IncrementalTorques
 
 
@@ -48,6 +48,8 @@ class BalooV4(BalooBase):
         self.current_actions = IncrementalTorques(np.zeros(13))
 
         self.desired_box_pos = np.array([0, 0.5, 1.0])
+        set_mocap_pose(self.model, self.data, "desired_pose",
+                       self.desired_box_pos)
 
     def get_observation_from_mujoco(self):
         sensor_data = get_sensor_data(self.model, self.data)
