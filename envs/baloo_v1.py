@@ -6,7 +6,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
 
 from envs.baloo_base import BalooBase
 
-from utils.observation_spaces import Observation
+from utils.observation_spaces import StateObservation
 from utils.helpers import get_sensor_data
 from utils.action_spaces import IncrementalAction
 
@@ -29,18 +29,18 @@ class BalooV1(BalooBase):
         )
 
         # action space is elevator height, pressure commands for each joint (h, left [0,1,2,3], right [0,1,2,3])
-        self.action_space = spaces.MultiDiscrete([3] * 25)
+        action_size = IncrementalAction.shape[0]
+        self.action_space = spaces.MultiDiscrete([3] * action_size)
 
         self.observation_space = spaces.Box(-1,
                                             1,
-                                            shape=(6 + 6 + 6 + 6 + 3 + 3 +
-                                                   2, ),
+                                            shape=StateObservation.shape,
                                             dtype=np.float32)
 
         self.current_actions = IncrementalAction(np.zeros(25))
 
     def get_observation_from_mujoco(self):
-        rawObs = Observation(**get_sensor_data(self.model, self.data))
+        rawObs = StateObservation(**get_sensor_data(self.model, self.data))
 
         return rawObs.normalize_and_center().astype(
             self.observation_space.dtype)

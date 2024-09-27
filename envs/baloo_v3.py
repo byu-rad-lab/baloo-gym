@@ -37,7 +37,9 @@ class BalooV3(BalooBase):
         )
 
         #action space is incremental position on elevator (1) then torques on arms (12)
-        self.action_space = self.action_space = spaces.MultiDiscrete([3] * 13)
+        action_size = IncrementalTorques.shape[0]
+        self.action_space = self.action_space = spaces.MultiDiscrete(
+            [3] * action_size)
 
         #see Observation class in utils/observation.py for more details
         self.observation_space = spaces.Box(-1,

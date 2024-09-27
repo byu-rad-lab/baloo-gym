@@ -5,7 +5,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_tactile_image, )
 from envs.baloo_base import BalooBase
 
-from utils.observation_spaces import Observation
+from utils.observation_spaces import StateObservation
 from utils.helpers import get_sensor_data
 from utils.action_spaces import NormalizedAction
 
@@ -27,17 +27,16 @@ class BalooV0(BalooBase):
         # action space is elevator height, pressure commands for each joint (h, left [0,1,2,3], right [0,1,2,3])
         self.action_space = spaces.Box(-1,
                                        1,
-                                       shape=(1 + 24, ),
+                                       shape=NormalizedAction.shape,
                                        dtype=np.float32)
 
         self.observation_space = spaces.Box(-1,
                                             1,
-                                            shape=(6 + 6 + 6 + 6 + 3 + 3 +
-                                                   2, ),
+                                            shape=StateObservation.shape,
                                             dtype=np.float32)
 
     def get_observation_from_mujoco(self):
-        rawObs = Observation(**get_sensor_data(self.model, self.data))
+        rawObs = StateObservation(**get_sensor_data(self.model, self.data))
 
         return rawObs.normalize_and_center().astype(
             self.observation_space.dtype)

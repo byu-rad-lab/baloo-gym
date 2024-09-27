@@ -1,11 +1,7 @@
 import numpy as np
 
 
-class Observation:
-    # to help with bookkeeping, this class is used to store the observation vector
-    """
-    size is 32: 3,3,1,1,6,6,6,6
-    """
+class StateObservation:
     shape = (32, )
 
     def __init__(

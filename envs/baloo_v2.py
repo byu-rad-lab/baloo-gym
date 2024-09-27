@@ -1,7 +1,7 @@
 from envs.baloo_base import BalooBase
 from gymnasium import spaces
 import numpy as np
-from utils.observation_spaces import Observation
+from utils.observation_spaces import StateObservation
 from utils.helpers import get_sensor_data
 from utils.action_spaces import IncrementalTorques
 
@@ -31,19 +31,20 @@ class BalooV2(BalooBase):
         )
 
         #action space is incremental position on elevator (1) then torques on arms (12)
-        self.action_space = self.action_space = spaces.MultiDiscrete([3] * 13)
+        action_size = IncrementalTorques.shape[0]
+        self.action_space = self.action_space = spaces.MultiDiscrete(
+            [3] * action_size)
 
         #see Observation class in utils/observation.py for more details
         self.observation_space = spaces.Box(-1,
                                             1,
-                                            shape=(6 + 6 + 6 + 6 + 3 + 3 +
-                                                   2, ),
+                                            shape=StateObservation.shape,
                                             dtype=np.float32)
 
         self.current_actions = IncrementalTorques(np.zeros(13))
 
     def get_observation_from_mujoco(self):
-        rawObs = Observation(**get_sensor_data(self.model, self.data))
+        rawObs = StateObservation(**get_sensor_data(self.model, self.data))
 
         return rawObs.normalize_and_center().astype(
             self.observation_space.dtype)
