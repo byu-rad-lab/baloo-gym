@@ -89,15 +89,13 @@ class BalooBase(gym.Env, ABC):
         set_joint_pressure_commands(self.model, self.data, "right", 2,
                                     [150] * 4)
 
-        #elevator height = something in between -1000 and 0
-        # initial_height = np.random.uniform(-900, 0)
-        initial_height = -800
+        initial_height = 0
         set_elevator_cmd(self.model, self.data, initial_height)
 
         mujoco.mj_step(self.model,
                        self.data,
                        nstep=int(15 / self.model.opt.timestep))
-        
+
         self.data.time = 0
 
     def _initialize_model_from_xml(self):

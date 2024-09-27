@@ -5,51 +5,9 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_tactile_image, )
 from envs.baloo_base import BalooBase
 
-from utils.observation import Observation
+from utils.observation_spaces import Observation
 from utils.helpers import get_sensor_data
-
-
-class NormalizedAction:
-    def __init__(self, normalized_action_vector):
-        self.elevator_height = normalized_action_vector[0]
-        self.left_j0_pressure = normalized_action_vector[1:5]
-        self.left_j1_pressure = normalized_action_vector[5:9]
-        self.left_j2_pressure = normalized_action_vector[9:13]
-        self.right_j0_pressure = normalized_action_vector[13:17]
-        self.right_j1_pressure = normalized_action_vector[17:21]
-        self.right_j2_pressure = normalized_action_vector[21:25]
-
-        self.action_lower_bound = np.asarray([-1000] + [0] * 24)
-        self.action_upper_bound = np.asarray([0] + [300] * 24)
-
-    def __repr__(self):
-        return f"Action: {self._to_array()}"
-
-    def _to_array(self):
-        return np.hstack([
-            self.elevator_height,
-            self.left_j0_pressure,
-            self.left_j1_pressure,
-            self.left_j2_pressure,
-            self.right_j0_pressure,
-            self.right_j1_pressure,
-            self.right_j2_pressure,
-        ])
-
-    def unnormalize(self):
-        unnormalized_actions = (self._to_array() + 1) * (
-            self.action_upper_bound -
-            self.action_lower_bound) / 2 + self.action_lower_bound
-
-        self.elevator_height = unnormalized_actions[0]
-        self.left_j0_pressure = unnormalized_actions[1:5]
-        self.left_j1_pressure = unnormalized_actions[5:9]
-        self.left_j2_pressure = unnormalized_actions[9:13]
-        self.right_j0_pressure = unnormalized_actions[13:17]
-        self.right_j1_pressure = unnormalized_actions[17:21]
-        self.right_j2_pressure = unnormalized_actions[21:25]
-
-        return self
+from utils.action_spaces import NormalizedAction
 
 
 class BalooV0(BalooBase):
