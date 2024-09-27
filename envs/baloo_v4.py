@@ -47,30 +47,31 @@ class BalooV4(BalooBase):
 
         self.current_actions = IncrementalTorques(np.zeros(13))
 
+        self.desired_box_pos = np.array([0, 0.5, 1.0])
+
     def get_observation_from_mujoco(self):
-        left_j0_pressure = get_joint_pressures(self.model, self.data, 'left',
-                                               0)
-        left_j1_pressure = get_joint_pressures(self.model, self.data, 'left',
-                                               1)
-        left_j2_pressure = get_joint_pressures(self.model, self.data, 'left',
-                                               2)
+        sensor_data = get_sensor_data(self.model, self.data)
+        sensor_data["left_j0_pressures"] = get_joint_pressures(
+            self.model, self.data, 'left', 0)
+        sensor_data["left_j1_pressures"] = get_joint_pressures(
+            self.model, self.data, 'left', 1)
+        sensor_data["left_j2_pressures"] = get_joint_pressures(
+            self.model, self.data, 'left', 2)
 
-        right_j0_pressure = get_joint_pressures(self.model, self.data, 'right',
-                                                0)
-        right_j1_pressure = get_joint_pressures(self.model, self.data, 'right',
-                                                1)
-        right_j2_pressure = get_joint_pressures(self.model, self.data, 'right',
-                                                2)
+        sensor_data["right_j0_pressures"] = get_joint_pressures(
+            self.model, self.data, 'right', 0)
+        sensor_data["right_j1_pressures"] = get_joint_pressures(
+            self.model, self.data, 'right', 1)
+        sensor_data["right_j2_pressures"] = get_joint_pressures(
+            self.model, self.data, 'right', 2)
 
-        rawObs = StateObservationPressure(
-            **get_sensor_data(self.model, self.data),
-            left_j0_pressures=left_j0_pressure,
-            left_j1_pressures=left_j1_pressure,
-            left_j2_pressures=left_j2_pressure,
-            right_j0_pressures=right_j0_pressure,
-            right_j1_pressures=right_j1_pressure,
-            right_j2_pressures=right_j2_pressure,
-        )
+        #convert object_pos to object_pos_error
+        desired_position = np.array([0, 0, 0])
+        sensor_data[
+            "object_pos_error"] = desired_position - sensor_data["object_pos"]
+        sensor_data.pop("object_pos")
+
+        rawObs = StateObservationPressure(**sensor_data)
 
         # print(rawObs.left_j0_pos)
         # print(
