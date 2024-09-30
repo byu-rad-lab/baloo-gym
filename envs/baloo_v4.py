@@ -27,6 +27,7 @@ class BalooV4(BalooBase):
         ctrl_timestep=0.01,
         render_width=320,
         render_height=240,
+        desired_box_pos=None,
     ):
         super().__init__(
             render_mode=render_mode,
@@ -36,18 +37,21 @@ class BalooV4(BalooBase):
             render_height=render_height,
         )
 
-        #action space is incremental position on elevator (1) then torques on arms (12)
         action_size = IncrementalTorques.shape[0]
         self.action_space = self.action_space = spaces.MultiDiscrete(
             [3] * action_size)
 
-        #see Observation class in utils/observation.py for more details
         self.observation_space = spaces.Box(
             -1, 1, shape=StateObservationPressure.shape, dtype=np.float32)
 
         self.current_actions = IncrementalTorques(np.zeros(13))
 
-        self.desired_box_pos = np.array([0, 0.5, 1.0])
+        if desired_box_pos is None:
+            self.desired_box_pos = np.array([0, 0.5, .75])
+            print("No desired box position given, defaulting to ",
+                  self.desired_box_pos)
+        else:
+            self.desired_box_pos = desired_box_pos
         set_mocap_pose(self.model, self.data, "desired_pose",
                        self.desired_box_pos)
 
@@ -67,18 +71,11 @@ class BalooV4(BalooBase):
         sensor_data["right_j2_pressures"] = get_joint_pressures(
             self.model, self.data, 'right', 2)
 
-        #convert object_pos to object_pos_error
-        desired_position = np.array([0, 0, 0])
-        sensor_data[
-            "object_pos_error"] = desired_position - sensor_data["object_pos"]
+        sensor_data["object_pos_error"] = self.desired_box_pos - sensor_data[
+            "object_pos"]
         sensor_data.pop("object_pos")
 
         rawObs = StateObservationPressure(**sensor_data)
-
-        # print(rawObs.left_j0_pos)
-        # print(
-        #     f"Joint0 Pressures: {get_joint_pressures(self.model, self.data, 'left', 0)}"
-        # )
 
         return rawObs.normalize_and_center().astype(
             self.observation_space.dtype)
@@ -131,9 +128,6 @@ class BalooV4(BalooBase):
         commands[24] = 150 - self.current_actions.right_j2_tau[1] / 2
 
         return commands
-
-    def calculate_reward(self):
-        return 0
 
     def reset(self, seed=None, options=None):
         self.current_actions = IncrementalTorques(np.zeros(13))
