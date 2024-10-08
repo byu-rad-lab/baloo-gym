@@ -6,16 +6,16 @@ This repo is an RL training environment for Baloo.
 
 Before you can run the application, you need to set up a virtual environment and install the necessary dependencies. Here's how you can do that:
 
-1. First, create a virtual environment. You can do this using the following command:
+1. Install [poetry](https://python-poetry.org/docs/), the depndency manager for this project
+2. First, create a virtual environment. You can do this using the following command:
    ```bash
    python3 -m venv env
    ```
-2. Next, activate the virtual environment:
+3. Next, activate the virtual environment:
    ```bash
    source env/bin/activate
    ```
-3. Install [baloo_mujoco_sim](https://github.com/byu-rad-lab/baloo_mujoco_sim) repository.
-4. Install [poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), the depndency manager for this project
+4. Install [baloo_mujoco_sim](https://github.com/byu-rad-lab/baloo_mujoco_sim) repository.
 5. Install the remaining dependencies using poetry:
    ```bash
    poetry install
