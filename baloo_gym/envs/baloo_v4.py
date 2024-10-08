@@ -1,18 +1,24 @@
-from envs.baloo_base import BalooBase
+from baloo_gym.envs.baloo_base import BalooBase
 from gymnasium import spaces
 import numpy as np
-from utils.observation_spaces import StateObservation
-from utils.helpers import get_sensor_data
-from utils.action_spaces import IncrementalTorques
+from baloo_gym.utils.observation_spaces import StateObservationPressure
+from baloo_gym.utils.helpers import get_sensor_data
+from baloo_mujoco_sim.utils.baloo_mj_api import get_elevator_vel, get_joint_pressures, set_mocap_pose
+from baloo_gym.utils.action_spaces import IncrementalTorques
 
 
-class BalooV2(BalooBase):
+class BalooV4(BalooBase):
     '''
-    BalooV2 implements an environment where the actions 
+    BalooV3 implements an environment where the actions 
     are incremental torques on the arms and elevator.
 
     This was done in an effort to shrink the action space
     to hopefully speed up learning. 
+
+    It also builds on V2 by adding some extras into the state representation, like the relative positive and velocity 
+    between the torso and the manipuland. 
+
+    Might also include some sort of tactile sensing in the state as well. 
     '''
     def __init__(
         self,
@@ -21,6 +27,7 @@ class BalooV2(BalooBase):
         ctrl_timestep=0.01,
         render_width=320,
         render_height=240,
+        desired_box_pos=None,
     ):
         super().__init__(
             render_mode=render_mode,
@@ -30,21 +37,45 @@ class BalooV2(BalooBase):
             render_height=render_height,
         )
 
-        #action space is incremental position on elevator (1) then torques on arms (12)
         action_size = IncrementalTorques.shape[0]
         self.action_space = self.action_space = spaces.MultiDiscrete(
             [3] * action_size)
 
-        #see Observation class in utils/observation.py for more details
-        self.observation_space = spaces.Box(-1,
-                                            1,
-                                            shape=StateObservation.shape,
-                                            dtype=np.float32)
+        self.observation_space = spaces.Box(
+            -1, 1, shape=StateObservationPressure.shape, dtype=np.float32)
 
         self.current_actions = IncrementalTorques(np.zeros(13))
 
+        if desired_box_pos is None:
+            self.desired_box_pos = np.array([0, 0.5, .75])
+            print("No desired box position given, defaulting to ",
+                  self.desired_box_pos)
+        else:
+            self.desired_box_pos = desired_box_pos
+        set_mocap_pose(self.model, self.data, "desired_pose",
+                       self.desired_box_pos)
+
     def get_observation_from_mujoco(self):
-        rawObs = StateObservation(**get_sensor_data(self.model, self.data))
+        sensor_data = get_sensor_data(self.model, self.data)
+        sensor_data["left_j0_pressures"] = get_joint_pressures(
+            self.model, self.data, 'left', 0)
+        sensor_data["left_j1_pressures"] = get_joint_pressures(
+            self.model, self.data, 'left', 1)
+        sensor_data["left_j2_pressures"] = get_joint_pressures(
+            self.model, self.data, 'left', 2)
+
+        sensor_data["right_j0_pressures"] = get_joint_pressures(
+            self.model, self.data, 'right', 0)
+        sensor_data["right_j1_pressures"] = get_joint_pressures(
+            self.model, self.data, 'right', 1)
+        sensor_data["right_j2_pressures"] = get_joint_pressures(
+            self.model, self.data, 'right', 2)
+
+        sensor_data["object_pos_error"] = self.desired_box_pos - sensor_data[
+            "object_pos"]
+        sensor_data.pop("object_pos")
+
+        rawObs = StateObservationPressure(**sensor_data)
 
         return rawObs.normalize_and_center().astype(
             self.observation_space.dtype)
@@ -98,9 +129,9 @@ class BalooV2(BalooBase):
 
         return commands
 
-    def calculate_reward(self):
-        return 0
-
     def reset(self, seed=None, options=None):
         self.current_actions = IncrementalTorques(np.zeros(13))
         return super().reset(seed=seed, options=options)
+
+    def calculate_reward(self) -> float:
+        return 0

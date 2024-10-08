@@ -12,8 +12,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--experiment', type=str, help='Experiment name')
 args = parser.parse_args()
 
-args.experiment = "crimson-water-375"
-
 model = PPO.load(f"./experiments/{args.experiment}/recent_model/model.zip")
 
 config = {

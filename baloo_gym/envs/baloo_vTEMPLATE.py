@@ -1,4 +1,4 @@
-from envs.baloo_base import BalooBase
+from baloo_gym.envs.baloo_base import BalooBase
 import numpy as np
 from numpy.typing import ArrayLike
 

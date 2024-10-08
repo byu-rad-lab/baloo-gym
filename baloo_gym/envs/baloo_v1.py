@@ -4,11 +4,11 @@ import numpy as np
 from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_tactile_image, )
 
-from envs.baloo_base import BalooBase
+from baloo_gym.envs.baloo_base import BalooBase
 
-from utils.observation_spaces import StateObservation
-from utils.helpers import get_sensor_data
-from utils.action_spaces import IncrementalAction
+from baloo_gym.utils.observation_spaces import StateObservation
+from baloo_gym.utils.helpers import get_sensor_data
+from baloo_gym.utils.action_spaces import IncrementalAction
 
 
 class BalooV1(BalooBase):

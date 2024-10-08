@@ -132,5 +132,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 self.env.unwrapped.model.geom('box').rgba = [1, 1, 0,
                                                              1]  #yellow
                 reward += 1
+            else:
+                self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
 
         return reward

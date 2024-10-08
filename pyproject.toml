@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "baloo-gym"
+version = "0.1.0"
+description = ""
+authors = ["Curtis <curtiscarljohnson@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.8"
+mujoco = "3.1.4"
+numpy = "1.24.3"
+scipy = "1.10.1"
+glfw = "^2.7.0"
+imageio = "^2.35.1"
+gymnasium = "0.29.1"
+stable-baselines3 = "2.3.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

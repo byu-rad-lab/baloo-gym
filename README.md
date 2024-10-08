@@ -15,9 +15,10 @@ Before you can run the application, you need to set up a virtual environment and
    source env/bin/activate
    ```
 3. Install [baloo_mujoco_sim](https://github.com/byu-rad-lab/baloo_mujoco_sim) repository.
-4. Install the remaining dependencies:
+4. Install [poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), the depndency manager for this project
+5. Install the remaining dependencies using poetry:
    ```bash
-   pip install -r requirements.txt
+   poetry install
    ```
 
 
@@ -56,8 +57,8 @@ I've implemented various observation spaces that can be used in the Baloo enviro
 These are implemented in the [```action_spaces```](./utils/action_spaces.py) module. 
 
 ## Environments ##
-| **Environment**                     | **Observation Space**                                           | **Action Space**                                     |
-| ----------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| **Environment**                      | **Observation Space**                                           | **Action Space**                                     |
+| ------------------------------------ | --------------------------------------------------------------- | ---------------------------------------------------- |
 | [```baloo_v0```](./envs/baloo_v0.py) | [```StateObservation```](./utils/observation_spaces.py)         | [```NormalizedAction```](./utils/action_spaces.py)   |
 | [```baloo_v1```](./envs/baloo_v1.py) | [```StateObservation```](./utils/observation_spaces.py)         | [```IncrementalAction```](./utils/action_spaces.py)  |
 | [```baloo_v2```](./envs/baloo_v2.py) | [```StateObservation```](./utils/observation_spaces.py)         | [```IncrementalTorques```](./utils/action_spaces.py) |

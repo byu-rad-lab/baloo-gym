@@ -3,11 +3,11 @@ from gymnasium import spaces
 
 from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_tactile_image, )
-from envs.baloo_base import BalooBase
+from baloo_gym.envs.baloo_base import BalooBase
 
-from utils.observation_spaces import StateObservation
-from utils.helpers import get_sensor_data
-from utils.action_spaces import NormalizedAction
+from baloo_gym.utils.observation_spaces import StateObservation
+from baloo_gym.utils.helpers import get_sensor_data
+from baloo_gym.utils.action_spaces import NormalizedAction
 
 
 class BalooV0(BalooBase):

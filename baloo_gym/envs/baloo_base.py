@@ -2,7 +2,7 @@ import gymnasium as gym
 from gymnasium import spaces
 from abc import ABC, abstractmethod
 import mujoco
-from utils.mujoco_rendering import MujocoRenderer
+from baloo_gym.utils.mujoco_rendering import MujocoRenderer
 import baloo_mujoco_sim as baloo_mj
 from baloo_mujoco_sim.utils.baloo_mj_api import (
     set_elevator_cmd,

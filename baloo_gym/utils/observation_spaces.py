@@ -317,13 +317,14 @@ class StateObservationPressure:
         self.right_j2_p_lb = [0] * 4
 
         self.obs_lower_bound = np.asarray(
-            object_pos_error_lb + object_vel_lb + elevator_pos_lb + elevator_vel_lb +
-            left_j0_pos_lb + left_j1_pos_lb + left_j2_pos_lb +
-            right_j0_pos_lb + right_j1_pos_lb + right_j2_pos_lb +
-            left_j0_vel_lb + left_j1_vel_lb + left_j2_vel_lb +
-            right_j0_vel_lb + right_j1_vel_lb + right_j2_vel_lb +
-            self.left_j0_p_lb + self.left_j1_p_lb + self.left_j2_p_lb +
-            self.right_j0_p_lb + self.right_j1_p_lb + self.right_j2_p_lb)
+            object_pos_error_lb + object_vel_lb + elevator_pos_lb +
+            elevator_vel_lb + left_j0_pos_lb + left_j1_pos_lb +
+            left_j2_pos_lb + right_j0_pos_lb + right_j1_pos_lb +
+            right_j2_pos_lb + left_j0_vel_lb + left_j1_vel_lb +
+            left_j2_vel_lb + right_j0_vel_lb + right_j1_vel_lb +
+            right_j2_vel_lb + self.left_j0_p_lb + self.left_j1_p_lb +
+            self.left_j2_p_lb + self.right_j0_p_lb + self.right_j1_p_lb +
+            self.right_j2_p_lb)
 
         object_pos_error_ub = [2, 2, 2]
         object_vel_ub = [2] * 3
@@ -349,13 +350,14 @@ class StateObservationPressure:
         self.right_j2_p_ub = [400] * 4
 
         self.obs_upper_bound = np.asarray(
-            object_pos_error_ub + object_vel_ub + elevator_pos_ub + elevator_vel_ub +
-            left_j0_pos_ub + left_j1_pos_ub + left_j2_pos_ub +
-            right_j0_pos_ub + right_j1_pos_ub + right_j2_pos_ub +
-            left_j0_vel_ub + left_j1_vel_ub + left_j2_vel_ub +
-            right_j0_vel_ub + right_j1_vel_ub + right_j2_vel_ub +
-            self.left_j0_p_ub + self.left_j1_p_ub + self.left_j2_p_ub +
-            self.right_j0_p_ub + self.right_j1_p_ub + self.right_j2_p_ub)
+            object_pos_error_ub + object_vel_ub + elevator_pos_ub +
+            elevator_vel_ub + left_j0_pos_ub + left_j1_pos_ub +
+            left_j2_pos_ub + right_j0_pos_ub + right_j1_pos_ub +
+            right_j2_pos_ub + left_j0_vel_ub + left_j1_vel_ub +
+            left_j2_vel_ub + right_j0_vel_ub + right_j1_vel_ub +
+            right_j2_vel_ub + self.left_j0_p_ub + self.left_j1_p_ub +
+            self.left_j2_p_ub + self.right_j0_p_ub + self.right_j1_p_ub +
+            self.right_j2_p_ub)
 
     def to_array(self):
         return np.hstack([
@@ -389,3 +391,22 @@ class StateObservationPressure:
     def normalize_and_center(self):
         return (2 * (self.to_array() - self.obs_lower_bound) /
                 (self.obs_upper_bound - self.obs_lower_bound) - 1)
+
+    @staticmethod
+    def from_standardized_array(observation_array):
+        return StateObservationPressure(
+            object_pos_error=observation_array[0:3],
+            object_vel=observation_array[3:6],
+            elevator_pos=observation_array[6],
+            elevator_vel=observation_array[7],
+            left_pos=observation_array[8:14],
+            right_pos=observation_array[14:20],
+            left_vel=observation_array[20:26],
+            right_vel=observation_array[26:32],
+            left_j0_pressures=observation_array[32:36],
+            left_j1_pressures=observation_array[36:40],
+            left_j2_pressures=observation_array[40:44],
+            right_j0_pressures=observation_array[44:48],
+            right_j1_pressures=observation_array[48:52],
+            right_j2_pressures=observation_array[52:56],
+        )

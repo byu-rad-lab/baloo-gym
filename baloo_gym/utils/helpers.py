@@ -9,8 +9,8 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
 )
 
 from stable_baselines3.common.env_checker import check_env
-from wrappers.time_limit_termination_wrapper import TimeLimitTerminationWrapper
-from wrappers.three_part_reward_wrapper import ThreePartRewardWrapper
+from baloo_gym.wrappers.time_limit_termination_wrapper import TimeLimitTerminationWrapper
+from baloo_gym.wrappers.three_part_reward_wrapper import ThreePartRewardWrapper
 from gymnasium.wrappers import TimeAwareObservation
 
 import numpy as np
