@@ -8,7 +8,7 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 from dataclasses import dataclass
-from utils.helpers import build_env
+from baloo_gym.utils.helpers import build_env
 from stable_baselines3.common.monitor import Monitor
 
 
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     def make_parallel_env():
         env = SubprocVecEnv([build_monitor_env for _ in range(args.num_envs)])
 
-        from wrappers.vec_env_record_video_wrapper import VecVideoRecorder
+        from baloo_gym.wrappers.vec_env_record_video_wrapper import VecVideoRecorder
         total_episodes = config["total_timesteps"] / (
             (config["time_limit_sec"] / config["ctrl_timestep"]) *
             args.num_envs)

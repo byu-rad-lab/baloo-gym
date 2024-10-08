@@ -23,7 +23,6 @@
 #     env.close()
 
 import numpy as np
-from baloo_gym.utils.action_spaces import IncrementalTorques
 from baloo_gym.utils.observation_spaces import StateObservationPressure
 
 #needs to have a policy that takes in an observation from env, then return actions

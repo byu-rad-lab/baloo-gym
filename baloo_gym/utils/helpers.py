@@ -95,8 +95,9 @@ def build_env(config: dict, render_mode: str = "rgb_array"):
     }
 
     class_name = name2class[config["env_name"]]
-    EnvClass = getattr(importlib.import_module(f"envs.{config['env_name']}"),
-                       class_name)
+    EnvClass = getattr(
+        importlib.import_module(f"baloo_gym.envs.{config['env_name']}"),
+        class_name)
 
     env = EnvClass(render_mode=render_mode,
                    camera_name="fixedcam",

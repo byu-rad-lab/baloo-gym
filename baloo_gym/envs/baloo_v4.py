@@ -20,6 +20,7 @@ class BalooV4(BalooBase):
 
     Might also include some sort of tactile sensing in the state as well. 
     '''
+
     def __init__(
         self,
         render_mode=None,
