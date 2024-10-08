@@ -17,8 +17,7 @@ class Run:
     name: str
 
 
-if __name__ == "__main__":
-
+def train():
     # Set up argument parsing
     parser = argparse.ArgumentParser(
         description="Train a reinforcement learning model.")
@@ -147,3 +146,7 @@ if __name__ == "__main__":
     if args.wandb:
 
         run.finish()
+
+
+if __name__ == "__main__":
+    train()

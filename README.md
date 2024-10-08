@@ -37,6 +37,14 @@ The virtual environment dependencies have been tested with this configuration:
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 ```
+
+## Training the Agent ##
+After running ```poetry install```, you can train the agent from the command line using the following command:
+
+To get a list of all the available options to configure a training run, you can run:
+```bash
+train-baloo-ppo --help
+```
 ## Structure ##
 
 The Baloo Base class takes care of all of the mujoco stuff and gym stuff. Users need to inherit from this and implement their own observations, rewards, and action spaces. 
