@@ -32,7 +32,6 @@ from baloo_gym.utils.observation_spaces import StateObservationPressure
 
 
 class OpenLoopHuggerPolicy:
-
     def __init__(self):
         self.step_along_trajectory = 0
         self.state = "APPROACH"
@@ -136,3 +135,23 @@ class OpenLoopHuggerPolicy:
             self.prev_actions = actions
 
         return actions
+
+
+# if __name__ == "__main__":
+#     policy = OpenLoopHuggerPolicy()
+#     obs, info = env.reset()
+#     done = False
+
+#     frames = []
+#     rewards = []
+#     actions = []
+#     observations = []
+
+#     while not done:
+#         action, _states = policy.predict(obs)
+#         # observations.append(obs)
+#         # actions.append(action)
+#         # frames.append(env.render())
+#         # obs, reward, terminated, truncated, info = env.step(action)
+#         # done = terminated or truncated
+#         # rewards.append(reward)
