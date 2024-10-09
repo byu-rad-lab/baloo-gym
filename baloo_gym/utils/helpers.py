@@ -146,7 +146,7 @@ def make_parallel_env(config,
     env_func = lambda: build_env(config, run, baseline, monitor, render_mode)
 
     print(num_envs)
-    env = make_vec_env(env_func, num_envs)
+    env = SubprocVecEnv([env_func for _ in range(num_envs)])
 
     total_episodes = config["total_timesteps"] / (
         (config["time_limit_sec"] / config["ctrl_timestep"]) * num_envs)
