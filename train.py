@@ -108,7 +108,7 @@ def train():
         folder_name = f"{run.name}-{run.id}"
         callback = None
 
-    env = make_parallel_env(config, run, False, True, args.num_envs,
+    env = make_parallel_env(config, folder_name, False, True, args.num_envs,
                             args.wandb)
 
     rl_model = PPO(

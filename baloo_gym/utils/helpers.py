@@ -16,10 +16,8 @@ from baloo_gym.wrappers.open_loop_baseline_wrapper import OpenLoopBaselineWrappe
 from stable_baselines3.common.monitor import Monitor
 from baloo_gym.wrappers.vec_env_record_video_wrapper import VecVideoRecorder
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from stable_baselines3.common.env_util import make_vec_env
 
 import numpy as np
-from copy import deepcopy
 
 
 def get_sensor_data(model, data):
@@ -80,7 +78,7 @@ def make_movie(frames: list, filename: str, fps=30):
     clip.write_videofile(filename)
 
 
-def build_env(config: dict, run, baseline, monitor, render_mode):
+def build_env(config: dict, folder_name, baseline, monitor, render_mode):
     """Builds a gym environment with the given configuration.
 
     Args:
@@ -130,20 +128,21 @@ def build_env(config: dict, run, baseline, monitor, render_mode):
         env = OpenLoopBaselineWrapper(env)
 
     if monitor:
-        env = Monitor(env, f"./experiments/{run.name}/monitor_logs")
+        env = Monitor(env, f"./experiments/{folder_name}/monitor_logs")
 
     return env
 
 
 def make_parallel_env(config,
-                      run,
+                      folder_name,
                       baseline=False,
                       monitor=True,
                       num_envs=1,
                       wandb=False,
                       render_mode="rgb_array"):  #applies for num_envs > 0
 
-    env_func = lambda: build_env(config, run, baseline, monitor, render_mode)
+    env_func = lambda: build_env(config, folder_name, baseline, monitor,
+                                 render_mode)
 
     print(num_envs)
     env = SubprocVecEnv([env_func for _ in range(num_envs)])
@@ -155,7 +154,7 @@ def make_parallel_env(config,
 
     env = VecVideoRecorder(
         env,
-        f"./experiments/{run.name}/rollout_videos",
+        f"./experiments/{folder_name}/rollout_videos",
         record_video_trigger=lambda x: int(x % ten_every_run) == 0,
         video_length=config["time_limit_sec"] / config["ctrl_timestep"],
         name_prefix="rollout",
