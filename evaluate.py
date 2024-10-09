@@ -6,14 +6,28 @@
 
 from stable_baselines3 import PPO
 import argparse
-from utils.helpers import build_env, record_rollout, make_movie
+from baloo_gym.utils.helpers import build_env, record_rollout, make_movie
+from baloo_gym.policies.open_loop_hugger import OpenLoopHuggerPolicy
+import wandb
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--experiment', type=str, help='Experiment name')
+parser.add_argument(
+    '--experiment',
+    type=str,
+    help='Wandb experiment name OR baseline for open loop hugger')
+parser.add_argument('--output_folder',
+                    type=str,
+                    help='Output folder for evaluation results')
 args = parser.parse_args()
 
-model = PPO.load(f"./experiments/{args.experiment}/recent_model/model.zip")
+if args.experiment is "baseline":
+    model = OpenLoopHuggerPolicy()
+else:
+    model = PPO.load(f"./experiments/{args.experiment}/recent_model/model.zip")
 
+#todo: need to load the config that was used to train the model, not this.
+api = wandb.Api()
+run = api.run(f"byu-rad-lab/{args.experiment}")
 config = {
     "total_timesteps": 1000000,
     "ctrl_timestep": .1,
@@ -23,7 +37,7 @@ config = {
     "time_aware_obs": True,
 }
 
-env = build_env(config)
+env = build_env(config, baseline=(args.experiment == "baseline"))
 
 frames, rewards, actions, observations = record_rollout(env, model)
 
@@ -41,8 +55,7 @@ make_movie(
 plt.plot(rewards)
 plt.xlabel("Timesteps")
 plt.ylabel("Rewards")
-plt.savefig(f"./experiments/{args.experiment}/recent_model/rewards.png",
-            dpi=300)
+plt.savefig(args.output_folder + "/rewards.png", dpi=300)
 
 fig, axs = plt.subplots(
     env.action_space.shape[0],
@@ -55,9 +68,7 @@ for i in range(env.action_space.shape[0]):
     axs[i].set_ylabel(f"a{i}")
 
 axs[-1].set_xlabel("Timesteps")
-plt.savefig(f"./experiments/{args.experiment}/recent_model/actions.png",
-            dpi=300,
-            bbox_inches='tight')
+plt.savefig(args.output_folder + "/actions.png", dpi=300, bbox_inches='tight')
 
 # make histogram of actions
 fig, axs = plt.subplots(
@@ -70,7 +81,7 @@ for i in range(env.action_space.shape[0]):
     axs[i].set_ylabel(f"a{i}")
 
 axs[-1].set_xlabel("Action Value")
-plt.savefig(f"./experiments/{args.experiment}/recent_model/actions_hist.png",
+plt.savefig(args.output_folder + "/actions_hist.png",
             dpi=300,
             bbox_inches='tight')
 
@@ -83,6 +94,6 @@ for i in range(env.observation_space.shape[0]):
     axs[i].set_ylabel(f"o{i}")
 
 axs[-1].set_xlabel("Timesteps")
-plt.savefig(f"./experiments/{args.experiment}/recent_model/observations.png",
+plt.savefig(args.output_folder + "/observations.png",
             dpi=300,
             bbox_inches='tight')

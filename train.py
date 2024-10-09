@@ -1,6 +1,6 @@
 import argparse
+import importlib
 
-from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3 import PPO
 
 from stable_baselines3.common.callbacks import CallbackList, EvalCallback
@@ -8,13 +8,14 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 from dataclasses import dataclass
-from baloo_gym.utils.helpers import build_env
-from stable_baselines3.common.monitor import Monitor
+from baloo_gym.utils.helpers import make_parallel_env
 
 
+#just a dataclass to hold the run name and id for testing purposes only.
 @dataclass
 class Run:
     name: str
+    id: str = "0000"
 
 
 def train():
@@ -36,6 +37,7 @@ def train():
                         type=str,
                         default='baloo_v3',
                         help='Name of the environment')
+
     parser.add_argument(
         '--remote_train',
         action='store_true',
@@ -44,44 +46,31 @@ def train():
     )
 
     args = parser.parse_args()
+    print(args)
+
     if args.remote_train:
         import os
         os.environ["MUJOCO_GL"] = "egl"
 
-    print(args)
+    name2class = {
+        'baloo_v0': 'BalooV0',
+        'baloo_v1': 'BalooV1',
+        'baloo_v2': 'BalooV2',
+        'baloo_v3': 'BalooV3',
+        'baloo_v4': 'BalooV4',
+    }
+
+    class_name = name2class[args.env_name]
+    EnvClass = getattr(
+        importlib.import_module(f"baloo_gym.envs.{args.env_name}"), class_name)
 
     config = {
         "total_timesteps": args.total_timesteps,
         "ctrl_timestep": .1,
-        "env_name": args.env_name,
+        "EnvClass": EnvClass,
         "time_limit_sec": 30,
         "time_aware_obs": True,
     }
-
-    def build_monitor_env():
-        env = build_env(config)
-        env = Monitor(env, f"./experiments/{run.name}/monitor_logs")
-        return env
-
-    def make_parallel_env():
-        env = SubprocVecEnv([build_monitor_env for _ in range(args.num_envs)])
-
-        from baloo_gym.wrappers.vec_env_record_video_wrapper import VecVideoRecorder
-        total_episodes = config["total_timesteps"] / (
-            (config["time_limit_sec"] / config["ctrl_timestep"]) *
-            args.num_envs)
-
-        ten_every_run = int(total_episodes / 10)
-
-        env = VecVideoRecorder(
-            env,
-            f"./experiments/{run.name}/rollout_videos",
-            record_video_trigger=lambda x: int(x % ten_every_run) == 0,
-            video_length=config["time_limit_sec"] / config["ctrl_timestep"],
-            name_prefix="rollout",
-            wandb=args.wandb)
-
-        return env
 
     if args.wandb:
 
@@ -97,15 +86,16 @@ def train():
 
         wandb.run.log_code("./wrappers/")
 
+        folder_name = f"{run.name}-{run.id}"
         wandb_callback = WandbCallback(
-            model_save_path=f"./experiments/{run.name}/recent_model",
+            model_save_path=f"./experiments/{folder_name}/recent_model",
             model_save_freq=int(config["total_timesteps"] / 10 /
                                 args.num_envs),
             verbose=1,
         )
 
         #!throws a warning, but the env IS the same, just not vectorized to save RAM.
-        eval_env = build_monitor_env()
+        eval_env = build_monitor_env(config, run)
 
         eval_callback = EvalCallback(
             eval_env=eval_env,
@@ -114,7 +104,7 @@ def train():
                 config["total_timesteps"] / 10 /
                 args.num_envs),  #eval_num_timesteps = eval_freq * num_envs
             deterministic=True,
-            best_model_save_path=f"./experiments/{run.name}/best_model",
+            best_model_save_path=f"./experiments/{folder_name}/best_model",
             render=False,
             verbose=1,
         )
@@ -124,9 +114,15 @@ def train():
     else:
 
         run = Run("test")
+        folder_name = f"{run.name}-{run.id}"
         callback = None
 
-    env = make_parallel_env()
+    env = make_parallel_env(config=config,
+                            run=run,
+                            baseline=False,
+                            monitor=True,
+                            num_envs=args.num_envs,
+                            wandb=args.wandb)
 
     rl_model = PPO(
         "MlpPolicy",
@@ -134,7 +130,7 @@ def train():
         ent_coef=0.01,
         #    use_sde=True, #usually for continuous action spaces.
         verbose=1,
-        tensorboard_log=f"./experiments/{run.name}/runs",
+        tensorboard_log=f"./experiments/{folder_name}/runs",
     )
 
     rl_model.learn(
@@ -144,7 +140,6 @@ def train():
     )
 
     if args.wandb:
-
         run.finish()
 
 
