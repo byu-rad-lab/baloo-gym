@@ -80,8 +80,7 @@ def make_movie(frames: list, filename: str, fps=30):
     clip.write_videofile(filename)
 
 
-def build_env(config: dict, run, baseline, monitor, num_envs, wandb,
-              render_mode):
+def build_env(config: dict, run, baseline, monitor, render_mode):
     """Builds a gym environment with the given configuration.
 
     Args:
@@ -93,11 +92,23 @@ def build_env(config: dict, run, baseline, monitor, num_envs, wandb,
             time_aware_obs (bool): Whether to use time-aware observations.
     """
 
-    env = config["EnvClass"](render_mode=render_mode,
-                             camera_name="fixedcam",
-                             ctrl_timestep=config["ctrl_timestep"],
-                             render_width=320,
-                             render_height=240)
+    name2class = {
+        "baloo_v0": "BalooV0",
+        "baloo_v1": "BalooV1",
+        "baloo_v2": "BalooV2",
+        "baloo_v3": "BalooV3",
+        "baloo_v4": "BalooV4",
+    }
+
+    EnvClass = getattr(
+        importlib.import_module(f"baloo_gym.envs.{config['env_name']}"),
+        name2class[config["env_name"]])
+
+    env = EnvClass(render_mode=render_mode,
+                   camera_name="fixedcam",
+                   ctrl_timestep=config["ctrl_timestep"],
+                   render_width=320,
+                   render_height=240)
 
     check_env(env)
     '''
@@ -132,8 +143,7 @@ def make_parallel_env(config,
                       wandb=False,
                       render_mode="rgb_array"):  #applies for num_envs > 0
 
-    env_func = lambda: build_env(config, run, baseline, monitor, num_envs,
-                                 wandb, render_mode)
+    env_func = lambda: build_env(config, run, baseline, monitor, render_mode)
 
     print(num_envs)
     env = make_vec_env(env_func, num_envs)

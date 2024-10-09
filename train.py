@@ -1,5 +1,4 @@
 import argparse
-import importlib
 
 from stable_baselines3 import PPO
 
@@ -8,7 +7,7 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 from dataclasses import dataclass
-from baloo_gym.utils.helpers import make_parallel_env
+from baloo_gym.utils.helpers import make_parallel_env, build_env
 
 
 #just a dataclass to hold the run name and id for testing purposes only.
@@ -52,22 +51,10 @@ def train():
         import os
         os.environ["MUJOCO_GL"] = "egl"
 
-    name2class = {
-        'baloo_v0': 'BalooV0',
-        'baloo_v1': 'BalooV1',
-        'baloo_v2': 'BalooV2',
-        'baloo_v3': 'BalooV3',
-        'baloo_v4': 'BalooV4',
-    }
-
-    class_name = name2class[args.env_name]
-    EnvClass = getattr(
-        importlib.import_module(f"baloo_gym.envs.{args.env_name}"), class_name)
-
     config = {
         "total_timesteps": args.total_timesteps,
         "ctrl_timestep": .1,
-        "EnvClass": EnvClass,
+        "env_name": args.env_name,
         "time_limit_sec": 30,
         "time_aware_obs": True,
     }
@@ -95,7 +82,11 @@ def train():
         )
 
         #!throws a warning, but the env IS the same, just not vectorized to save RAM.
-        eval_env = build_monitor_env(config, run)
+        eval_env = build_env(config,
+                             run,
+                             baseline=False,
+                             monitor=True,
+                             render_mode="rgb_array")
 
         eval_callback = EvalCallback(
             eval_env=eval_env,
@@ -117,12 +108,8 @@ def train():
         folder_name = f"{run.name}-{run.id}"
         callback = None
 
-    env = make_parallel_env(config=config,
-                            run=run,
-                            baseline=False,
-                            monitor=True,
-                            num_envs=args.num_envs,
-                            wandb=args.wandb)
+    env = make_parallel_env(config, run, False, True, args.num_envs,
+                            args.wandb)
 
     rl_model = PPO(
         "MlpPolicy",
