@@ -50,6 +50,7 @@ def get_sensor_data(model, data):
 
 def record_rollout(env, policy):
     obs, info = env.reset()
+    print(f"In rollout, obs shape: {obs.shape}")
     done = False
 
     frames = []
@@ -126,6 +127,7 @@ def build_env(config: dict, folder_name, baseline, monitor, render_mode):
     if baseline:
         #overwrite to be compatible with open-loop baseline policy.
         env = OpenLoopBaselineWrapper(env)
+        print("Using open-loop baseline policy.")
 
     if monitor:
         env = Monitor(env, f"./experiments/{folder_name}/monitor_logs")
