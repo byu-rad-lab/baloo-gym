@@ -27,14 +27,14 @@ def train():
                         help='Total timesteps for training')
     parser.add_argument('--num_envs',
                         type=int,
-                        default=9,
+                        default=1,
                         help='Number of environments for SubprocVecEnv')
     parser.add_argument('--wandb',
                         action='store_true',
                         help='Use Weights and Biases for logging')
     parser.add_argument('--env_name',
                         type=str,
-                        default='baloo_v3',
+                        default='baloo_v4',
                         help='Name of the environment')
 
     parser.add_argument(
@@ -71,7 +71,7 @@ def train():
             tags=["carlo", "post-bug"],
             notes="")
 
-        wandb.run.log_code("./wrappers/")
+        wandb.run.log_code("./baloo_gym/wrappers/")
 
         folder_name = f"{run.name}-{run.id}"
         wandb_callback = WandbCallback(
@@ -90,9 +90,9 @@ def train():
 
         eval_callback = EvalCallback(
             eval_env=eval_env,
-            n_eval_episodes=5,
+            n_eval_episodes=50,
             eval_freq=int(
-                config["total_timesteps"] / 10 /
+                config["total_timesteps"] / 20 /
                 args.num_envs),  #eval_num_timesteps = eval_freq * num_envs
             deterministic=True,
             best_model_save_path=f"./experiments/{folder_name}/best_model",

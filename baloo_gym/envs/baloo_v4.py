@@ -53,8 +53,6 @@ class BalooV4(BalooBase):
                   self.desired_box_pos)
         else:
             self.desired_box_pos = desired_box_pos
-        set_mocap_pose(self.model, self.data, "desired_pose",
-                       self.desired_box_pos)
 
     def get_observation_from_mujoco(self):
         sensor_data = get_sensor_data(self.model, self.data)
@@ -132,7 +130,12 @@ class BalooV4(BalooBase):
 
     def reset(self, seed=None, options=None):
         self.current_actions = IncrementalTorques(np.zeros(13))
-        return super().reset(seed=seed, options=options)
+        #this will reload the model from xml
+        ret = super().reset(seed=seed, options=options)
+        set_mocap_pose(self.model, self.data, "desired_pose",
+                       self.desired_box_pos)
+
+        return ret
 
     def calculate_reward(self) -> float:
         return 0

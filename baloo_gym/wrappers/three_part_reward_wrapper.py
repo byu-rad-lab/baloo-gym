@@ -16,6 +16,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
     """
     Now this class can just overrides the calculate_reward() method to return a force based reward. 
     """
+
     def __init__(self, env):
         """Constructor for the Reward wrapper."""
         super().__init__(env)
@@ -122,11 +123,11 @@ class ThreePartRewardWrapper(gym.Wrapper):
             desired_box_pos = self.get_wrapper_attr("desired_box_pos")
             box_error_pos = np.linalg.norm(desired_box_pos - box_xpos)
 
-            if box_error_pos < 0.1:
+            if box_error_pos < 0.05:
                 # or if box is close, stay close to desired position
                 self.env.unwrapped.model.geom('box').rgba = [0, 1, 0,
                                                              1]  #green
-                reward += 1
+                reward += 2
             elif box_xvel[2] > 1e-2:
                 #reward if box is lifted towards desired position since we are not close to position yet.
                 self.env.unwrapped.model.geom('box').rgba = [1, 1, 0,

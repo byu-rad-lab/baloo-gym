@@ -63,3 +63,5 @@ rollout_videos/
 models/
 
 experiments/
+
+*.png
