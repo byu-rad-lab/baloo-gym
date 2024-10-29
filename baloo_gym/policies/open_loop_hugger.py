@@ -1,37 +1,9 @@
-# def record_rollout(env, policy):
-#     obs, info = env.reset()
-#     done = False
-
-#     frames = []
-#     rewards = []
-#     actions = []
-#     observations = []
-
-# if baseline:
-#    policy = OpenLoopHuggerPolicy()
-#    env = OpenLoopBaselineWrapper(env) # makes things compatible with policy without changing anything else from env.
-
-#     while not done:
-#         action, _states = policy.predict(obs)
-#         observations.append(obs)
-#         actions.append(action)
-#         frames.append(env.render())
-#         obs, reward, terminated, truncated, info = env.step(action)
-#         done = terminated or truncated
-#         rewards.append(reward)
-
-#     env.close()
-
 import numpy as np
 from baloo_gym.utils.observation_spaces import StateObservationPressure
 
-#needs to have a policy that takes in an observation from env, then return actions
-# so policy would see where elevator is and get a state and step on trajectory.
-
-# then env needs to map actions to commands, step, and return same reward as eval env.
-
 
 class OpenLoopHuggerPolicy:
+
     def __init__(self, N):
         self.step_along_trajectory = 0
         self.state = "APPROACH"
@@ -73,15 +45,22 @@ class OpenLoopHuggerPolicy:
 
         self.actions = np.zeros(25)
 
-    def predict(self, obs: StateObservationPressure):
+    def predict(self, obs):
         #get elevator height out of observation [0,1,2]
         #recall that timeawareobservation appends the time step to the end of the observation, so we ignore it here.
-        mujoco_observation = StateObservationPressure.from_standardized_array(
-            obs[:-1])
+        if len(obs) > 1:
+            #to be compatible with gym env, accept whole observation vector
+            mujoco_observation = StateObservationPressure.from_standardized_array(
+                obs[:-1])
+            elevator_height = mujoco_observation.elevator_pos
+        else:
+            #or assume its the height since that's the only thing we need here.
+            elevator_height = obs
+
         if self.state == "APPROACH":
             #command elevator to -.85
             if self.step_along_trajectory < 100:
-                self.actions[0] = -850
+                self.actions[0] = -875
                 #command arms to appropriate point along pressure trajectory
                 self.actions[1:5] = self.left_lift_j0_pressure_traj[
                     self.step_along_trajectory]
@@ -100,15 +79,15 @@ class OpenLoopHuggerPolicy:
                 self.step_along_trajectory += 1
 
             #if elevator and pressures are both close, move to GRASP
-            if np.isclose(mujoco_observation.elevator_pos, -.85,
-                          atol=.1) and self.step_along_trajectory == 100:
+            if np.isclose(elevator_height, -.875,
+                          atol=.05) and self.step_along_trajectory == 100:
                 self.state = "GRASP"
                 print(f"Changing state to GRASP")
                 self.step_along_trajectory = 0
 
         elif self.state == "GRASP":
             #command arms along grasping trajectory
-            self.actions[0] = -850
+            self.actions[0] = -875
             self.actions[1:5] = self.left_grab_j0_pressure_traj[
                 self.step_along_trajectory]
             self.actions[5:9] = self.left_grab_j1_pressure_traj[
@@ -126,6 +105,7 @@ class OpenLoopHuggerPolicy:
 
             # if arms are close, move to lift
             if self.step_along_trajectory == 100:
+                print(f"Changing state to LIFT")
                 self.state = "LIFT"
                 self.step_along_trajectory = 0
 
