@@ -1,0 +1,4 @@
+[submodule "baloo_gym/domain_randomization"]
+	path = baloo_gym/domain_randomization
+	url = git@github.com:noobcode/domain-randomization.git
+	branch = curtis/python-package-refactor
