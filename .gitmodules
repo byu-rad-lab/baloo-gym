@@ -1,3 +1,0 @@
-[submodule "baloo_gym/external"]
-	path = baloo_gym/external
-	url = git@github.com:noobcode/domain-randomization.git
