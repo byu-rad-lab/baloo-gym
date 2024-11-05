@@ -8,6 +8,8 @@ class OpenLoopHuggerPolicy:
         self.step_along_trajectory = 0
         self.state = "APPROACH"
 
+        self.N = N
+
         #copied from https://github.com/byu-rad-lab/baloo-data-analysis/blob/main/whole_arm_experiments/open_loop_pressure_hugger.py
         self.left_lift_j0_pressure_traj = np.linspace(
             np.zeros(4), np.array([170, 0, 90, 90]), N)
@@ -59,7 +61,7 @@ class OpenLoopHuggerPolicy:
 
         if self.state == "APPROACH":
             #command elevator to -.85
-            if self.step_along_trajectory < 100:
+            if self.step_along_trajectory < self.N:
                 self.actions[0] = -875
                 #command arms to appropriate point along pressure trajectory
                 self.actions[1:5] = self.left_lift_j0_pressure_traj[
@@ -80,7 +82,7 @@ class OpenLoopHuggerPolicy:
 
             #if elevator and pressures are both close, move to GRASP
             if np.isclose(elevator_height, -.875,
-                          atol=.05) and self.step_along_trajectory == 100:
+                          atol=.05) and self.step_along_trajectory == self.N:
                 self.state = "GRASP"
                 print(f"Changing state to GRASP")
                 self.step_along_trajectory = 0
@@ -104,7 +106,7 @@ class OpenLoopHuggerPolicy:
             self.step_along_trajectory += 1
 
             # if arms are close, move to lift
-            if self.step_along_trajectory == 100:
+            if self.step_along_trajectory == self.N:
                 print(f"Changing state to LIFT")
                 self.state = "LIFT"
                 self.step_along_trajectory = 0

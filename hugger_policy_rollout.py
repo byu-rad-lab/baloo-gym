@@ -20,7 +20,7 @@ env = build_env(config,
                 render_mode="rgb_array")
 
 # N = int(config["time_limit_sec"] / config["ctrl_timestep"])
-model = OpenLoopHuggerPolicy(N=100)
+model = OpenLoopHuggerPolicy(N=1000)
 
 frames, rewards, actions, observations = record_rollout(env, model)
 

@@ -19,7 +19,7 @@ from baloo_gym.utils.observation_spaces import StateObservationPressure
 model = mujoco.MjModel.from_xml_path(baloo_mj.XML_PATH)
 data = mujoco.MjData(model)
 
-policy = OpenLoopHuggerPolicy(N=100)
+policy = OpenLoopHuggerPolicy(N=2000)
 
 left_q0_traj = []
 left_q1_traj = []
