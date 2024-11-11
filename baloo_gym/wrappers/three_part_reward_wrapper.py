@@ -60,9 +60,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
         if np.linalg.norm(chest_xpos - box_xpos) > .5:
             #### APPROACH PHASE ####
             self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
-            self.env.unwrapped.model.geom("object_force_field").rgba = [
-                1, 0, 0, .3
-            ]
+            # self.env.unwrapped.model.geom("object_force_field").rgba = [
+            #     1, 0, 0, .3
+            # ]
 
             left_link0_xpos = get_link_position(self.env.unwrapped.model,
                                                 self.env.unwrapped.data,
@@ -79,12 +79,12 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
             sphere_center = box_xpos
 
-            #update mujoco model to show sphere. this isn't working rn. the sphere isn't
-            set_mocap_size(self.env.unwrapped.model, self.env.unwrapped.data,
-                           "object_force_field", [self.sphere_radius])
+            # #update mujoco model to show sphere. this isn't working rn. the sphere isn't
+            # set_mocap_size(self.env.unwrapped.model, self.env.unwrapped.data,
+            #                "object_force_field", [self.sphere_radius])
 
-            set_mocap_pose(self.env.unwrapped.model, self.env.unwrapped.data,
-                           "object_force_field", sphere_center)
+            # set_mocap_pose(self.env.unwrapped.model, self.env.unwrapped.data,
+            #                "object_force_field", sphere_center)
 
             chest_dist = self.distance_to_sphere(chest_xpos, sphere_center,
                                                  self.sphere_radius)
@@ -112,9 +112,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         else:
             ### Grasp phase ###
-            self.env.unwrapped.model.geom("object_force_field").rgba = [
-                0, 0, 0, 0
-            ]
+            # self.env.unwrapped.model.geom("object_force_field").rgba = [
+            #     0, 0, 0, 0
+            # ]
 
             #get box velocity
             box_xvel = get_box_vel(self.env.unwrapped.model,

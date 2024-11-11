@@ -5,6 +5,7 @@ from baloo_gym.utils.observation_spaces import StateObservationPressure
 from baloo_gym.utils.helpers import get_sensor_data
 from baloo_mujoco_sim.utils.baloo_mj_api import get_elevator_vel, get_joint_pressures, set_mocap_pose
 from baloo_gym.utils.action_spaces import IncrementalTorques
+import mujoco
 
 
 class BalooV4(BalooBase):
@@ -53,6 +54,8 @@ class BalooV4(BalooBase):
                   self.desired_box_pos)
         else:
             self.desired_box_pos = desired_box_pos
+
+        self.first_render_call = True
 
     def get_observation_from_mujoco(self):
         sensor_data = get_sensor_data(self.model, self.data)
@@ -132,10 +135,9 @@ class BalooV4(BalooBase):
         self.current_actions = IncrementalTorques(np.zeros(13))
         #this will reload the model from xml
         ret = super().reset(seed=seed, options=options)
-        set_mocap_pose(self.model, self.data, "desired_pose",
-                       self.desired_box_pos)
-
+        
         return ret
+    
 
     def calculate_reward(self) -> float:
         return 0

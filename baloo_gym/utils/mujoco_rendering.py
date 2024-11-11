@@ -213,6 +213,7 @@ class OffScreenViewer(BaseRender):
                 self.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
             self.cam.fixedcamid = camera_id
 
+        #update scene updates ONLY based on geoms in model, nothing in markers. 
         mujoco.mjv_updateScene(
             self.model,
             self.data,
@@ -229,6 +230,7 @@ class OffScreenViewer(BaseRender):
 
         for marker_params in self._markers:
             self._add_marker_to_scene(marker_params)
+        
 
         mujoco.mjr_render(self.viewport, self.scn, self.con)
 
@@ -710,6 +712,7 @@ class MujocoRenderer:
                     self._vopt,
                 )
             elif render_mode in {"rgb_array", "depth_array"}:
+                print("getting viewer")
                 self.viewer = OffScreenViewer(
                     self.model,
                     self.data,

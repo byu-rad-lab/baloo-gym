@@ -21,7 +21,8 @@ rich = "13.9.2"
 moviepy = "1.0.3"
 torch = "2.4.1"
 tabulate = "^0.9.0"
-domain-randomization = { path = "./baloo_gym/domain_randomization/" }
+domain-randomization = { path = "./baloo_gym/domain_randomization/", develop = true }
+baloo-mujoco-sim = { path = "../baloo-mujoco-sim/", develop = true }
 
 [build-system]
 requires = ["poetry-core"]

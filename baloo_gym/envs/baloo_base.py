@@ -115,6 +115,7 @@ class BalooBase(gym.Env, ABC):
                                               height=self.render_height,
                                               camera_name=self.camera_name,
                                               max_geom=100000)
+        
 
         self._get_to_equilibrium()
 
