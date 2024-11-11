@@ -143,7 +143,6 @@ class VecVideoRecorder(VecEnvWrapper):
             self.start_video_recorder()
 
         self.step_id += 1
-        # print(self.step_id)
         if any(dones):
             self.episode_id += 1
             print(f"Episode {self.episode_id}")

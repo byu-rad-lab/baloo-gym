@@ -9,12 +9,12 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
 )
 
 from stable_baselines3.common.env_checker import check_env
-from baloo_gym.wrappers.time_limit_termination_wrapper import TimeLimitTerminationWrapper
-from baloo_gym.wrappers.three_part_reward_wrapper import ThreePartRewardWrapper
+from baloo_gym.wrappers import (TimeLimitTerminationWrapper,
+                                ThreePartRewardWrapper,
+                                OpenLoopBaselineWrapper, VecVideoRecorder,
+                                CurriculumEnv)
 from gymnasium.wrappers import TimeAwareObservation
-from baloo_gym.wrappers.open_loop_baseline_wrapper import OpenLoopBaselineWrapper
 from stable_baselines3.common.monitor import Monitor
-from baloo_gym.wrappers.vec_env_record_video_wrapper import VecVideoRecorder
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 import numpy as np
@@ -123,6 +123,7 @@ def build_env(config: dict, folder_name, baseline, monitor, render_mode):
                                           config["ctrl_timestep"])
 
     env = ThreePartRewardWrapper(env)
+    env = CurriculumEnv(env, config["curriculum_selection"])
 
     if baseline:
         #overwrite to be compatible with open-loop baseline policy.
@@ -146,7 +147,6 @@ def make_parallel_env(config,
     env_func = lambda: build_env(config, folder_name, baseline, monitor,
                                  render_mode)
 
-    print(num_envs)
     env = SubprocVecEnv([env_func for _ in range(num_envs)])
 
     total_episodes = config["total_timesteps"] / (

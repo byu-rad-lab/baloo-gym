@@ -8,6 +8,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     set_mocap_pose,
     set_mocap_size,
 )
+import mujoco
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
@@ -22,6 +23,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
         super().__init__(env)
 
         self.sphere_radius = 0.5
+        self.sphere_visual_initialized = False
+        self.desired_box_visual_initialized = False
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
@@ -35,6 +38,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
     def reset(self, seed=None, options=None):
         """Reset function that calls the parent reset function and then calculates the reward."""
         # call baloo_base reset function
+        self.desired_box_visual_initialized = False
+        self.sphere_visual_initialized = False
         return self.env.reset()
 
     def _cosine_similarity(self, v1, v2):
@@ -79,13 +84,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
             sphere_center = box_xpos
 
-            # #update mujoco model to show sphere. this isn't working rn. the sphere isn't
-            # set_mocap_size(self.env.unwrapped.model, self.env.unwrapped.data,
-            #                "object_force_field", [self.sphere_radius])
-
-            # set_mocap_pose(self.env.unwrapped.model, self.env.unwrapped.data,
-            #                "object_force_field", sphere_center)
-
             chest_dist = self.distance_to_sphere(chest_xpos, sphere_center,
                                                  self.sphere_radius)
             left_link0_dist = self.distance_to_sphere(left_link0_xpos,
@@ -111,11 +109,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
             reward -= rms_dist
 
         else:
-            ### Grasp phase ###
-            # self.env.unwrapped.model.geom("object_force_field").rgba = [
-            #     0, 0, 0, 0
-            # ]
-
             #get box velocity
             box_xvel = get_box_vel(self.env.unwrapped.model,
                                    self.env.unwrapped.data)
@@ -137,3 +130,47 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 self.env.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
 
         return reward
+
+    def render(self):
+        super().render()  #to initialize viewer.
+        if not self.sphere_visual_initialized:
+            print("starting sphere visual")
+            self.sphere_visual_initialized = True
+
+            #this will add the marker the next time the scene is rendered.
+            # everything in the marker list will be re-rendered each time.
+            # so to change postion, just change the position of the marker in the list.
+            #this is a bit hacky, since the renderer doesn't really expose this functionality.
+            self.sphereid = len(self.unwrapped.mujoco_renderer.viewer._markers)
+            self.unwrapped.mujoco_renderer.viewer.add_marker(
+                type=mujoco.mjtGeom.mjGEOM_SPHERE,
+                size=self.sphere_radius,
+                pos=np.array([0, 0, 0]),
+                mat=np.eye(3).flatten(),
+                rgba=np.array([1, 0, 0, 0.3]),
+            )
+
+        if not self.desired_box_visual_initialized:
+            print("starting desired box visual")
+            self.desired_box_visual_initialized = True
+
+            self.desired_boxid = len(
+                self.unwrapped.mujoco_renderer.viewer._markers)
+
+            self.unwrapped.mujoco_renderer.viewer.add_marker(
+                type=mujoco.mjtGeom.mjGEOM_BOX,
+                size=np.array([0.1, 0.1, 0.1]),
+                pos=self.get_wrapper_attr("desired_box_pos"),
+                mat=np.eye(3).flatten(),
+                rgba=np.array([1, 0, 0, 0.3]),
+            )
+
+        box_pos = self.unwrapped.data.body('box').xipos
+        self.unwrapped.mujoco_renderer.viewer._markers[
+            self.sphereid]['pos'] = box_pos
+        self.unwrapped.mujoco_renderer.viewer._markers[
+            self.sphereid]['rgba'] = np.array([0, 1, 0, 1])
+
+        return super().render()
+
+    #!markers get emptied somehow. Where does this variable get cleared? But both of the flags are True...

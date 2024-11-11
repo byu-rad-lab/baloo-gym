@@ -712,7 +712,6 @@ class MujocoRenderer:
                     self._vopt,
                 )
             elif render_mode in {"rgb_array", "depth_array"}:
-                print("getting viewer")
                 self.viewer = OffScreenViewer(
                     self.model,
                     self.data,

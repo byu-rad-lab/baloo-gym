@@ -135,9 +135,8 @@ class BalooV4(BalooBase):
         self.current_actions = IncrementalTorques(np.zeros(13))
         #this will reload the model from xml
         ret = super().reset(seed=seed, options=options)
-        
+
         return ret
-    
 
     def calculate_reward(self) -> float:
         return 0

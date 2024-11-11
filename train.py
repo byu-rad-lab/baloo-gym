@@ -57,6 +57,7 @@ def train():
         "env_name": args.env_name,
         "time_limit_sec": 30,
         "time_aware_obs": True,
+        "curriculum_selection": ["manipuland_initial_position"],
     }
 
     if args.wandb:
