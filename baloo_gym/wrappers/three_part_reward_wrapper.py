@@ -134,7 +134,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
     def render(self):
         super().render()  #to initialize viewer.
         if not self.sphere_visual_initialized:
-            print("starting sphere visual")
             self.sphere_visual_initialized = True
 
             #this will add the marker the next time the scene is rendered.
@@ -151,7 +150,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
             )
 
         if not self.desired_box_visual_initialized:
-            print("starting desired box visual")
             self.desired_box_visual_initialized = True
 
             self.desired_boxid = len(
@@ -162,15 +160,13 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 size=np.array([0.1, 0.1, 0.1]),
                 pos=self.get_wrapper_attr("desired_box_pos"),
                 mat=np.eye(3).flatten(),
-                rgba=np.array([1, 0, 0, 0.3]),
+                rgba=np.array([0, 1, 0, 0.3]),
             )
 
         box_pos = self.unwrapped.data.body('box').xipos
         self.unwrapped.mujoco_renderer.viewer._markers[
             self.sphereid]['pos'] = box_pos
         self.unwrapped.mujoco_renderer.viewer._markers[
-            self.sphereid]['rgba'] = np.array([0, 1, 0, 1])
+            self.sphereid]['rgba'] = np.array([1, 0, 0, .1])
 
         return super().render()
-
-    #!markers get emptied somehow. Where does this variable get cleared? But both of the flags are True...
