@@ -69,7 +69,7 @@ def train():
             monitor_gym=
             True,  # auto-upload the videos of agents playing the game
             save_code=True,  # optional
-            tags=["carlo", "post-bug"],
+            tags=["carlo", "post-bug", "all-in-one-reward"],
             notes="")
 
         wandb.run.log_code("./baloo_gym/wrappers/")
@@ -91,9 +91,9 @@ def train():
 
         eval_callback = EvalCallback(
             eval_env=eval_env,
-            n_eval_episodes=50,
+            n_eval_episodes=10,
             eval_freq=int(
-                config["total_timesteps"] / 20 /
+                config["total_timesteps"] / 5 /
                 args.num_envs),  #eval_num_timesteps = eval_freq * num_envs
             deterministic=True,
             best_model_save_path=f"./experiments/{folder_name}/best_model",

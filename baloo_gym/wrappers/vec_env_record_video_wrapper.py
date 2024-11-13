@@ -34,6 +34,7 @@ class VecVideoRecorder(VecEnvWrapper):
     :param video_length:  Length of recorded videos
     :param name_prefix: Prefix to the video name
     """
+
     def __init__(
         self,
         venv: VecEnv,
@@ -124,6 +125,7 @@ class VecVideoRecorder(VecEnvWrapper):
                              self.recorded_rewards[:, i])
                     plt.xlabel("Time Step")
                     plt.ylabel("Reward")
+                    plt.grid()
                     rew_imgs.append(plot2img(plt))
                     plt.clf()
 
