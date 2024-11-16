@@ -24,6 +24,8 @@ class BalooVTemplate(BalooBase):
             render_height=render_height,
         )
 
+        #Remember in implemetation that RL assumes an MDP, so the next state is dependent on the current state and action
+
         #TODO: define action space
         self.action_space = None
 

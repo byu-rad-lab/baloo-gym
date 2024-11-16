@@ -22,30 +22,36 @@ class CurriculumEnv(gym.Wrapper):
 
         if "manipuland_initial_position" in self.curriculum_selection:
             self.position_randomizer = CurriculumDomainRandomizer(
-                identifier="curriculum_randomizer", ramp_steps=100)
+                identifier="curriculum_randomizer", ramp_steps=500)
 
-            self.position_randomizer.add("initial_xpos", "uniform",
-                                         dict(low=-0.5, high=0.5))
-            self.position_randomizer.add("initial_ypos", "uniform",
-                                         dict(low=0.5, high=1))
+            self.position_randomizer.add(
+                "initial_xpos",
+                "normal",
+                dict(loc=0, scale=.2 / 3)  #3 sigma rule
+            )
+
+            self.position_randomizer.add("initial_ypos", "normal",
+                                         dict(loc=0.5, scale=.2 / 3))
+
             self.position_randomizer.init_history()
 
             # print(self.position_randomizer.summary())
 
         if "perturbations" in self.curriculum_selection:
             self.perturbation_randomizer = CurriculumDomainRandomizer(
-                identifier="curriculum_randomizer", ramp_steps=100)
+                identifier="curriculum_randomizer", ramp_steps=500)
 
+            # todo: would be nice to ramp up from 0, instead of spreading from middle.
             self.perturbation_randomizer.add("perturbation_magnitude",
                                              "uniform", dict(low=0, high=0.5))
             self.perturbation_randomizer.init_history()
 
         if "object_mass" in self.curriculum_selection:
             self.object_mass_randomizer = CurriculumDomainRandomizer(
-                identifier="curriculum_randomizer", ramp_steps=100)
+                identifier="curriculum_randomizer", ramp_steps=500)
 
             self.object_mass_randomizer.add("object_mass", "uniform",
-                                            dict(low=0.1, high=1))
+                                            dict(low=3, high=20))
             self.object_mass_randomizer.init_history()
 
     def reset(self, seed=None, options=None):
@@ -58,12 +64,18 @@ class CurriculumEnv(gym.Wrapper):
         return obs, reward, terminated, truncated, info
 
     def _adjust_difficulty(self):
+        #todo: logic to do one thing at a time if wanted.
+        # 1) vary position, once ramped up, vary mass. Once ramped up, vary perturbations.
+
         #every time I sample, the next one gets harder.
         if "manipuland_initial_position" in self.curriculum_selection:
             box_position = get_box_position(self.unwrapped.model,
                                             self.unwrapped.data)
 
             params = self.position_randomizer.sample()
+
+            #clip y position to be in front of chest
+            params["initial_ypos"] = np.max([0.26, params["initial_ypos"]])
 
             new_box_pos = np.array([
                 params["initial_xpos"], params["initial_ypos"], box_position[2]

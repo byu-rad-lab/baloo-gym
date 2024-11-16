@@ -236,7 +236,7 @@ class IncrementalTorques:
         """
         increment_directions is a 13 element vector of +1, 0, or -1.
         """
-        self.elevator_height += increment_directions[0] * 50
+        self.elevator_height += increment_directions[0] * 10
         self.left_j0_tau += increment_directions[1:3] * 10
         self.left_j1_tau += increment_directions[3:5] * 10
         self.left_j2_tau += increment_directions[5:7] * 10

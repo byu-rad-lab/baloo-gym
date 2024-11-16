@@ -11,6 +11,7 @@ config = {
     "env_name": "baloo_v4",
     "time_limit_sec": 30,
     "time_aware_obs": True,
+    "curriculum_selection": [],
 }
 
 env = build_env(config,

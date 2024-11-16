@@ -57,7 +57,7 @@ def train():
         "env_name": args.env_name,
         "time_limit_sec": 30,
         "time_aware_obs": True,
-        "curriculum_selection": [],
+        "curriculum_selection": ["manipuland_initial_position"],
     }
 
     if args.wandb:
@@ -109,14 +109,18 @@ def train():
         folder_name = f"{run.name}-{run.id}"
         callback = None
 
-    env = make_parallel_env(config, folder_name, False, True, args.num_envs,
-                            args.wandb)
+    env = make_parallel_env(config,
+                            folder_name,
+                            baseline=False,
+                            monitor=True,
+                            num_envs=args.num_envs,
+                            wandb=args.wandb,
+                            record_video=True)
 
     rl_model = PPO(
         "MlpPolicy",
         env,
-        ent_coef=0.01,
-        #    use_sde=True, #usually for continuous action spaces.
+        use_sde=True,
         verbose=1,
         tensorboard_log=f"./experiments/{folder_name}/runs",
     )

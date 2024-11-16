@@ -79,7 +79,8 @@ def make_movie(frames: list, filename: str, fps=30):
     clip.write_videofile(filename)
 
 
-def build_env(config: dict, folder_name, baseline, monitor, render_mode):
+def build_env(config: dict, folder_name, baseline: bool, monitor: bool,
+              render_mode):
     """Builds a gym environment with the given configuration.
 
     Args:
@@ -97,6 +98,7 @@ def build_env(config: dict, folder_name, baseline, monitor, render_mode):
         "baloo_v2": "BalooV2",
         "baloo_v3": "BalooV3",
         "baloo_v4": "BalooV4",
+        "baloo_v5": "BalooV5",
     }
 
     EnvClass = getattr(
@@ -138,8 +140,9 @@ def build_env(config: dict, folder_name, baseline, monitor, render_mode):
 
 def make_parallel_env(config,
                       folder_name,
-                      baseline=False,
-                      monitor=True,
+                      baseline: bool = False,
+                      monitor: bool = True,
+                      record_video: bool = False,
                       num_envs=1,
                       wandb=False,
                       render_mode="rgb_array"):  #applies for num_envs > 0
@@ -154,12 +157,13 @@ def make_parallel_env(config,
 
     ten_every_run = int(total_episodes / 10)
 
-    env = VecVideoRecorder(
-        env,
-        f"./experiments/{folder_name}/rollout_videos",
-        record_video_trigger=lambda x: int(x % ten_every_run) == 0,
-        video_length=config["time_limit_sec"] / config["ctrl_timestep"],
-        name_prefix="rollout",
-        wandb=wandb)
+    if record_video:
+        env = VecVideoRecorder(
+            env,
+            f"./experiments/{folder_name}/rollout_videos",
+            record_video_trigger=lambda x: int(x % ten_every_run) == 0,
+            video_length=config["time_limit_sec"] / config["ctrl_timestep"],
+            name_prefix="rollout",
+            wandb=wandb)
 
     return env

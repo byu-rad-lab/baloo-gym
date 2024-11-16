@@ -72,6 +72,7 @@ These are implemented in the [```action_spaces```](./utils/action_spaces.py) mod
 | [```baloo_v2```](./envs/baloo_v2.py) | [```StateObservation```](./utils/observation_spaces.py)         | [```IncrementalTorques```](./utils/action_spaces.py) |
 | [```baloo_v3```](./envs/baloo_v3.py) | [```RelativeObservation```](./utils/observation_spaces.py)      | [```IncrementalTorques```](./utils/action_spaces.py) |
 | [```baloo_v4```](./envs/baloo_v4.py) | [```StateObservationPressure```](./utils/observation_spaces.py) | [```IncrementalTorques```](./utils/action_spaces.py) |
+| [```baloo_v5```](./envs/baloo_v5.py) | [```StateObservationPressure```](./utils/observation_spaces.py) | [```NormalizedAction```](./utils/action_spaces.py)   |
 
 
 

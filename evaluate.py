@@ -29,6 +29,7 @@ config = {
     "env_name": run.config["env_name"],
     "time_limit_sec": run.config["time_limit_sec"],
     "time_aware_obs": run.config["time_aware_obs"],
+    "curriculum_selection": run.config["curriculum_selection"],
 }
 model = PPO.load(args.model_file)
 

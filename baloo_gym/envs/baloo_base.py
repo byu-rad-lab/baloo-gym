@@ -90,7 +90,7 @@ class BalooBase(gym.Env, ABC):
         set_joint_pressure_commands(self.model, self.data, "right", 2,
                                     [150] * 4)
 
-        initial_height = 0
+        initial_height = np.random.uniform(-800, 0)
         set_elevator_cmd(self.model, self.data, initial_height)
 
         mujoco.mj_step(self.model,

@@ -13,7 +13,7 @@ do
 
   cd /home/curtis/baloo/baloo-gym
 
-  python3 $PYTHON_SCRIPT --total_timesteps 2000000 --env_name baloo_v4 --num_envs 9
+  python3 $PYTHON_SCRIPT --total_timesteps 2000000 --env_name baloo_v4 --num_envs 16 --wandb
 
   echo "Completed iteration $i"
 done

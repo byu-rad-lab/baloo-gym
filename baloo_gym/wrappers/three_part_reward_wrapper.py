@@ -65,25 +65,25 @@ class ThreePartRewardWrapper(gym.Wrapper):
         box_xerror = desired_box_pos - box_xpos
         box_error = np.linalg.norm(box_xerror)
 
-        numerical_threshold = 1e-3
+        numerical_threshold = 1e-2
 
         reward = 0
         #red
-        self.unwrapped.model.geom('box').rgba = [1, 0, 0, .3]
+        self.unwrapped.model.geom('box').rgba = [1, 0, 0, .7]
         reward -= self._get_rms_robot_dist(box_xpos, chest_xpos)
         if box_error < 0.1:
             #green
-            self.unwrapped.model.geom('box').rgba = [0, 1, 0, .3]
-            reward += 2
+            self.unwrapped.model.geom('box').rgba = [0, 1, 0, .7]
+            reward += 1
             return reward
 
         #reward moving towards desired position, penalize moving away
         if box_error < self.box_error_prev - numerical_threshold:
             #yellow
-            self.unwrapped.model.geom('box').rgba = [1, 1, 0, .3]
-            reward += 1
+            self.unwrapped.model.geom('box').rgba = [1, 1, 0, .7]
+            reward += .5
         elif box_error > self.box_error_prev + numerical_threshold:
-            reward -= 1
+            reward -= .25
 
         self.box_error_prev = box_error
         return reward
