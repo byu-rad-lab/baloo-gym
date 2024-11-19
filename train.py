@@ -117,14 +117,19 @@ def train():
                             wandb=args.wandb,
                             record_video=True)
 
+    policy_kwargs = dict(net_arch=[128, 128, 128])
     rl_model = PPO(
         "MlpPolicy",
         env,
-        use_sde=True,
+        policy_kwargs=policy_kwargs,
+        # use_sde=True, #!rails outputs for some reason...
+        batch_size=256,
+        learning_rate=1e-4,
         verbose=1,
         tensorboard_log=f"./experiments/{folder_name}/runs",
     )
 
+    print("TRAINING MODEL")
     rl_model.learn(
         total_timesteps=config["total_timesteps"],
         progress_bar=True,

@@ -117,7 +117,7 @@ class BalooBase(gym.Env, ABC):
                                               camera_name=self.camera_name,
                                               max_geom=100000)
 
-        self._get_to_equilibrium()
+        # self._get_to_equilibrium()
 
     def step(self, action):
         commands = self.map_action_to_commands(action)

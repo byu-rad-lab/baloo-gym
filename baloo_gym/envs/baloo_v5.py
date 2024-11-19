@@ -1,6 +1,7 @@
 from baloo_gym.envs.baloo_base import BalooBase
 import numpy as np
-from typing import ArrayLike
+
+from numpy.typing import ArrayLike
 
 from gymnasium.spaces import Box
 from baloo_gym.utils.observation_spaces import StateObservationPressure
@@ -42,7 +43,6 @@ class BalooV5(BalooBase):
                                      high=1,
                                      shape=StateObservationPressure.shape,
                                      dtype=np.float32)
-
         if desired_box_pos is None:
             self.desired_box_pos = np.array([0, 0.5, .75])
             print("No desired box position given, defaulting to ",
@@ -78,6 +78,8 @@ class BalooV5(BalooBase):
     def map_action_to_commands(self, action: ArrayLike) -> ArrayLike:
         #actions are now continuous [-1,1] * 25, so they need to scale up to the actual bounds.
         commands = NormalizedAction(action).unnormalize()
+        # print(f"Policy Actions:\n", action)
+        # print(commands)
 
         return commands._to_array()
 

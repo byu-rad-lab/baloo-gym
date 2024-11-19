@@ -25,13 +25,15 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.sphere_radius = 0.5
         self.sphere_visual_initialized = False
         self.desired_box_visual_initialized = False
+        self.previous_action = np.zeros(self.unwrapped.action_space.shape)
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
         # call baloo_base step function
         observation, reward, terminated, truncated, info = self.env.step(
             action)
-        reward = self.calculate_reward()
+        reward = self.calculate_reward(action)
+        self.previous_action = action
 
         return observation, reward, terminated, truncated, info
 
@@ -41,6 +43,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.desired_box_visual_initialized = False
         self.sphere_visual_initialized = False
         self.box_error_prev = 0
+        self.previous_action = np.zeros(self.unwrapped.action_space.shape)
         return self.env.reset()
 
     def _cosine_similarity(self, v1, v2):
@@ -52,7 +55,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
     def _distance_to_sphere(self, point, center, radius):
         return np.linalg.norm(point - center) - radius
 
-    def calculate_reward(self):
+    def calculate_reward(self, action):
         """
         Calculates the reward to return. Used with Carlo Alessi at SSSA
         """
@@ -65,12 +68,18 @@ class ThreePartRewardWrapper(gym.Wrapper):
         box_xerror = desired_box_pos - box_xpos
         box_error = np.linalg.norm(box_xerror)
 
-        numerical_threshold = 1e-2
+        numerical_threshold = 1e-3
 
         reward = 0
         #red
         self.unwrapped.model.geom('box').rgba = [1, 0, 0, .7]
         reward -= self._get_rms_robot_dist(box_xpos, chest_xpos)
+
+        #penalize large changes in action
+        smoothness_weight = 0.1
+        action_diff = np.linalg.norm(action - self.previous_action)
+        reward -= smoothness_weight * action_diff
+
         if box_error < 0.1:
             #green
             self.unwrapped.model.geom('box').rgba = [0, 1, 0, .7]
@@ -83,7 +92,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
             self.unwrapped.model.geom('box').rgba = [1, 1, 0, .7]
             reward += .5
         elif box_error > self.box_error_prev + numerical_threshold:
-            reward -= .25
+            # reward -= .25
+            pass
 
         self.box_error_prev = box_error
         return reward
