@@ -5,13 +5,13 @@ from numpy.typing import ArrayLike
 
 from gymnasium.spaces import Box
 from baloo_gym.utils.observation_spaces import StateObservationPressure
-from baloo_gym.utils.action_spaces import NormalizedAction
+from baloo_gym.utils.action_spaces import NormalizedDifferentialPressure
 from baloo_mujoco_sim.utils.baloo_mj_api import get_joint_pressures
 from baloo_gym.utils.helpers import get_sensor_data
 
 
-class BalooV5(BalooBase):
-    
+class BalooV6(BalooBase):
+
     def __init__(
         self,
         render_mode=None,
@@ -31,7 +31,7 @@ class BalooV5(BalooBase):
 
         self.action_space = Box(low=-1,
                                 high=1,
-                                shape=NormalizedAction.shape,
+                                shape=NormalizedDifferentialPressure.shape,
                                 dtype=np.float32)
 
         self.observation_space = Box(low=-1,
@@ -72,11 +72,59 @@ class BalooV5(BalooBase):
 
     def map_action_to_commands(self, action: ArrayLike) -> ArrayLike:
         #actions are now continuous [-1,1] * 25, so they need to scale up to the actual bounds.
-        commands = NormalizedAction(action).unnormalize()
-        # print(f"Policy Actions:\n", action)
-        # print(commands)
+        diff_actions = NormalizedDifferentialPressure(action).unnormalize()
 
-        return commands._to_array()
+        commands = np.zeros(self.len_command)
+
+        commands[0] = diff_actions.elevator_height
+        avg_pressure = diff_actions.average_pressure
+
+        commands[1] = avg_pressure + diff_actions.left_j0_delta_pressure[0] / 2
+        commands[2] = avg_pressure - diff_actions.left_j0_delta_pressure[0] / 2
+        commands[3] = avg_pressure + diff_actions.left_j0_delta_pressure[1] / 2
+        commands[4] = avg_pressure - diff_actions.left_j0_delta_pressure[1] / 2
+
+        commands[5] = avg_pressure + diff_actions.left_j1_delta_pressure[0] / 2
+        commands[6] = avg_pressure - diff_actions.left_j1_delta_pressure[0] / 2
+        commands[7] = avg_pressure + diff_actions.left_j1_delta_pressure[1] / 2
+        commands[8] = avg_pressure - diff_actions.left_j1_delta_pressure[1] / 2
+
+        commands[9] = avg_pressure + diff_actions.left_j2_delta_pressure[0] / 2
+        commands[
+            10] = avg_pressure - diff_actions.left_j2_delta_pressure[0] / 2
+        commands[
+            11] = avg_pressure + diff_actions.left_j2_delta_pressure[1] / 2
+        commands[
+            12] = avg_pressure - diff_actions.left_j2_delta_pressure[1] / 2
+
+        commands[
+            13] = avg_pressure + diff_actions.right_j0_delta_pressure[0] / 2
+        commands[
+            14] = avg_pressure - diff_actions.right_j0_delta_pressure[0] / 2
+        commands[
+            15] = avg_pressure + diff_actions.right_j0_delta_pressure[1] / 2
+        commands[
+            16] = avg_pressure - diff_actions.right_j0_delta_pressure[1] / 2
+
+        commands[
+            17] = avg_pressure + diff_actions.right_j1_delta_pressure[0] / 2
+        commands[
+            18] = avg_pressure - diff_actions.right_j1_delta_pressure[0] / 2
+        commands[
+            19] = avg_pressure + diff_actions.right_j1_delta_pressure[1] / 2
+        commands[
+            20] = avg_pressure - diff_actions.right_j1_delta_pressure[1] / 2
+
+        commands[
+            21] = avg_pressure + diff_actions.right_j2_delta_pressure[0] / 2
+        commands[
+            22] = avg_pressure - diff_actions.right_j2_delta_pressure[0] / 2
+        commands[
+            23] = avg_pressure + diff_actions.right_j2_delta_pressure[1] / 2
+        commands[
+            24] = avg_pressure - diff_actions.right_j2_delta_pressure[1] / 2
+
+        return commands
 
     def calculate_reward(self) -> float:
         return 0

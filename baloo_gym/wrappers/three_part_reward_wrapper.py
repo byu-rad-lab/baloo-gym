@@ -80,6 +80,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
         action_diff = np.linalg.norm(action - self.previous_action)
         reward -= smoothness_weight * action_diff
 
+        #encourage usage of tactile sensing surfaces
+        # taxel_usage = self._count_nonzero_taxels()/ total_taxels
+
         if box_error < 0.1:
             #green
             self.unwrapped.model.geom('box').rgba = [0, 1, 0, .7]
@@ -97,6 +100,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         self.box_error_prev = box_error
         return reward
+    
+    def _count_nonzero_taxels(self):
+        pass
 
     def _get_rms_robot_dist(self, box_xpos, chest_xpos):
         left_link0_xpos = get_link_position(self.unwrapped.model,

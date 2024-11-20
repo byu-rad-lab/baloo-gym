@@ -47,6 +47,8 @@ class BalooBase(gym.Env, ABC):
         self.render_width = render_width
         self.render_height = render_height
 
+        self.len_command = 25
+
         self.xml_path = baloo_mj.XML_PATH
 
         self.first_load = True
@@ -117,7 +119,7 @@ class BalooBase(gym.Env, ABC):
                                               camera_name=self.camera_name,
                                               max_geom=100000)
 
-        # self._get_to_equilibrium()
+        self._get_to_equilibrium()
 
     def step(self, action):
         commands = self.map_action_to_commands(action)
