@@ -20,14 +20,12 @@ class BalooV7(BalooBase):
         desired_box_pos=None,
         randomize_initial_height=False,
     ):
-        super().__init__(
-            render_mode=render_mode,
-            camera_name=camera_name,
-            ctrl_timestep=ctrl_timestep,
-            render_width=render_width,
-            render_height=render_height,
-            randomize_initial_height=randomize_initial_height
-        )
+        super().__init__(render_mode=render_mode,
+                         camera_name=camera_name,
+                         ctrl_timestep=ctrl_timestep,
+                         render_width=render_width,
+                         render_height=render_height,
+                         randomize_initial_height=randomize_initial_height)
 
         action_size = IncrementalTorques.shape[0]
         self.action_space = self.action_space = spaces.MultiDiscrete(
@@ -73,13 +71,17 @@ class BalooV7(BalooBase):
             "object_pos"]
         sensor_data.pop("object_pos")
 
-        sensor_data["prev_height_cmd"] = self.torque_cmds.prev_elevator_height
-        sensor_data["prev_left_j0_tau"] = self.torque_cmds.prev_left_j0_tau
-        sensor_data["prev_left_j1_tau"] = self.torque_cmds.prev_left_j1_tau
-        sensor_data["prev_left_j2_tau"] = self.torque_cmds.prev_left_j2_tau
-        sensor_data["prev_right_j0_tau"] = self.torque_cmds.prev_right_j0_tau
-        sensor_data["prev_right_j1_tau"] = self.torque_cmds.prev_right_j1_tau
-        sensor_data["prev_right_j2_tau"] = self.torque_cmds.prev_right_j2_tau
+        sensor_data[
+            "prev_height_cmd"] = self.torque_cmds.prev_elevator_height_cmd
+        sensor_data["prev_left_j0_tau"] = self.torque_cmds.prev_left_j0_tau_cmd
+        sensor_data["prev_left_j1_tau"] = self.torque_cmds.prev_left_j1_tau_cmd
+        sensor_data["prev_left_j2_tau"] = self.torque_cmds.prev_left_j2_tau_cmd
+        sensor_data[
+            "prev_right_j0_tau"] = self.torque_cmds.prev_right_j0_tau_cmd
+        sensor_data[
+            "prev_right_j1_tau"] = self.torque_cmds.prev_right_j1_tau_cmd
+        sensor_data[
+            "prev_right_j2_tau"] = self.torque_cmds.prev_right_j2_tau_cmd
 
         rawObs = StateObservationPressurePrevActions(**sensor_data)
 
@@ -97,42 +99,42 @@ class BalooV7(BalooBase):
 
         #make this more concise later with a loop
         commands = np.zeros(self.len_command)
-        commands[0] = self.torque_cmds.elevator_height
-        commands[1] = 150 + self.torque_cmds.left_j0_tau[0] / 2
-        commands[2] = 150 - self.torque_cmds.left_j0_tau[0] / 2
+        commands[0] = self.torque_cmds.elevator_height_cmd
+        commands[1] = 150 + self.torque_cmds.left_j0_tau_cmd[0] / 2
+        commands[2] = 150 - self.torque_cmds.left_j0_tau_cmd[0] / 2
 
-        commands[3] = 150 + self.torque_cmds.left_j0_tau[1] / 2
-        commands[4] = 150 - self.torque_cmds.left_j0_tau[1] / 2
+        commands[3] = 150 + self.torque_cmds.left_j0_tau_cmd[1] / 2
+        commands[4] = 150 - self.torque_cmds.left_j0_tau_cmd[1] / 2
 
-        commands[5] = 150 + self.torque_cmds.left_j1_tau[0] / 2
-        commands[6] = 150 - self.torque_cmds.left_j1_tau[0] / 2
+        commands[5] = 150 + self.torque_cmds.left_j1_tau_cmd[0] / 2
+        commands[6] = 150 - self.torque_cmds.left_j1_tau_cmd[0] / 2
 
-        commands[7] = 150 + self.torque_cmds.left_j1_tau[1] / 2
-        commands[8] = 150 - self.torque_cmds.left_j1_tau[1] / 2
+        commands[7] = 150 + self.torque_cmds.left_j1_tau_cmd[1] / 2
+        commands[8] = 150 - self.torque_cmds.left_j1_tau_cmd[1] / 2
 
-        commands[9] = 150 + self.torque_cmds.left_j2_tau[0] / 2
-        commands[10] = 150 - self.torque_cmds.left_j2_tau[0] / 2
+        commands[9] = 150 + self.torque_cmds.left_j2_tau_cmd[0] / 2
+        commands[10] = 150 - self.torque_cmds.left_j2_tau_cmd[0] / 2
 
-        commands[11] = 150 + self.torque_cmds.left_j2_tau[1] / 2
-        commands[12] = 150 - self.torque_cmds.left_j2_tau[1] / 2
+        commands[11] = 150 + self.torque_cmds.left_j2_tau_cmd[1] / 2
+        commands[12] = 150 - self.torque_cmds.left_j2_tau_cmd[1] / 2
 
-        commands[13] = 150 + self.torque_cmds.right_j0_tau[0] / 2
-        commands[14] = 150 - self.torque_cmds.right_j0_tau[0] / 2
+        commands[13] = 150 + self.torque_cmds.right_j0_tau_cmd[0] / 2
+        commands[14] = 150 - self.torque_cmds.right_j0_tau_cmd[0] / 2
 
-        commands[15] = 150 + self.torque_cmds.right_j0_tau[1] / 2
-        commands[16] = 150 - self.torque_cmds.right_j0_tau[1] / 2
+        commands[15] = 150 + self.torque_cmds.right_j0_tau_cmd[1] / 2
+        commands[16] = 150 - self.torque_cmds.right_j0_tau_cmd[1] / 2
 
-        commands[17] = 150 + self.torque_cmds.right_j1_tau[0] / 2
-        commands[18] = 150 - self.torque_cmds.right_j1_tau[0] / 2
+        commands[17] = 150 + self.torque_cmds.right_j1_tau_cmd[0] / 2
+        commands[18] = 150 - self.torque_cmds.right_j1_tau_cmd[0] / 2
 
-        commands[19] = 150 + self.torque_cmds.right_j1_tau[1] / 2
-        commands[20] = 150 - self.torque_cmds.right_j1_tau[1] / 2
+        commands[19] = 150 + self.torque_cmds.right_j1_tau_cmd[1] / 2
+        commands[20] = 150 - self.torque_cmds.right_j1_tau_cmd[1] / 2
 
-        commands[21] = 150 + self.torque_cmds.right_j2_tau[0] / 2
-        commands[22] = 150 - self.torque_cmds.right_j2_tau[0] / 2
+        commands[21] = 150 + self.torque_cmds.right_j2_tau_cmd[0] / 2
+        commands[22] = 150 - self.torque_cmds.right_j2_tau_cmd[0] / 2
 
-        commands[23] = 150 + self.torque_cmds.right_j2_tau[1] / 2
-        commands[24] = 150 - self.torque_cmds.right_j2_tau[1] / 2
+        commands[23] = 150 + self.torque_cmds.right_j2_tau_cmd[1] / 2
+        commands[24] = 150 - self.torque_cmds.right_j2_tau_cmd[1] / 2
 
         return commands
 

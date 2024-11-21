@@ -53,6 +53,7 @@ class BalooBase(gym.Env, ABC):
         self.xml_path = baloo_mj.XML_PATH
 
         self.first_load = True
+        self.randomize_initial_height = randomize_initial_height
         self._reinitialize_states()
 
         self.simulation_timestep = self.model.opt.timestep
@@ -62,8 +63,6 @@ class BalooBase(gym.Env, ABC):
         assert int(self.control_timestep % self.simulation_timestep) == 0
         self.sim_steps_per_control_step = int(self.control_timestep /
                                               self.simulation_timestep)
-
-        self.randomize_initial_height = randomize_initial_height
 
     @abstractmethod
     def map_action_to_commands(self, action):
@@ -96,8 +95,8 @@ class BalooBase(gym.Env, ABC):
                                     [150] * 4)
 
         if self.randomize_initial_height:
-            initial_height = np.random.uniform(-800, 0)
-            set_elevator_cmd(self.model, self.data, initial_height)
+            initial_height_cmd = np.random.randint(-800, 0)
+            set_elevator_cmd(self.model, self.data, initial_height_cmd)
 
         mujoco.mj_step(self.model,
                        self.data,
