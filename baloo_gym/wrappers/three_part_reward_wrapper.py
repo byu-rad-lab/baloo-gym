@@ -7,6 +7,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_chest_position,
     set_mocap_pose,
     set_mocap_size,
+    get_tactile_image,
 )
 import mujoco
 import numpy as np
@@ -18,7 +19,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
     Now this class can just overrides the calculate_reward() method to return a force based reward. 
     """
 
-    def __init__(self, env):
+    def __init__(self, env, reward_selection=None):
         """Constructor for the Reward wrapper."""
         super().__init__(env)
 
@@ -26,6 +27,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.sphere_visual_initialized = False
         self.desired_box_visual_initialized = False
         self.previous_action = np.zeros(self.unwrapped.action_space.shape)
+        self.reward_selection = reward_selection
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
@@ -80,9 +82,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
         action_diff = np.linalg.norm(action - self.previous_action)
         reward -= smoothness_weight * action_diff
 
-        #encourage usage of tactile sensing surfaces
-        # taxel_usage = self._count_nonzero_taxels()/ total_taxels
-
         if box_error < 0.1:
             #green
             self.unwrapped.model.geom('box').rgba = [0, 1, 0, .7]
@@ -99,10 +98,41 @@ class ThreePartRewardWrapper(gym.Wrapper):
             pass
 
         self.box_error_prev = box_error
+
+        if "tactile_nonzero" in self.reward_selection:
+            #do taxels get rewarded if arms touch?
+            taxel_reward = self._count_nonzero_taxels()
+            #10 b/c not much of taxels are actually used
+            reward += 10 * taxel_reward
+
         return reward
-    
+
     def _count_nonzero_taxels(self):
-        pass
+        left_link0_taxels = get_tactile_image(self.unwrapped.model,
+                                              self.unwrapped.data, "left", 0)
+        left_link1_taxels = get_tactile_image(self.unwrapped.model,
+                                              self.unwrapped.data, "left", 1)
+        right_link0_taxels = get_tactile_image(self.unwrapped.model,
+                                               self.unwrapped.data, "right", 0)
+        right_link1_taxels = get_tactile_image(self.unwrapped.model,
+                                               self.unwrapped.data, "right", 1)
+        chest_taxels = get_tactile_image(self.unwrapped.model,
+                                         self.unwrapped.data, "chest", -1)
+
+        left_link0_percent = np.count_nonzero(
+            left_link0_taxels) / left_link0_taxels.size
+        left_link1_percent = np.count_nonzero(
+            left_link1_taxels) / left_link1_taxels.size
+        right_link0_percent = np.count_nonzero(
+            right_link0_taxels) / right_link0_taxels.size
+        right_link1_percent = np.count_nonzero(
+            right_link1_taxels) / right_link1_taxels.size
+        chest_percent = np.count_nonzero(chest_taxels) / chest_taxels.size
+
+        total = (left_link0_percent + left_link1_percent +
+                 right_link0_percent + right_link1_percent + chest_percent) / 5
+
+        return total
 
     def _get_rms_robot_dist(self, box_xpos, chest_xpos):
         left_link0_xpos = get_link_position(self.unwrapped.model,

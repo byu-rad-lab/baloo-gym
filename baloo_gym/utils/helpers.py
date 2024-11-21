@@ -100,6 +100,7 @@ def build_env(config: dict, folder_name, baseline: bool, monitor: bool,
         "baloo_v4": "BalooV4",
         "baloo_v5": "BalooV5",
         "baloo_v6": "BalooV6",
+        "baloo_v7": "BalooV7",
     }
 
     EnvClass = getattr(
@@ -125,7 +126,7 @@ def build_env(config: dict, folder_name, baseline: bool, monitor: bool,
         env = TimeLimitTerminationWrapper(env, config["time_limit_sec"],
                                           config["ctrl_timestep"])
 
-    env = ThreePartRewardWrapper(env)
+    env = ThreePartRewardWrapper(env, config["reward_selection"])
     env = CurriculumEnv(env, config["curriculum_selection"])
 
     if baseline:

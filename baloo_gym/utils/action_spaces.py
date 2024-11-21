@@ -220,6 +220,14 @@ class IncrementalTorques:
         # add flag to declare if action is normalized or not.
         self.is_normalized = True
 
+        self.prev_elevator_height = 0
+        self.prev_left_j0_tau = np.zeros(2)
+        self.prev_left_j1_tau = np.zeros(2)
+        self.prev_left_j2_tau = np.zeros(2)
+        self.prev_right_j0_tau = np.zeros(2)
+        self.prev_right_j1_tau = np.zeros(2)
+        self.prev_right_j2_tau = np.zeros(2)
+
     def __repr__(self):
         return f"Action: {self._to_array()}"
 
@@ -282,8 +290,17 @@ class IncrementalTorques:
         """
         increment_directions is a 13 element vector of +1, 0, or -1.
         """
-        self.elevator_height += increment_directions[0] * 10
-        self.left_j0_tau += increment_directions[1:3] * 10
+        self.prev_elevator_height = self.elevator_height
+        self.prev_left_j0_tau = np.copy(self.left_j0_tau)
+        self.prev_left_j1_tau = np.copy(self.left_j1_tau)
+        self.prev_left_j2_tau = np.copy(self.left_j2_tau)
+        self.prev_right_j0_tau = np.copy(self.right_j0_tau)
+        self.prev_right_j1_tau = np.copy(self.right_j1_tau)
+        self.prev_right_j2_tau = np.copy(self.right_j2_tau)
+
+        #update new values.
+        self.elevator_height += increment_directions[0] * 10 #mm
+        self.left_j0_tau += increment_directions[1:3] * 10 #kPa
         self.left_j1_tau += increment_directions[3:5] * 10
         self.left_j2_tau += increment_directions[5:7] * 10
         self.right_j0_tau += increment_directions[7:9] * 10

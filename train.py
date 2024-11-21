@@ -44,6 +44,23 @@ def train():
         'Run training on remote server. Need to change mujoco graphics backend to egl.'
     )
 
+    parser.add_argument(
+        '--reward_selection',
+        nargs='+',
+        type=str,
+        default=[],
+        help='List of rewards to use for training. Options: "tactile_nonzero"',
+    )
+
+    parser.add_argument(
+        "--curriculum_selection",
+        nargs="+",
+        type=str,
+        default=[],
+        help=
+        "List of curriculums to use for training. Options: 'manipuland_initial_position'",
+    )
+
     args = parser.parse_args()
     print(args)
 
@@ -57,7 +74,8 @@ def train():
         "env_name": args.env_name,
         "time_limit_sec": 30,
         "time_aware_obs": True,
-        "curriculum_selection": ["manipuland_initial_position"],
+        "curriculum_selection": args.curriculum_selection,
+        'reward_selection': args.reward_selection,
     }
 
     if args.wandb:
@@ -70,7 +88,7 @@ def train():
             True,  # auto-upload the videos of agents playing the game
             save_code=True,  # optional
             tags=["carlo", "post-bug", "all-in-one-reward"],
-            notes="")
+            dir="./wandb")
 
         wandb.run.log_code("./baloo_gym/wrappers/")
 
@@ -124,7 +142,7 @@ def train():
         policy_kwargs=policy_kwargs,
         # use_sde=True, #!rails outputs for some reason...
         batch_size=256,
-        learning_rate=1e-4,
+        learning_rate=3e-4,
         verbose=1,
         tensorboard_log=f"./experiments/{folder_name}/runs",
     )
