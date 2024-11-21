@@ -88,7 +88,7 @@ def train():
             True,  # auto-upload the videos of agents playing the game
             save_code=True,  # optional
             tags=["carlo", "post-bug", "all-in-one-reward"],
-            dir="./wandb")
+        )
 
         wandb.run.log_code("./baloo_gym/wrappers/")
 
