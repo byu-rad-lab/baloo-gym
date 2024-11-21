@@ -18,6 +18,7 @@ class BalooV7(BalooBase):
         render_width=320,
         render_height=240,
         desired_box_pos=None,
+        randomize_initial_height=False,
     ):
         super().__init__(
             render_mode=render_mode,
@@ -25,6 +26,7 @@ class BalooV7(BalooBase):
             ctrl_timestep=ctrl_timestep,
             render_width=render_width,
             render_height=render_height,
+            randomize_initial_height=randomize_initial_height
         )
 
         action_size = IncrementalTorques.shape[0]
@@ -136,7 +138,7 @@ class BalooV7(BalooBase):
 
     def reset(self, seed=None, options=None):
         #this will reload the model from xml and reset to some state,
-        # but return incorrect previous commands since torque_commands hasn't been reset.
+        # but return incorrect previous commands since torque_cmds hasn't been reset.
         _, info = super().reset(seed=seed, options=options)
 
         #set to correct commands now that model has been reset to some state

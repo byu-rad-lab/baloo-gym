@@ -111,7 +111,8 @@ def build_env(config: dict, folder_name, baseline: bool, monitor: bool,
                    camera_name="fixedcam",
                    ctrl_timestep=config["ctrl_timestep"],
                    render_width=320,
-                   render_height=240)
+                   render_height=240,
+                   randomize_initial_height=config["randomize_initial_height"])
 
     check_env(env)
     '''

@@ -30,6 +30,7 @@ class BalooV4(BalooBase):
         render_width=320,
         render_height=240,
         desired_box_pos=None,
+        randomize_initial_height=False,
     ):
         super().__init__(
             render_mode=render_mode,
@@ -37,6 +38,7 @@ class BalooV4(BalooBase):
             ctrl_timestep=ctrl_timestep,
             render_width=render_width,
             render_height=render_height,
+            randomize_initial_height=randomize_initial_height
         )
 
         action_size = IncrementalTorques.shape[0]

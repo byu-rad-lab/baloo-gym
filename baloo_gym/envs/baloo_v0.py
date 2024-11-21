@@ -14,15 +14,22 @@ class BalooV0(BalooBase):
     '''
     BalooV0 implements an environment where 
     '''
+
     def __init__(
         self,
         render_mode=None,
         camera_name=None,
         ctrl_timestep=0.01,
+        render_width=320,
+        render_height=240,
+        randomize_initial_height=False,
     ):
         super().__init__(render_mode=render_mode,
                          camera_name=camera_name,
-                         ctrl_timestep=ctrl_timestep)
+                         ctrl_timestep=ctrl_timestep,
+                         render_width=render_width,
+                         render_height=render_height,
+                         randomize_initial_height=randomize_initial_height)
 
         # action space is elevator height, pressure commands for each joint (h, left [0,1,2,3], right [0,1,2,3])
         self.action_space = spaces.Box(-1,
