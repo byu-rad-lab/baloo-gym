@@ -3,7 +3,7 @@ from gymnasium import spaces
 import numpy as np
 from baloo_gym.utils.observation_spaces import StateObservationPressurePrevActions
 from baloo_gym.utils.helpers import get_sensor_data
-from baloo_mujoco_sim.utils.baloo_mj_api import get_elevator_vel, get_joint_pressures, set_mocap_pose
+from baloo_mujoco_sim.utils.baloo_mj_api import get_joint_pressures, get_elevator_cmd
 from baloo_gym.utils.action_spaces import IncrementalTorques
 import mujoco
 
@@ -37,7 +37,9 @@ class BalooV7(BalooBase):
             shape=StateObservationPressurePrevActions.shape,
             dtype=np.float32)
 
-        self.torque_cmds = IncrementalTorques(np.zeros(13))
+        elevator_cmd = get_elevator_cmd(self.model, self.data)
+        self.torque_cmds = IncrementalTorques(
+            np.hstack([elevator_cmd, np.zeros(12)]))
 
         if desired_box_pos is None:
             self.desired_box_pos = np.array([0, 0.5, .75])
@@ -88,7 +90,8 @@ class BalooV7(BalooBase):
 
         action = np.asarray(action) - 1  # shift to be between -1 and 1.
 
-        self.torque_cmds.increment(action)
+        self.torque_cmds.update(action)
+        #torque commands for this time step
 
         #make this more concise later with a loop
         commands = np.zeros(self.len_command)
@@ -132,11 +135,19 @@ class BalooV7(BalooBase):
         return commands
 
     def reset(self, seed=None, options=None):
-        self.torque_cmds = IncrementalTorques(np.zeros(13))
-        #this will reload the model from xml
-        ret = super().reset(seed=seed, options=options)
+        #this will reload the model from xml and reset to some state,
+        # but return incorrect previous commands since torque_commands hasn't been reset.
+        _, info = super().reset(seed=seed, options=options)
 
-        return ret
+        #set to correct commands now that model has been reset to some state
+        elevator_cmd = get_elevator_cmd(self.model, self.data)
+        self.torque_cmds = IncrementalTorques(
+            np.hstack([elevator_cmd, np.zeros(12)]))
+
+        #override observation to give correct previous commands
+        obs = self.get_observation_from_mujoco()
+
+        return obs, info
 
     def calculate_reward(self) -> float:
         return 0

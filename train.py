@@ -49,7 +49,8 @@ def train():
         nargs='+',
         type=str,
         default=[],
-        help='List of rewards to use for training. Options: "tactile_nonzero"',
+        help=
+        'List of rewards to use for training. Options: "tactile_nonzero", "action_smoothness"',
     )
 
     parser.add_argument(
@@ -60,6 +61,10 @@ def train():
         help=
         "List of curriculums to use for training. Options: 'manipuland_initial_position'",
     )
+
+    parser.add_argument('--randomize_initial_height',
+                        action='store_true',
+                        help='Randomize initial height of the elevator')
 
     args = parser.parse_args()
     print(args)
@@ -76,6 +81,7 @@ def train():
         "time_aware_obs": True,
         "curriculum_selection": args.curriculum_selection,
         'reward_selection': args.reward_selection,
+        "randomize_initial_height": args.randomize_initial_height,
     }
 
     if args.wandb:

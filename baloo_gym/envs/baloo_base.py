@@ -35,6 +35,7 @@ class BalooBase(gym.Env, ABC):
         ctrl_timestep=0.01,
         render_width=320,
         render_height=240,
+        randomize_initial_height=False,
     ):
         super().__init__()
 
@@ -61,6 +62,8 @@ class BalooBase(gym.Env, ABC):
         assert int(self.control_timestep % self.simulation_timestep) == 0
         self.sim_steps_per_control_step = int(self.control_timestep /
                                               self.simulation_timestep)
+
+        self.randomize_initial_height = randomize_initial_height
 
     @abstractmethod
     def map_action_to_commands(self, action):
@@ -92,8 +95,9 @@ class BalooBase(gym.Env, ABC):
         set_joint_pressure_commands(self.model, self.data, "right", 2,
                                     [150] * 4)
 
-        initial_height = np.random.uniform(-800, 0)
-        set_elevator_cmd(self.model, self.data, initial_height)
+        if self.randomize_initial_height:
+            initial_height = np.random.uniform(-800, 0)
+            set_elevator_cmd(self.model, self.data, initial_height)
 
         mujoco.mj_step(self.model,
                        self.data,

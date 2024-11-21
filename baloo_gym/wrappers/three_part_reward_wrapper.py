@@ -77,10 +77,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.unwrapped.model.geom('box').rgba = [1, 0, 0, .7]
         reward -= self._get_rms_robot_dist(box_xpos, chest_xpos)
 
-        #penalize large changes in action
-        smoothness_weight = 0.1
-        action_diff = np.linalg.norm(action - self.previous_action)
-        reward -= smoothness_weight * action_diff
 
         if box_error < 0.1:
             #green
@@ -97,7 +93,11 @@ class ThreePartRewardWrapper(gym.Wrapper):
             # reward -= .25
             pass
 
-        self.box_error_prev = box_error
+        #penalize large changes in action
+        if "action_smoothness" in self.reward_selection:
+            smoothness_weight = 0.1
+            action_diff = np.linalg.norm(action - self.previous_action)
+            reward -= smoothness_weight * action_diff
 
         if "tactile_nonzero" in self.reward_selection:
             #do taxels get rewarded if arms touch?
@@ -105,6 +105,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             #10 b/c not much of taxels are actually used
             reward += 10 * taxel_reward
 
+        self.box_error_prev = box_error
         return reward
 
     def _count_nonzero_taxels(self):
