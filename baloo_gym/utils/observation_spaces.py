@@ -426,9 +426,10 @@ class StateObservationPressure:
 class StateObservationPressurePrevActions:
     #class attributes.
     #designed this way to be able to standardize and unstandardize observations easily without having class isntantiations.
-    shape = (32 + 24 + 13, )
+    shape = (72, )
 
-    object_pos_error_lb = [-2, -2, -2]
+    desired_object_pos_lb = [-2, -2, -2]
+    object_pos_lb = [-2, -2, -2]
     object_vel_lb = [-2] * 3
     elevator_pos_lb = [-1.5]
     elevator_vel_lb = [-5]
@@ -460,7 +461,8 @@ class StateObservationPressurePrevActions:
     prev_right_j1_tau_lb = [-300] * 2
     prev_right_j2_tau_lb = [-300] * 2
 
-    object_pos_error_ub = [2, 2, 2]
+    desired_object_pos_ub = [2, 2, 2]
+    object_pos_ub = [2, 2, 2]
     object_vel_ub = [2] * 3
     elevator_pos_ub = [0]
     elevator_vel_ub = [5]
@@ -493,28 +495,31 @@ class StateObservationPressurePrevActions:
     prev_right_j2_tau_ub = [300] * 2
 
     obs_lower_bound = np.asarray(
-        object_pos_error_lb + object_vel_lb + elevator_pos_lb +
-        elevator_vel_lb + left_j0_pos_lb + left_j1_pos_lb + left_j2_pos_lb +
-        right_j0_pos_lb + right_j1_pos_lb + right_j2_pos_lb + left_j0_vel_lb +
-        left_j1_vel_lb + left_j2_vel_lb + right_j0_vel_lb + right_j1_vel_lb +
-        right_j2_vel_lb + left_j0_p_lb + left_j1_p_lb + left_j2_p_lb +
-        right_j0_p_lb + right_j1_p_lb + right_j2_p_lb + prev_height_cmd_lb +
-        prev_left_j0_tau_lb + prev_left_j1_tau_lb + prev_left_j2_tau_lb +
-        prev_right_j0_tau_lb + prev_right_j1_tau_lb + prev_right_j2_tau_lb)
+        desired_object_pos_lb + object_pos_lb + object_vel_lb +
+        elevator_pos_lb + elevator_vel_lb + left_j0_pos_lb + left_j1_pos_lb +
+        left_j2_pos_lb + right_j0_pos_lb + right_j1_pos_lb + right_j2_pos_lb +
+        left_j0_vel_lb + left_j1_vel_lb + left_j2_vel_lb + right_j0_vel_lb +
+        right_j1_vel_lb + right_j2_vel_lb + left_j0_p_lb + left_j1_p_lb +
+        left_j2_p_lb + right_j0_p_lb + right_j1_p_lb + right_j2_p_lb +
+        prev_height_cmd_lb + prev_left_j0_tau_lb + prev_left_j1_tau_lb +
+        prev_left_j2_tau_lb + prev_right_j0_tau_lb + prev_right_j1_tau_lb +
+        prev_right_j2_tau_lb)
 
     obs_upper_bound = np.asarray(
-        object_pos_error_ub + object_vel_ub + elevator_pos_ub +
-        elevator_vel_ub + left_j0_pos_ub + left_j1_pos_ub + left_j2_pos_ub +
-        right_j0_pos_ub + right_j1_pos_ub + right_j2_pos_ub + left_j0_vel_ub +
-        left_j1_vel_ub + left_j2_vel_ub + right_j0_vel_ub + right_j1_vel_ub +
-        right_j2_vel_ub + left_j0_p_ub + left_j1_p_ub + left_j2_p_ub +
-        right_j0_p_ub + right_j1_p_ub + right_j2_p_ub + prev_height_cmd_ub +
-        prev_left_j0_tau_ub + prev_left_j1_tau_ub + prev_left_j2_tau_ub +
-        prev_right_j0_tau_ub + prev_right_j1_tau_ub + prev_right_j2_tau_ub)
+        desired_object_pos_ub + object_pos_ub + object_vel_ub +
+        elevator_pos_ub + elevator_vel_ub + left_j0_pos_ub + left_j1_pos_ub +
+        left_j2_pos_ub + right_j0_pos_ub + right_j1_pos_ub + right_j2_pos_ub +
+        left_j0_vel_ub + left_j1_vel_ub + left_j2_vel_ub + right_j0_vel_ub +
+        right_j1_vel_ub + right_j2_vel_ub + left_j0_p_ub + left_j1_p_ub +
+        left_j2_p_ub + right_j0_p_ub + right_j1_p_ub + right_j2_p_ub +
+        prev_height_cmd_ub + prev_left_j0_tau_ub + prev_left_j1_tau_ub +
+        prev_left_j2_tau_ub + prev_right_j0_tau_ub + prev_right_j1_tau_ub +
+        prev_right_j2_tau_ub)
 
     def __init__(
         self,
-        object_pos_error,
+        desired_object_pos,
+        object_pos,
         object_vel,
         elevator_pos,
         elevator_vel,
@@ -536,7 +541,8 @@ class StateObservationPressurePrevActions:
         prev_right_j1_tau,
         prev_right_j2_tau,
     ):
-        self.object_pos_error = object_pos_error  #defined as des_position - actual_position
+        self.desired_object_pos = desired_object_pos
+        self.object_pos = object_pos
         self.object_vel = object_vel
         self.elevator_pos = elevator_pos
         self.elevator_vel = elevator_vel
@@ -568,7 +574,8 @@ class StateObservationPressurePrevActions:
 
     def to_array(self):
         return np.hstack([
-            self.object_pos_error,
+            self.desired_object_pos,
+            self.object_pos,
             self.object_vel,
             self.elevator_pos,
             self.elevator_vel,
@@ -618,25 +625,26 @@ class StateObservationPressurePrevActions:
         ) + StateObservationPressurePrevActions.obs_lower_bound
 
         return StateObservationPressurePrevActions(
-            object_pos_error=observation_array[0:3],
-            object_vel=observation_array[3:6],
-            elevator_pos=observation_array[6],
-            elevator_vel=observation_array[7],
-            left_pos=observation_array[8:14],
-            right_pos=observation_array[14:20],
-            left_vel=observation_array[20:26],
-            right_vel=observation_array[26:32],
-            left_j0_pressures=observation_array[32:36],
-            left_j1_pressures=observation_array[36:40],
-            left_j2_pressures=observation_array[40:44],
-            right_j0_pressures=observation_array[44:48],
-            right_j1_pressures=observation_array[48:52],
-            right_j2_pressures=observation_array[52:56],
-            prev_height_cmd=observation_array[56],
-            prev_left_j0_tau=observation_array[57:59],
-            prev_left_j1_tau=observation_array[59:61],
-            prev_left_j2_tau=observation_array[61:63],
-            prev_right_j0_tau=observation_array[63:65],
-            prev_right_j1_tau=observation_array[65:67],
-            prev_right_j2_tau=observation_array[67:69],
+            desired_object_pos=observation_array[0:3],
+            object_pos=observation_array[3:6],
+            object_vel=observation_array[6:9],
+            elevator_pos=observation_array[9],
+            elevator_vel=observation_array[10],
+            left_pos=observation_array[11:17],
+            right_pos=observation_array[17:23],
+            left_vel=observation_array[23:29],
+            right_vel=observation_array[29:35],
+            left_j0_pressures=observation_array[35:39],
+            left_j1_pressures=observation_array[39:43],
+            left_j2_pressures=observation_array[43:47],
+            right_j0_pressures=observation_array[47:51],
+            right_j1_pressures=observation_array[51:55],
+            right_j2_pressures=observation_array[55:59],
+            prev_height_cmd=observation_array[59],
+            prev_left_j0_tau=observation_array[60:62],
+            prev_left_j1_tau=observation_array[62:64],
+            prev_left_j2_tau=observation_array[64:66],
+            prev_right_j0_tau=observation_array[66:68],
+            prev_right_j1_tau=observation_array[68:70],
+            prev_right_j2_tau=observation_array[70:72],
         )

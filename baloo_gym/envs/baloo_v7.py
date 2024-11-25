@@ -3,7 +3,7 @@ from gymnasium import spaces
 import numpy as np
 from baloo_gym.utils.observation_spaces import StateObservationPressurePrevActions
 from baloo_gym.utils.helpers import get_sensor_data
-from baloo_mujoco_sim.utils.baloo_mj_api import get_joint_pressures, get_elevator_cmd
+from baloo_mujoco_sim.utils.baloo_mj_api import get_joint_pressures, get_elevator_cmd, get_contact_forces_on_body
 from baloo_gym.utils.action_spaces import IncrementalTorques
 import mujoco
 
@@ -67,10 +67,7 @@ class BalooV7(BalooBase):
         sensor_data["right_j2_pressures"] = get_joint_pressures(
             self.model, self.data, 'right', 2)
 
-        sensor_data["object_pos_error"] = self.desired_box_pos - sensor_data[
-            "object_pos"]
-        sensor_data.pop("object_pos")
-
+        sensor_data["desired_object_pos"] = self.desired_box_pos
         sensor_data[
             "prev_height_cmd"] = self.torque_cmds.prev_elevator_height_cmd
         sensor_data["prev_left_j0_tau"] = self.torque_cmds.prev_left_j0_tau_cmd

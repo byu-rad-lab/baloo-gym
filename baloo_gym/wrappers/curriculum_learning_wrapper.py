@@ -14,15 +14,17 @@ class CurriculumEnv(gym.Wrapper):
     def __init__(
         self, env,
         curriculum_selection: List[Literal["manipuland_initial_position",
-                                           "perturbations", "object_mass"]]):
+                                           "perturbations", "object_mass",
+                                           "all"]]):
         super().__init__(env)
 
         self.curriculum_selection = curriculum_selection
         print("Curriculum Selection: ", self.curriculum_selection)
 
-        if "manipuland_initial_position" in self.curriculum_selection:
+        if "all" in self.curriculum_selection:
+            # all means full randomization real-world style, so no ramp up.
             self.position_randomizer = CurriculumDomainRandomizer(
-                identifier="curriculum_randomizer", ramp_steps=500)
+                identifier="curriculum_randomizer", ramp_steps=1)
 
             self.position_randomizer.add(
                 "initial_xpos",
@@ -35,24 +37,42 @@ class CurriculumEnv(gym.Wrapper):
 
             self.position_randomizer.init_history()
 
-            # print(self.position_randomizer.summary())
+            # TODO: add position and mass randomizers here.
+        else:
+            if "manipuland_initial_position" in self.curriculum_selection:
+                self.position_randomizer = CurriculumDomainRandomizer(
+                    identifier="curriculum_randomizer", ramp_steps=500)
 
-        if "perturbations" in self.curriculum_selection:
-            self.perturbation_randomizer = CurriculumDomainRandomizer(
-                identifier="curriculum_randomizer", ramp_steps=500)
+                self.position_randomizer.add(
+                    "initial_xpos",
+                    "normal",
+                    dict(loc=0, scale=.2 / 3)  #3 sigma rule
+                )
 
-            # todo: would be nice to ramp up from 0, instead of spreading from middle.
-            self.perturbation_randomizer.add("perturbation_magnitude",
-                                             "uniform", dict(low=0, high=0.5))
-            self.perturbation_randomizer.init_history()
+                self.position_randomizer.add("initial_ypos", "normal",
+                                             dict(loc=0.5, scale=.2 / 3))
 
-        if "object_mass" in self.curriculum_selection:
-            self.object_mass_randomizer = CurriculumDomainRandomizer(
-                identifier="curriculum_randomizer", ramp_steps=500)
+                self.position_randomizer.init_history()
 
-            self.object_mass_randomizer.add("object_mass", "uniform",
-                                            dict(low=3, high=20))
-            self.object_mass_randomizer.init_history()
+                # print(self.position_randomizer.summary())
+
+            if "perturbations" in self.curriculum_selection:
+                self.perturbation_randomizer = CurriculumDomainRandomizer(
+                    identifier="curriculum_randomizer", ramp_steps=500)
+
+                # todo: would be nice to ramp up from 0, instead of spreading from middle.
+                self.perturbation_randomizer.add("perturbation_magnitude",
+                                                 "uniform",
+                                                 dict(low=0, high=0.5))
+                self.perturbation_randomizer.init_history()
+
+            if "object_mass" in self.curriculum_selection:
+                self.object_mass_randomizer = CurriculumDomainRandomizer(
+                    identifier="curriculum_randomizer", ramp_steps=500)
+
+                self.object_mass_randomizer.add("object_mass", "uniform",
+                                                dict(low=3, high=20))
+                self.object_mass_randomizer.init_history()
 
     def reset(self, seed=None, options=None):
         obs, info = self.env.reset(seed, options)

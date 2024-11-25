@@ -8,6 +8,7 @@ from wandb.integration.sb3 import WandbCallback
 
 from dataclasses import dataclass
 from baloo_gym.utils.helpers import make_parallel_env, build_env
+from stable_baselines3.common.utils import set_random_seed
 
 
 #just a dataclass to hold the run name and id for testing purposes only.
@@ -17,61 +18,9 @@ class Run:
     id: str = "0000"
 
 
-def train():
-    # Set up argument parsing
-    parser = argparse.ArgumentParser(
-        description="Train a reinforcement learning model.")
-    parser.add_argument('--total_timesteps',
-                        type=int,
-                        default=1000000,
-                        help='Total timesteps for training')
-    parser.add_argument('--num_envs',
-                        type=int,
-                        default=1,
-                        help='Number of environments for SubprocVecEnv')
-    parser.add_argument('--wandb',
-                        action='store_true',
-                        help='Use Weights and Biases for logging')
-    parser.add_argument('--env_name',
-                        type=str,
-                        default='baloo_v4',
-                        help='Name of the environment')
+def train(args):
 
-    parser.add_argument(
-        '--remote_train',
-        action='store_true',
-        help=
-        'Run training on remote server. Need to change mujoco graphics backend to egl.'
-    )
-
-    parser.add_argument(
-        '--reward_selection',
-        nargs='+',
-        type=str,
-        default=[],
-        help=
-        'List of rewards to use for training. Options: "tactile_nonzero", "action_smoothness"',
-    )
-
-    parser.add_argument(
-        "--curriculum_selection",
-        nargs="+",
-        type=str,
-        default=[],
-        help=
-        "List of curriculums to use for training. Options: 'manipuland_initial_position'",
-    )
-
-    parser.add_argument('--randomize_initial_height',
-                        action='store_true',
-                        help='Randomize initial height of the elevator')
-
-    args = parser.parse_args()
-    print(args)
-
-    if args.remote_train:
-        import os
-        os.environ["MUJOCO_GL"] = "egl"
+    set_random_seed(42)
 
     config = {
         "total_timesteps": args.total_timesteps,
@@ -93,7 +42,7 @@ def train():
             monitor_gym=
             True,  # auto-upload the videos of agents playing the game
             save_code=True,  # optional
-            tags=["carlo", "post-bug", "all-in-one-reward"],
+            tags=["experiments"],
         )
 
         wandb.run.log_code("./baloo_gym/wrappers/")
@@ -141,14 +90,29 @@ def train():
                             wandb=args.wandb,
                             record_video=True)
 
-    policy_kwargs = dict(net_arch=[128, 128, 128])
+    def linear_schedule(initial_value: float):
+
+        def func(progress_remaining: float) -> float:
+            """
+            Progress will decrease from 1 (beginning) to 0.
+
+            :param progress_remaining:
+            :return: current learning rate
+            """
+            return progress_remaining * initial_value
+
+        return func
+
+    policy_kwargs = dict(net_arch=[64, 64])
+    
     rl_model = PPO(
         "MlpPolicy",
         env,
         policy_kwargs=policy_kwargs,
         # use_sde=True, #!rails outputs for some reason...
         batch_size=256,
-        learning_rate=3e-4,
+        learning_rate=linear_schedule(3e-4),
+        ent_coef=.02,
         verbose=1,
         tensorboard_log=f"./experiments/{folder_name}/runs",
     )
@@ -165,4 +129,60 @@ def train():
 
 
 if __name__ == "__main__":
-    train()
+
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(
+        description="Train a reinforcement learning model.")
+    parser.add_argument('--total_timesteps',
+                        type=int,
+                        default=1000000,
+                        help='Total timesteps for training')
+    parser.add_argument('--num_envs',
+                        type=int,
+                        default=1,
+                        help='Number of environments for SubprocVecEnv')
+    parser.add_argument('--wandb',
+                        action='store_true',
+                        help='Use Weights and Biases for logging')
+    parser.add_argument('--env_name',
+                        type=str,
+                        default='baloo_v4',
+                        help='Name of the environment')
+
+    parser.add_argument(
+        '--remote_train',
+        action='store_true',
+        help=
+        'Run training on remote server. Need to change mujoco graphics backend to egl.'
+    )
+
+    parser.add_argument(
+        '--reward_selection',
+        nargs='+',
+        type=str,
+        default=[],
+        help=
+        'List of rewards to use for training. Options: "tactile_nonzero", "action_smoothness", "robot_convex_hull", "rms_robot_dist"',
+    )
+
+    parser.add_argument(
+        "--curriculum_selection",
+        nargs="+",
+        type=str,
+        default=[],
+        help=
+        "List of curriculums to use for training. Options: 'manipuland_initial_position'",
+    )
+
+    parser.add_argument('--randomize_initial_height',
+                        action='store_true',
+                        help='Randomize initial height of the elevator')
+
+    args = parser.parse_args()
+    print(args)
+
+    if args.remote_train:
+        import os
+        os.environ["MUJOCO_GL"] = "egl"
+
+    train(args)

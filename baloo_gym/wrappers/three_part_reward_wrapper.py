@@ -8,10 +8,13 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     set_mocap_pose,
     set_mocap_size,
     get_tactile_image,
+    get_contact_forces_on_body,
+    detect_box_touch,
 )
 import mujoco
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+from scipy.spatial import ConvexHull
 
 
 class ThreePartRewardWrapper(gym.Wrapper):
@@ -48,6 +51,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.previous_action = np.zeros(self.unwrapped.action_space.shape)
         return self.env.reset()
 
+    def _decay_sphere_radius(self):
+        start = 0.5
+        stop = 0
+
+        self.sphere_radius = start - (
+            start - stop
+        ) * self.unwrapped.data.time / self.get_wrapper_attr("time_limit_sec")
+
     def _cosine_similarity(self, v1, v2):
         if np.linalg.norm(v1) <= 1e-6 or np.linalg.norm(v2) <= 1e-6:
             return 0
@@ -74,24 +85,21 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         reward = 0
         #red
-        self.unwrapped.model.geom('box').rgba = [1, 0, 0, .7]
-        reward -= self._get_rms_robot_dist(box_xpos, chest_xpos)
+        self.unwrapped.model.geom('box').rgba = [1, 0, 0, .5]
 
-
-        if box_error < 0.1:
+        if np.abs(box_xerror[2]) < 0.05:
             #green
-            self.unwrapped.model.geom('box').rgba = [0, 1, 0, .7]
+            self.unwrapped.model.geom('box').rgba = [0, 1, 0, .5]
             reward += 1
             return reward
 
         #reward moving towards desired position, penalize moving away
         if box_error < self.box_error_prev - numerical_threshold:
             #yellow
-            self.unwrapped.model.geom('box').rgba = [1, 1, 0, .7]
+            self.unwrapped.model.geom('box').rgba = [1, 1, 0, .5]
             reward += .5
         elif box_error > self.box_error_prev + numerical_threshold:
-            # reward -= .25
-            pass
+            reward -= .1
 
         #penalize large changes in action
         if "action_smoothness" in self.reward_selection:
@@ -100,10 +108,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
             reward -= smoothness_weight * action_diff
 
         if "tactile_nonzero" in self.reward_selection:
-            #do taxels get rewarded if arms touch?
             taxel_reward = self._count_nonzero_taxels()
-            #10 b/c not much of taxels are actually used
-            reward += 10 * taxel_reward
+            reward += taxel_reward
+
+        if "robot_convex_hull" in self.reward_selection:
+            reward -= self._get_convex_hull_distance(box_xpos)
+
+        if "rms_robot_dist" in self.reward_selection:
+            reward -= self._get_rms_robot_dist(box_xpos, chest_xpos)
 
         self.box_error_prev = box_error
         return reward
@@ -170,6 +182,28 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 ])**2))
 
         return rms_dist
+
+    def _get_robot_convex_hull(self, chest_xpos):
+        left_link0_xpos = get_link_position(self.unwrapped.model,
+                                            self.unwrapped.data, 'left', 0)
+        left_link1_xpos = get_link_position(self.unwrapped.model,
+                                            self.unwrapped.data, 'left', 1)
+        right_link0_xpos = get_link_position(self.unwrapped.model,
+                                             self.unwrapped.data, 'right', 0)
+        right_link1_xpos = get_link_position(self.unwrapped.model,
+                                             self.unwrapped.data, 'right', 1)
+
+        pts = np.vstack([
+            chest_xpos, left_link0_xpos, left_link1_xpos, right_link0_xpos,
+            right_link1_xpos
+        ])
+
+        return ConvexHull(pts)
+
+    def _get_convex_hull_distance(self, box_xpos):
+        hull = self._get_robot_convex_hull(box_xpos)
+        hull_centroid = np.mean(hull.points[hull.vertices], axis=0)
+        return np.linalg.norm(hull_centroid - box_xpos)
 
     def render(self):
         super().render()  #to initialize viewer.
