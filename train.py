@@ -62,19 +62,20 @@ def train(args):
                              monitor=True,
                              render_mode="rgb_array")
 
-        eval_callback = EvalCallback(
-            eval_env=eval_env,
-            n_eval_episodes=10,
-            eval_freq=int(
-                config["total_timesteps"] / 5 /
-                args.num_envs),  #eval_num_timesteps = eval_freq * num_envs
-            deterministic=True,
-            best_model_save_path=f"./experiments/{folder_name}/best_model",
-            render=False,
-            verbose=1,
-        )
+        # eval_callback = EvalCallback(
+        #     eval_env=eval_env,
+        #     n_eval_episodes=10,
+        #     eval_freq=int(
+        #         config["total_timesteps"] / 5 /
+        #         args.num_envs),  #eval_num_timesteps = eval_freq * num_envs
+        #     deterministic=True,
+        #     best_model_save_path=f"./experiments/{folder_name}/best_model",
+        #     render=False,
+        #     verbose=1,
+        # )
 
-        callback = CallbackList([eval_callback, wandb_callback])
+        # callback = CallbackList([eval_callback, wandb_callback])
+        callback = CallbackList([wandb_callback])
 
     else:
 
@@ -103,19 +104,23 @@ def train(args):
 
         return func
 
-    policy_kwargs = dict(net_arch=[64, 64])
-    
-    rl_model = PPO(
-        "MlpPolicy",
-        env,
-        policy_kwargs=policy_kwargs,
-        # use_sde=True, #!rails outputs for some reason...
-        batch_size=256,
-        learning_rate=linear_schedule(3e-4),
-        ent_coef=.02,
-        verbose=1,
-        tensorboard_log=f"./experiments/{folder_name}/runs",
-    )
+    policy_kwargs = dict(net_arch=[128, 128])
+
+
+    if args.model_path:
+        rl_model = PPO.load(args.model_path, env=env)
+    else:
+        rl_model = PPO(
+            "MlpPolicy",
+            env,
+            policy_kwargs=policy_kwargs,
+            # use_sde=True, #!rails outputs for some reason...
+            batch_size=256,
+            learning_rate=3e-4,
+            ent_coef=.005,
+            verbose=1,
+            tensorboard_log=f"./experiments/{folder_name}/runs",
+        )
 
     print("TRAINING MODEL")
     rl_model.learn(
@@ -162,7 +167,7 @@ if __name__ == "__main__":
         type=str,
         default=[],
         help=
-        'List of rewards to use for training. Options: "tactile_nonzero", "action_smoothness", "robot_convex_hull", "rms_robot_dist"',
+        'List of rewards to use for training. Options: "tactile_nonzero", "action_smoothness", "arm_convex_hull", "rms_robot_dist", "chest_proximity',
     )
 
     parser.add_argument(
@@ -177,6 +182,11 @@ if __name__ == "__main__":
     parser.add_argument('--randomize_initial_height',
                         action='store_true',
                         help='Randomize initial height of the elevator')
+
+    parser.add_argument('--model_path',
+                        type=str,
+                        default=None,
+                        help='Path to model to load and continue to train on')
 
     args = parser.parse_args()
     print(args)

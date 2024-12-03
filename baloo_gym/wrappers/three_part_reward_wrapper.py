@@ -10,11 +10,14 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_tactile_image,
     get_contact_forces_on_body,
     detect_box_touch,
+    get_joint_angles,
 )
 import mujoco
 import numpy as np
+import scipy.spatial
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial import ConvexHull
+import scipy
 
 
 class ThreePartRewardWrapper(gym.Wrapper):
@@ -29,8 +32,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.sphere_radius = 0.5
         self.sphere_visual_initialized = False
         self.desired_box_visual_initialized = False
+        self.convex_hull_visual_initialized = False
         self.previous_action = np.zeros(self.unwrapped.action_space.shape)
         self.reward_selection = reward_selection
+        self.max_zerror = 1
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
@@ -47,7 +52,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
         # call baloo_base reset function
         self.desired_box_visual_initialized = False
         self.sphere_visual_initialized = False
-        self.box_error_prev = 0
+        self.convex_hull_visual_initialized = False
+        self.box_zerror_prev = 0
         self.previous_action = np.zeros(self.unwrapped.action_space.shape)
         return self.env.reset()
 
@@ -79,45 +85,78 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         desired_box_pos = self.get_wrapper_attr("desired_box_pos")
         box_xerror = desired_box_pos - box_xpos
-        box_error = np.linalg.norm(box_xerror)
+        box_zerror = np.abs(box_xerror[2])
 
         numerical_threshold = 1e-3
 
+        ##### PRIMARY REWARD #####
         reward = 0
-        #red
-        self.unwrapped.model.geom('box').rgba = [1, 0, 0, .5]
-
-        if np.abs(box_xerror[2]) < 0.05:
+        #goal bonuses
+        threshold = 0.05
+        if box_zerror < threshold:
             #green
             self.unwrapped.model.geom('box').rgba = [0, 1, 0, .5]
             reward += 1
-            return reward
 
-        #reward moving towards desired position, penalize moving away
-        if box_error < self.box_error_prev - numerical_threshold:
-            #yellow
-            self.unwrapped.model.geom('box').rgba = [1, 1, 0, .5]
-            reward += .5
-        elif box_error > self.box_error_prev + numerical_threshold:
-            reward -= .1
+        scaling_factor = 1 / self.max_zerror**2
+        reward -= scaling_factor * box_zerror**2
+        self.unwrapped.model.geom('box').rgba = [1, 1 - box_zerror, 0, .5]
 
-        #penalize large changes in action
+        if "chest_proximity" in self.reward_selection:
+            reward -= self._calc_chest_proximity_reward(box_xpos)
+
+        ##### SECONDARY REWARDS #####
+        #this just feels really unnatural, but its effective at avoiding finger crushing.
+        # but Im not sure occasionally getting into bad states is bad. Its a natural part of learning.
+        if "joint_centering" in self.reward_selection:
+            centering_weight = 0.1
+            reward -= centering_weight * self.get_joint_centering_reward()
+
         if "action_smoothness" in self.reward_selection:
             smoothness_weight = 0.1
             action_diff = np.linalg.norm(action - self.previous_action)
             reward -= smoothness_weight * action_diff
 
+        if "high_contact_forces" in self.reward_selection:
+            #if contact forces anywhere are high enough to cause damages, penalize.
+            pass
+
+        #feels like tactile information will help bridge between approach and lifting rewards.
         if "tactile_nonzero" in self.reward_selection:
             taxel_reward = self._count_nonzero_taxels()
             reward += taxel_reward
 
-        if "robot_convex_hull" in self.reward_selection:
+        if "arm_convex_hull" in self.reward_selection:
             reward -= self._get_convex_hull_distance(box_xpos)
 
         if "rms_robot_dist" in self.reward_selection:
             reward -= self._get_rms_robot_dist(box_xpos, chest_xpos)
 
-        self.box_error_prev = box_error
+        # #reward moving towards desired position, penalize moving away
+        # if box_zerror < self.box_zerror_prev - numerical_threshold:
+        #     #yellow
+        #     self.unwrapped.model.geom('box').rgba = [1, 1, 0, .5]
+        #     reward += .5
+        # elif box_zerror > self.box_zerror_prev + numerical_threshold:
+        #     reward -= .1
+
+        self.box_zerror_prev = box_zerror
+        return reward
+
+    def _calc_chest_proximity_reward(self, box_xpos):
+        '''
+        Thought here is that when reaching for something, my arm is in charge of moving my hand to the object
+        My fingers are in charge of getting into a good pose to grasp the object.
+
+        Up till now, I've been using all three, so the finger try to approach the object which gets 
+        the arms into bad configurations. 
+        '''
+
+        chest_xpos = get_chest_position(self.unwrapped.model,
+                                        self.unwrapped.data)
+
+        z_error = np.abs(chest_xpos[2] - box_xpos[2])
+        reward = 1 * z_error**2
         return reward
 
     def _count_nonzero_taxels(self):
@@ -183,7 +222,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         return rms_dist
 
-    def _get_robot_convex_hull(self, chest_xpos):
+    def _get_arm_convex_hull(self):
+        chest_xpos = get_chest_position(self.unwrapped.model,
+                                        self.unwrapped.data)
         left_link0_xpos = get_link_position(self.unwrapped.model,
                                             self.unwrapped.data, 'left', 0)
         left_link1_xpos = get_link_position(self.unwrapped.model,
@@ -193,21 +234,78 @@ class ThreePartRewardWrapper(gym.Wrapper):
         right_link1_xpos = get_link_position(self.unwrapped.model,
                                              self.unwrapped.data, 'right', 1)
 
+        #arms are in charge of centering side to side.
+        #elevator is in charge of centering vertically.
         pts = np.vstack([
-            chest_xpos, left_link0_xpos, left_link1_xpos, right_link0_xpos,
+            left_link0_xpos, left_link1_xpos, right_link0_xpos,
             right_link1_xpos
         ])
 
         return ConvexHull(pts)
 
     def _get_convex_hull_distance(self, box_xpos):
-        hull = self._get_robot_convex_hull(box_xpos)
-        hull_centroid = np.mean(hull.points[hull.vertices], axis=0)
-        return np.linalg.norm(hull_centroid - box_xpos)
+        try:
+            hull = self._get_arm_convex_hull()
+            self.hull_centroid = np.mean(hull.points[hull.vertices], axis=0)
+            self.sphericity = self.calc_sphericity(hull)
+
+        except scipy.spatial._qhull.QhullError:
+            # convex hull fails due to planar points, fall back to point cloud centroid
+            left_link0_xpos = get_link_position(self.unwrapped.model,
+                                                self.unwrapped.data, 'left', 0)
+            left_link1_xpos = get_link_position(self.unwrapped.model,
+                                                self.unwrapped.data, 'left', 1)
+            right_link0_xpos = get_link_position(self.unwrapped.model,
+                                                 self.unwrapped.data, 'right',
+                                                 0)
+            right_link1_xpos = get_link_position(self.unwrapped.model,
+                                                 self.unwrapped.data, 'right',
+                                                 1)
+            pts = np.vstack([
+                left_link0_xpos, left_link1_xpos, right_link0_xpos,
+                right_link1_xpos
+            ])
+
+            self.hull_centroid = np.mean(pts, axis=0)
+
+        #don't really care about the y or z error, we assume object is in front of us and elevator
+        # will try to center it vertically.
+        return np.sqrt((self.hull_centroid[0] - box_xpos[0])**2)
+
+    def calc_sphericity(self, hull):
+        # https://en.wikipedia.org/wiki/Sphericity. 1 = perfect sphere, 0 = planar
+        # think about 3d implications for this, not sure I want this or volume/surface ratio instead.
+        phi = np.pi**(1 / 3) * (6 * hull.volume)**(2 / 3) / hull.area
+        return phi
+
+    def get_joint_centering_reward(self):
+        left_j0_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
+                                     'left', 0)
+        right_j0_q = get_joint_angles(self.unwrapped.model,
+                                      self.unwrapped.data, 'right', 0)
+        left_j1_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
+                                     'left', 1)
+        right_j1_q = get_joint_angles(self.unwrapped.model,
+                                      self.unwrapped.data, 'right', 1)
+        left_j2_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
+                                     'left', 2)
+        right_j2_q = get_joint_angles(self.unwrapped.model,
+                                      self.unwrapped.data, 'right', 2)
+
+        joint_angles = np.hstack([
+            left_j0_q, right_j0_q, left_j1_q, right_j1_q, left_j2_q, right_j2_q
+        ])
+
+        q_max = np.array([np.pi] * 12)
+        normalizer = np.linalg.norm(q_max)
+        centering = np.linalg.norm(joint_angles) / normalizer
+
+        return centering
 
     def render(self):
-        super().render()  #to initialize viewer.
-        if not self.sphere_visual_initialized:
+
+        if not self.sphere_visual_initialized and 'rms_robot_dist' in self.reward_selection:
+            super().render()  #to initialize viewer.
             self.sphere_visual_initialized = True
 
             #this will add the marker the next time the scene is rendered.
@@ -224,6 +322,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             )
 
         if not self.desired_box_visual_initialized:
+            super().render()  #to initialize viewer.
             self.desired_box_visual_initialized = True
 
             self.desired_boxid = len(
@@ -237,10 +336,32 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 rgba=np.array([0, 1, 0, 1]),
             )
 
-        box_pos = self.unwrapped.data.body('box').xipos
-        self.unwrapped.mujoco_renderer.viewer._markers[
-            self.sphereid]['pos'] = box_pos
-        self.unwrapped.mujoco_renderer.viewer._markers[
-            self.sphereid]['rgba'] = np.array([1, 0, 0, .1])
+        if not self.convex_hull_visual_initialized and "arm_convex_hull" in self.reward_selection:
+            super().render()
+            self.convex_hull_visual_initialized = True
+
+            self.convex_hullid = len(
+                self.unwrapped.mujoco_renderer.viewer._markers)
+
+            self.unwrapped.mujoco_renderer.viewer.add_marker(
+                type=mujoco.mjtGeom.mjGEOM_SPHERE,
+                size=0.1,
+                pos=self.hull_centroid,
+                mat=np.eye(3).flatten(),
+                rgba=np.array([1, 1, 1, .25]),
+            )
+
+        if "rms_robot_dist" in self.reward_selection:
+            box_pos = self.unwrapped.data.body('box').xipos
+            self.unwrapped.mujoco_renderer.viewer._markers[
+                self.sphereid]['pos'] = box_pos
+            self.unwrapped.mujoco_renderer.viewer._markers[
+                self.sphereid]['rgba'] = np.array([1, 0, 0, .1])
+
+        if "arm_convex_hull" in self.reward_selection:
+            self.unwrapped.mujoco_renderer.viewer._markers[
+                self.convex_hullid]['pos'] = self.hull_centroid
+            # self.unwrapped.mujoco_renderer.viewer._markers[
+            #     self.convex_hullid]['size'] = self.sphericity / 2
 
         return super().render()
