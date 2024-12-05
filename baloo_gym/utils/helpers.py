@@ -155,16 +155,15 @@ def make_parallel_env(config,
 
     env = SubprocVecEnv([env_func for _ in range(num_envs)])
 
-    total_episodes = config["total_timesteps"] / (
+    #record video roughly every 100000 steps
+    total_episodes = 100000 / (
         (config["time_limit_sec"] / config["ctrl_timestep"]) * num_envs)
-
-    ten_every_run = int(total_episodes / 10)
 
     if record_video:
         env = VecVideoRecorder(
             env,
             f"./experiments/{folder_name}/rollout_videos",
-            record_video_trigger=lambda x: int(x % ten_every_run) == 0,
+            record_video_trigger=lambda x: int(x % total_episodes) == 0,
             video_length=config["time_limit_sec"] / config["ctrl_timestep"],
             name_prefix="rollout",
             wandb=wandb)

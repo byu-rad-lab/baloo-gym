@@ -8,10 +8,12 @@ import numpy as np
 config = {
     "total_timesteps": 1000000,
     "ctrl_timestep": .1,
-    "env_name": "baloo_v4",
+    "env_name": "baloo_v7",
     "time_limit_sec": 30,
     "time_aware_obs": True,
     "curriculum_selection": [],
+    'reward_selection': [],
+    "randomize_initial_height": False,
 }
 
 env = build_env(config,

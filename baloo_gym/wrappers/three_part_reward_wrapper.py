@@ -36,6 +36,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.previous_action = np.zeros(self.unwrapped.action_space.shape)
         self.reward_selection = reward_selection
         self.max_zerror = 1
+        self.initial_box_zerror = 0
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
@@ -55,6 +56,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.convex_hull_visual_initialized = False
         self.box_zerror_prev = 0
         self.previous_action = np.zeros(self.unwrapped.action_space.shape)
+
+        box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
+        chest_xpos = get_chest_position(self.unwrapped.model,
+                                        self.unwrapped.data)
+
+        desired_box_pos = self.get_wrapper_attr("desired_box_pos")
+        box_xerror = desired_box_pos - box_xpos
+        self.initial_box_zerror = np.abs(box_xerror[2])
         return self.env.reset()
 
     def _decay_sphere_radius(self):
@@ -91,16 +100,20 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         ##### PRIMARY REWARD #####
         reward = 0
+
+        scaling_factor = 1 / self.max_zerror**2
+        reward -= scaling_factor * box_zerror**2
+        self.unwrapped.model.geom('box').rgba = [
+            box_zerror / self.initial_box_zerror,
+            1 - box_zerror / self.initial_box_zerror, 0, .5
+        ]
+
         #goal bonuses
         threshold = 0.05
         if box_zerror < threshold:
             #green
-            self.unwrapped.model.geom('box').rgba = [0, 1, 0, .5]
             reward += 1
-
-        scaling_factor = 1 / self.max_zerror**2
-        reward -= scaling_factor * box_zerror**2
-        self.unwrapped.model.geom('box').rgba = [1, 1 - box_zerror, 0, .5]
+            self.unwrapped.model.geom('box').rgba = [1, 1, 1, .5]
 
         if "chest_proximity" in self.reward_selection:
             reward -= self._calc_chest_proximity_reward(box_xpos)
@@ -121,7 +134,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
             #if contact forces anywhere are high enough to cause damages, penalize.
             pass
 
-        #feels like tactile information will help bridge between approach and lifting rewards.
         if "tactile_nonzero" in self.reward_selection:
             taxel_reward = self._count_nonzero_taxels()
             reward += taxel_reward
