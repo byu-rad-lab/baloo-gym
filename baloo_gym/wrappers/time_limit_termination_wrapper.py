@@ -26,6 +26,7 @@ class TimeLimitTerminationWrapper(gym.Wrapper):
         # print(self.step_count)
 
         if self.step_count == int(self.time_limit_sec / self.control_timestep):
+            #terminated as opposed to truncated b/c time is in observation
             terminated = True
 
         return observation, reward, terminated, truncated, info
