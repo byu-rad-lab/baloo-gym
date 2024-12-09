@@ -20,7 +20,7 @@ class Run:
 
 def train(args):
 
-    set_random_seed(42)
+    set_random_seed(args.seed)
 
     config = {
         "total_timesteps": args.total_timesteps,
@@ -35,24 +35,34 @@ def train(args):
 
     if args.wandb:
 
-        run = wandb.init(
-            project="ppo_baloo",
-            config=config,
-            sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
-            monitor_gym=
-            True,  # auto-upload the videos of agents playing the game
-            save_code=True,  # optional
-            tags=["experiments"],
-        )
+        if args.resume_training_runid:
+            #restart saved run from wandb to log more metrics to
+            run = wandb.init(project="ppo_baloo",
+                             id=args.resume_training_runid,
+                             resume="must",
+                             config=config,
+                             sync_tensorboard=True,
+                             monitor_gym=True,
+                             save_code=True,
+                             tags=["experiments"])
+        else:
+            run = wandb.init(
+                project="ppo_baloo",
+                config=config,
+                sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
+                monitor_gym=
+                True,  # auto-upload the videos of agents playing the game
+                save_code=True,  # optional
+                tags=["experiments"],
+            )
 
         wandb.run.log_code("./baloo_gym/wrappers/")
 
         folder_name = f"{run.name}-{run.id}"
         wandb_callback = WandbCallback(
             model_save_path=f"./experiments/{folder_name}/recent_model",
-            model_save_freq=int(config["total_timesteps"] / 10 /
-                                args.num_envs),
-            verbose=1,
+            model_save_freq=100000,
+            verbose=2,
         )
 
         #!throws a warning, but the env IS the same, just not vectorized to save RAM.
@@ -106,9 +116,15 @@ def train(args):
 
     policy_kwargs = dict(net_arch=[128, 128])
 
+    if args.resume_training_runid:
+        #download most recent saved model from wandb server
+        api = wandb.Api()
+        saved_run = api.run(
+            f"curtiscjohnson/ppo_baloo/{args.resume_training_runid}")
+        print(f"Downloading model...")
 
-    if args.model_path:
-        rl_model = PPO.load(args.model_path, env=env)
+        saved_model = saved_run.file("model.zip").download(replace=True)
+        rl_model = PPO.load(saved_model.name, env=env)
     else:
         rl_model = PPO(
             "MlpPolicy",
@@ -118,7 +134,7 @@ def train(args):
             batch_size=256,
             learning_rate=3e-4,
             ent_coef=.005,
-            verbose=1,
+            verbose=2,
             tensorboard_log=f"./experiments/{folder_name}/runs",
         )
 
@@ -183,10 +199,12 @@ if __name__ == "__main__":
                         action='store_true',
                         help='Randomize initial height of the elevator')
 
-    parser.add_argument('--model_path',
+    parser.add_argument('--resume_training_runid',
                         type=str,
                         default=None,
-                        help='Path to model to load and continue to train on')
+                        help='wandb run id to resume training')
+
+    parser.add_argument('--seed', type=int, default=42, help='Random seed')
 
     args = parser.parse_args()
     print(args)

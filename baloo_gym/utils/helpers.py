@@ -101,6 +101,7 @@ def build_env(config: dict, folder_name, baseline: bool, monitor: bool,
         "baloo_v5": "BalooV5",
         "baloo_v6": "BalooV6",
         "baloo_v7": "BalooV7",
+        "baloo_v8": "BalooV8",
     }
 
     EnvClass = getattr(

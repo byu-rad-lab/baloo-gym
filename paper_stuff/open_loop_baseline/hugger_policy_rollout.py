@@ -8,11 +8,11 @@ import numpy as np
 config = {
     "total_timesteps": 1000000,
     "ctrl_timestep": .1,
-    "env_name": "baloo_v7",
+    "env_name": "baloo_v8",
     "time_limit_sec": 30,
     "time_aware_obs": True,
     "curriculum_selection": [],
-    'reward_selection': [],
+    'reward_selection': ["dont_drop"],
     "randomize_initial_height": False,
 }
 

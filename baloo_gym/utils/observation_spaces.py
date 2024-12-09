@@ -648,3 +648,659 @@ class StateObservationPressurePrevActions:
             prev_right_j1_tau=observation_array[68:70],
             prev_right_j2_tau=observation_array[70:72],
         )
+
+
+class StateObservationPressurePrevActionsLinkForces:
+    #class attributes.
+    #designed this way to be able to standardize and unstandardize observations easily without having class isntantiations.
+    shape = (87, )
+
+    desired_object_pos_lb = [-2, -2, -2]
+    object_pos_lb = [-2, -2, -2]
+    object_vel_lb = [-2] * 3
+    elevator_pos_lb = [-1.5]
+    elevator_vel_lb = [-5]
+    left_j0_pos_lb = [-np.pi] * 2
+    left_j1_pos_lb = [-np.pi] * 2
+    left_j2_pos_lb = [-np.pi] * 2
+    right_j0_pos_lb = [-np.pi] * 2
+    right_j1_pos_lb = [-np.pi] * 2
+    right_j2_pos_lb = [-np.pi] * 2
+    left_j0_vel_lb = [-2 * np.pi] * 2
+    left_j1_vel_lb = [-2 * np.pi] * 2
+    left_j2_vel_lb = [-2 * np.pi] * 2
+    right_j0_vel_lb = [-2 * np.pi] * 2
+    right_j1_vel_lb = [-2 * np.pi] * 2
+    right_j2_vel_lb = [-2 * np.pi] * 2
+
+    left_j0_p_lb = [0] * 4
+    left_j1_p_lb = [0] * 4
+    left_j2_p_lb = [0] * 4
+    right_j0_p_lb = [0] * 4
+    right_j1_p_lb = [0] * 4
+    right_j2_p_lb = [0] * 4
+
+    prev_height_cmd_lb = [-1000]
+    prev_left_j0_tau_lb = [-300] * 2
+    prev_left_j1_tau_lb = [-300] * 2
+    prev_left_j2_tau_lb = [-300] * 2
+    prev_right_j0_tau_lb = [-300] * 2
+    prev_right_j1_tau_lb = [-300] * 2
+    prev_right_j2_tau_lb = [-300] * 2
+
+    left_link0_force_lb = [-100] * 3
+    left_link1_force_lb = [-100] * 3
+    right_link0_force_lb = [-100] * 3
+    right_link1_force_lb = [-100] * 3
+    chest_force_lb = [-100] * 3
+
+    desired_object_pos_ub = [2, 2, 2]
+    object_pos_ub = [2, 2, 2]
+    object_vel_ub = [2] * 3
+    elevator_pos_ub = [0]
+    elevator_vel_ub = [5]
+    left_j0_pos_ub = [np.pi] * 2
+    left_j1_pos_ub = [np.pi] * 2
+    left_j2_pos_ub = [np.pi] * 2
+    right_j0_pos_ub = [np.pi] * 2
+    right_j1_pos_ub = [np.pi] * 2
+    right_j2_pos_ub = [np.pi] * 2
+    left_j0_vel_ub = [2 * np.pi] * 2
+    left_j1_vel_ub = [2 * np.pi] * 2
+    left_j2_vel_ub = [2 * np.pi] * 2
+    right_j0_vel_ub = [2 * np.pi] * 2
+    right_j1_vel_ub = [2 * np.pi] * 2
+    right_j2_vel_ub = [2 * np.pi] * 2
+
+    left_j0_p_ub = [400] * 4
+    left_j1_p_ub = [400] * 4
+    left_j2_p_ub = [400] * 4
+    right_j0_p_ub = [400] * 4
+    right_j1_p_ub = [400] * 4
+    right_j2_p_ub = [400] * 4
+
+    prev_height_cmd_ub = [0]
+    prev_left_j0_tau_ub = [300] * 2
+    prev_left_j1_tau_ub = [300] * 2
+    prev_left_j2_tau_ub = [300] * 2
+    prev_right_j0_tau_ub = [300] * 2
+    prev_right_j1_tau_ub = [300] * 2
+    prev_right_j2_tau_ub = [300] * 2
+
+    left_link0_force_ub = [100] * 3
+    left_link1_force_ub = [100] * 3
+    right_link0_force_ub = [100] * 3
+    right_link1_force_ub = [100] * 3
+    chest_force_ub = [100] * 3
+
+    obs_lower_bound = np.asarray(
+        desired_object_pos_lb + object_pos_lb + object_vel_lb +
+        elevator_pos_lb + elevator_vel_lb + left_j0_pos_lb + left_j1_pos_lb +
+        left_j2_pos_lb + right_j0_pos_lb + right_j1_pos_lb + right_j2_pos_lb +
+        left_j0_vel_lb + left_j1_vel_lb + left_j2_vel_lb + right_j0_vel_lb +
+        right_j1_vel_lb + right_j2_vel_lb + left_j0_p_lb + left_j1_p_lb +
+        left_j2_p_lb + right_j0_p_lb + right_j1_p_lb + right_j2_p_lb +
+        prev_height_cmd_lb + prev_left_j0_tau_lb + prev_left_j1_tau_lb +
+        prev_left_j2_tau_lb + prev_right_j0_tau_lb + prev_right_j1_tau_lb +
+        prev_right_j2_tau_lb + left_link0_force_lb + left_link1_force_lb +
+        right_link0_force_lb + right_link1_force_lb + chest_force_lb)
+
+    obs_upper_bound = np.asarray(
+        desired_object_pos_ub + object_pos_ub + object_vel_ub +
+        elevator_pos_ub + elevator_vel_ub + left_j0_pos_ub + left_j1_pos_ub +
+        left_j2_pos_ub + right_j0_pos_ub + right_j1_pos_ub + right_j2_pos_ub +
+        left_j0_vel_ub + left_j1_vel_ub + left_j2_vel_ub + right_j0_vel_ub +
+        right_j1_vel_ub + right_j2_vel_ub + left_j0_p_ub + left_j1_p_ub +
+        left_j2_p_ub + right_j0_p_ub + right_j1_p_ub + right_j2_p_ub +
+        prev_height_cmd_ub + prev_left_j0_tau_ub + prev_left_j1_tau_ub +
+        prev_left_j2_tau_ub + prev_right_j0_tau_ub + prev_right_j1_tau_ub +
+        prev_right_j2_tau_ub + left_link0_force_ub + left_link1_force_ub +
+        right_link0_force_ub + right_link1_force_ub + chest_force_ub)
+
+    def __init__(
+        self,
+        desired_object_pos,
+        object_pos,
+        object_vel,
+        elevator_pos,
+        elevator_vel,
+        left_pos,
+        right_pos,
+        left_vel,
+        right_vel,
+        left_j0_pressures,
+        left_j1_pressures,
+        left_j2_pressures,
+        right_j0_pressures,
+        right_j1_pressures,
+        right_j2_pressures,
+        prev_height_cmd,
+        prev_left_j0_tau,
+        prev_left_j1_tau,
+        prev_left_j2_tau,
+        prev_right_j0_tau,
+        prev_right_j1_tau,
+        prev_right_j2_tau,
+        left_link0_force,
+        left_link1_force,
+        right_link0_force,
+        right_link1_force,
+        chest_force,
+    ):
+        self.desired_object_pos = desired_object_pos
+        self.object_pos = object_pos
+        self.object_vel = object_vel
+        self.elevator_pos = elevator_pos
+        self.elevator_vel = elevator_vel
+        self.left_j0_pos = left_pos[0:2]
+        self.left_j1_pos = left_pos[2:4]
+        self.left_j2_pos = left_pos[4:6]
+        self.right_j0_pos = right_pos[0:2]
+        self.right_j1_pos = right_pos[2:4]
+        self.right_j2_pos = right_pos[4:6]
+        self.left_j0_vel = left_vel[0:2]
+        self.left_j1_vel = left_vel[2:4]
+        self.left_j2_vel = left_vel[4:6]
+        self.right_j0_vel = right_vel[0:2]
+        self.right_j1_vel = right_vel[2:4]
+        self.right_j2_vel = right_vel[4:6]
+        self.left_j0_p = left_j0_pressures
+        self.left_j1_p = left_j1_pressures
+        self.left_j2_p = left_j2_pressures
+        self.right_j0_p = right_j0_pressures
+        self.right_j1_p = right_j1_pressures
+        self.right_j2_p = right_j2_pressures
+        self.prev_height_cmd = prev_height_cmd
+        self.prev_left_j0_tau = prev_left_j0_tau
+        self.prev_left_j1_tau = prev_left_j1_tau
+        self.prev_left_j2_tau = prev_left_j2_tau
+        self.prev_right_j0_tau = prev_right_j0_tau
+        self.prev_right_j1_tau = prev_right_j1_tau
+        self.prev_right_j2_tau = prev_right_j2_tau
+        self.left_link0_force = left_link0_force
+        self.left_link1_force = left_link1_force
+        self.right_link0_force = right_link0_force
+        self.right_link1_force = right_link1_force
+        self.chest_force = chest_force
+
+    def to_array(self):
+        return np.hstack([
+            self.desired_object_pos,
+            self.object_pos,
+            self.object_vel,
+            self.elevator_pos,
+            self.elevator_vel,
+            self.left_j0_pos,
+            self.left_j1_pos,
+            self.left_j2_pos,
+            self.right_j0_pos,
+            self.right_j1_pos,
+            self.right_j2_pos,
+            self.left_j0_vel,
+            self.left_j1_vel,
+            self.left_j2_vel,
+            self.right_j0_vel,
+            self.right_j1_vel,
+            self.right_j2_vel,
+            self.left_j0_p,
+            self.left_j1_p,
+            self.left_j2_p,
+            self.right_j0_p,
+            self.right_j1_p,
+            self.right_j2_p,
+            self.prev_height_cmd,
+            self.prev_left_j0_tau,
+            self.prev_left_j1_tau,
+            self.prev_left_j2_tau,
+            self.prev_right_j0_tau,
+            self.prev_right_j1_tau,
+            self.prev_right_j2_tau,
+            self.left_link0_force,
+            self.left_link1_force,
+            self.right_link0_force,
+            self.right_link1_force,
+            self.chest_force,
+        ])
+
+    def __repr__(self):
+        return f"{self.to_array()}"
+
+    def normalize_and_center(self):
+        return (2 * (self.to_array() -
+                     StateObservationPressurePrevActions.obs_lower_bound) /
+                (StateObservationPressurePrevActions.obs_upper_bound -
+                 StateObservationPressurePrevActions.obs_lower_bound) - 1)
+
+    @staticmethod
+    def from_standardized_array(observation_array):
+
+        #unnormalize the observation array
+        observation_array = 0.5 * (observation_array + 1) * (
+            StateObservationPressurePrevActions.obs_upper_bound -
+            StateObservationPressurePrevActions.obs_lower_bound
+        ) + StateObservationPressurePrevActions.obs_lower_bound
+
+        return StateObservationPressurePrevActions(
+            desired_object_pos=observation_array[0:3],
+            object_pos=observation_array[3:6],
+            object_vel=observation_array[6:9],
+            elevator_pos=observation_array[9],
+            elevator_vel=observation_array[10],
+            left_pos=observation_array[11:17],
+            right_pos=observation_array[17:23],
+            left_vel=observation_array[23:29],
+            right_vel=observation_array[29:35],
+            left_j0_pressures=observation_array[35:39],
+            left_j1_pressures=observation_array[39:43],
+            left_j2_pressures=observation_array[43:47],
+            right_j0_pressures=observation_array[47:51],
+            right_j1_pressures=observation_array[51:55],
+            right_j2_pressures=observation_array[55:59],
+            prev_height_cmd=observation_array[59],
+            prev_left_j0_tau=observation_array[60:62],
+            prev_left_j1_tau=observation_array[62:64],
+            prev_left_j2_tau=observation_array[64:66],
+            prev_right_j0_tau=observation_array[66:68],
+            prev_right_j1_tau=observation_array[68:70],
+            prev_right_j2_tau=observation_array[70:72],
+            left_link0_force=observation_array[72:75],
+            left_link1_force=observation_array[75:78],
+            right_link0_force=observation_array[78:81],
+            right_link1_force=observation_array[81:84],
+            chest_force=observation_array[84:87],
+        )
+
+
+class StateObservationPressureNoError:
+    #class attributes.
+    #designed this way to be able to standardize and unstandardize observations easily without having class isntantiations.
+    shape = (32 + 24, )
+
+    object_pos_lb = [0] * 3
+    object_vel_lb = [-2] * 3
+    elevator_pos_lb = [-1.5]
+    elevator_vel_lb = [-5]
+    left_j0_pos_lb = [-np.pi] * 2
+    left_j1_pos_lb = [-np.pi] * 2
+    left_j2_pos_lb = [-np.pi] * 2
+    right_j0_pos_lb = [-np.pi] * 2
+    right_j1_pos_lb = [-np.pi] * 2
+    right_j2_pos_lb = [-np.pi] * 2
+    left_j0_vel_lb = [-2 * np.pi] * 2
+    left_j1_vel_lb = [-2 * np.pi] * 2
+    left_j2_vel_lb = [-2 * np.pi] * 2
+    right_j0_vel_lb = [-2 * np.pi] * 2
+    right_j1_vel_lb = [-2 * np.pi] * 2
+    right_j2_vel_lb = [-2 * np.pi] * 2
+    left_j0_p_lb = [0] * 4
+    left_j1_p_lb = [0] * 4
+    left_j2_p_lb = [0] * 4
+    right_j0_p_lb = [0] * 4
+    right_j1_p_lb = [0] * 4
+    right_j2_p_lb = [0] * 4
+
+    object_pos_ub = [2, 2, 2]
+    object_vel_ub = [2] * 3
+    elevator_pos_ub = [0]
+    elevator_vel_ub = [5]
+    left_j0_pos_ub = [np.pi] * 2
+    left_j1_pos_ub = [np.pi] * 2
+    left_j2_pos_ub = [np.pi] * 2
+    right_j0_pos_ub = [np.pi] * 2
+    right_j1_pos_ub = [np.pi] * 2
+    right_j2_pos_ub = [np.pi] * 2
+    left_j0_vel_ub = [2 * np.pi] * 2
+    left_j1_vel_ub = [2 * np.pi] * 2
+    left_j2_vel_ub = [2 * np.pi] * 2
+    right_j0_vel_ub = [2 * np.pi] * 2
+    right_j1_vel_ub = [2 * np.pi] * 2
+    right_j2_vel_ub = [2 * np.pi] * 2
+    left_j0_p_ub = [400] * 4
+    left_j1_p_ub = [400] * 4
+    left_j2_p_ub = [400] * 4
+    right_j0_p_ub = [400] * 4
+    right_j1_p_ub = [400] * 4
+    right_j2_p_ub = [400] * 4
+
+    obs_lower_bound = np.asarray(object_pos_lb + object_vel_lb +
+                                 elevator_pos_lb + elevator_vel_lb +
+                                 left_j0_pos_lb + left_j1_pos_lb +
+                                 left_j2_pos_lb + right_j0_pos_lb +
+                                 right_j1_pos_lb + right_j2_pos_lb +
+                                 left_j0_vel_lb + left_j1_vel_lb +
+                                 left_j2_vel_lb + right_j0_vel_lb +
+                                 right_j1_vel_lb + right_j2_vel_lb +
+                                 left_j0_p_lb + left_j1_p_lb + left_j2_p_lb +
+                                 right_j0_p_lb + right_j1_p_lb + right_j2_p_lb)
+
+    obs_upper_bound = np.asarray(object_pos_ub + object_vel_ub +
+                                 elevator_pos_ub + elevator_vel_ub +
+                                 left_j0_pos_ub + left_j1_pos_ub +
+                                 left_j2_pos_ub + right_j0_pos_ub +
+                                 right_j1_pos_ub + right_j2_pos_ub +
+                                 left_j0_vel_ub + left_j1_vel_ub +
+                                 left_j2_vel_ub + right_j0_vel_ub +
+                                 right_j1_vel_ub + right_j2_vel_ub +
+                                 left_j0_p_ub + left_j1_p_ub + left_j2_p_ub +
+                                 right_j0_p_ub + right_j1_p_ub + right_j2_p_ub)
+
+    def __init__(
+        self,
+        object_pos,
+        object_vel,
+        elevator_pos,
+        elevator_vel,
+        left_pos,
+        right_pos,
+        left_vel,
+        right_vel,
+        left_j0_pressures,
+        left_j1_pressures,
+        left_j2_pressures,
+        right_j0_pressures,
+        right_j1_pressures,
+        right_j2_pressures,
+    ):
+        self.object_pos = object_pos
+        self.object_vel = object_vel
+        self.elevator_pos = elevator_pos
+        self.elevator_vel = elevator_vel
+        self.left_j0_pos = left_pos[0:2]
+        self.left_j1_pos = left_pos[2:4]
+        self.left_j2_pos = left_pos[4:6]
+        self.right_j0_pos = right_pos[0:2]
+        self.right_j1_pos = right_pos[2:4]
+        self.right_j2_pos = right_pos[4:6]
+        self.left_j0_vel = left_vel[0:2]
+        self.left_j1_vel = left_vel[2:4]
+        self.left_j2_vel = left_vel[4:6]
+        self.right_j0_vel = right_vel[0:2]
+        self.right_j1_vel = right_vel[2:4]
+        self.right_j2_vel = right_vel[4:6]
+        self.left_j0_p = left_j0_pressures
+        self.left_j1_p = left_j1_pressures
+        self.left_j2_p = left_j2_pressures
+        self.right_j0_p = right_j0_pressures
+        self.right_j1_p = right_j1_pressures
+        self.right_j2_p = right_j2_pressures
+
+    def to_array(self):
+        return np.hstack([
+            self.object_pos,
+            self.object_vel,
+            self.elevator_pos,
+            self.elevator_vel,
+            self.left_j0_pos,
+            self.left_j1_pos,
+            self.left_j2_pos,
+            self.right_j0_pos,
+            self.right_j1_pos,
+            self.right_j2_pos,
+            self.left_j0_vel,
+            self.left_j1_vel,
+            self.left_j2_vel,
+            self.right_j0_vel,
+            self.right_j1_vel,
+            self.right_j2_vel,
+            self.left_j0_p,
+            self.left_j1_p,
+            self.left_j2_p,
+            self.right_j0_p,
+            self.right_j1_p,
+            self.right_j2_p,
+        ])
+
+    def __repr__(self):
+        return f"{self.to_array()}"
+
+    def normalize_and_center(self):
+        return (2 *
+                (self.to_array() - StateObservationPressure.obs_lower_bound) /
+                (StateObservationPressure.obs_upper_bound -
+                 StateObservationPressure.obs_lower_bound) - 1)
+
+    @staticmethod
+    def from_standardized_array(observation_array):
+
+        #unnormalize the observation array
+        observation_array = 0.5 * (observation_array + 1) * (
+            StateObservationPressure.obs_upper_bound - StateObservationPressure
+            .obs_lower_bound) + StateObservationPressure.obs_lower_bound
+
+        return StateObservationPressure(
+            object_pos=observation_array[0:3],
+            object_vel=observation_array[3:6],
+            elevator_pos=observation_array[6],
+            elevator_vel=observation_array[7],
+            left_pos=observation_array[8:14],
+            right_pos=observation_array[14:20],
+            left_vel=observation_array[20:26],
+            right_vel=observation_array[26:32],
+            left_j0_pressures=observation_array[32:36],
+            left_j1_pressures=observation_array[36:40],
+            left_j2_pressures=observation_array[40:44],
+            right_j0_pressures=observation_array[44:48],
+            right_j1_pressures=observation_array[48:52],
+            right_j2_pressures=observation_array[52:56],
+        )
+
+
+class StateObservationPressurePrevActionsNoError:
+    #class attributes.
+    #designed this way to be able to standardize and unstandardize observations easily without having class isntantiations.
+    shape = (69, )
+
+    object_pos_lb = [-2, -2, -2]
+    object_vel_lb = [-2] * 3
+    elevator_pos_lb = [-1.5]
+    elevator_vel_lb = [-5]
+    left_j0_pos_lb = [-np.pi] * 2
+    left_j1_pos_lb = [-np.pi] * 2
+    left_j2_pos_lb = [-np.pi] * 2
+    right_j0_pos_lb = [-np.pi] * 2
+    right_j1_pos_lb = [-np.pi] * 2
+    right_j2_pos_lb = [-np.pi] * 2
+    left_j0_vel_lb = [-2 * np.pi] * 2
+    left_j1_vel_lb = [-2 * np.pi] * 2
+    left_j2_vel_lb = [-2 * np.pi] * 2
+    right_j0_vel_lb = [-2 * np.pi] * 2
+    right_j1_vel_lb = [-2 * np.pi] * 2
+    right_j2_vel_lb = [-2 * np.pi] * 2
+
+    left_j0_p_lb = [0] * 4
+    left_j1_p_lb = [0] * 4
+    left_j2_p_lb = [0] * 4
+    right_j0_p_lb = [0] * 4
+    right_j1_p_lb = [0] * 4
+    right_j2_p_lb = [0] * 4
+
+    prev_height_cmd_lb = [-1000]
+    prev_left_j0_tau_lb = [-300] * 2
+    prev_left_j1_tau_lb = [-300] * 2
+    prev_left_j2_tau_lb = [-300] * 2
+    prev_right_j0_tau_lb = [-300] * 2
+    prev_right_j1_tau_lb = [-300] * 2
+    prev_right_j2_tau_lb = [-300] * 2
+
+    object_pos_ub = [2, 2, 2]
+    object_vel_ub = [2] * 3
+    elevator_pos_ub = [0]
+    elevator_vel_ub = [5]
+    left_j0_pos_ub = [np.pi] * 2
+    left_j1_pos_ub = [np.pi] * 2
+    left_j2_pos_ub = [np.pi] * 2
+    right_j0_pos_ub = [np.pi] * 2
+    right_j1_pos_ub = [np.pi] * 2
+    right_j2_pos_ub = [np.pi] * 2
+    left_j0_vel_ub = [2 * np.pi] * 2
+    left_j1_vel_ub = [2 * np.pi] * 2
+    left_j2_vel_ub = [2 * np.pi] * 2
+    right_j0_vel_ub = [2 * np.pi] * 2
+    right_j1_vel_ub = [2 * np.pi] * 2
+    right_j2_vel_ub = [2 * np.pi] * 2
+
+    left_j0_p_ub = [400] * 4
+    left_j1_p_ub = [400] * 4
+    left_j2_p_ub = [400] * 4
+    right_j0_p_ub = [400] * 4
+    right_j1_p_ub = [400] * 4
+    right_j2_p_ub = [400] * 4
+
+    prev_height_cmd_ub = [0]
+    prev_left_j0_tau_ub = [300] * 2
+    prev_left_j1_tau_ub = [300] * 2
+    prev_left_j2_tau_ub = [300] * 2
+    prev_right_j0_tau_ub = [300] * 2
+    prev_right_j1_tau_ub = [300] * 2
+    prev_right_j2_tau_ub = [300] * 2
+
+    obs_lower_bound = np.asarray(
+        object_pos_lb + object_vel_lb + elevator_pos_lb + elevator_vel_lb +
+        left_j0_pos_lb + left_j1_pos_lb + left_j2_pos_lb + right_j0_pos_lb +
+        right_j1_pos_lb + right_j2_pos_lb + left_j0_vel_lb + left_j1_vel_lb +
+        left_j2_vel_lb + right_j0_vel_lb + right_j1_vel_lb + right_j2_vel_lb +
+        left_j0_p_lb + left_j1_p_lb + left_j2_p_lb + right_j0_p_lb +
+        right_j1_p_lb + right_j2_p_lb + prev_height_cmd_lb +
+        prev_left_j0_tau_lb + prev_left_j1_tau_lb + prev_left_j2_tau_lb +
+        prev_right_j0_tau_lb + prev_right_j1_tau_lb + prev_right_j2_tau_lb)
+
+    obs_upper_bound = np.asarray(
+        object_pos_ub + object_vel_ub + elevator_pos_ub + elevator_vel_ub +
+        left_j0_pos_ub + left_j1_pos_ub + left_j2_pos_ub + right_j0_pos_ub +
+        right_j1_pos_ub + right_j2_pos_ub + left_j0_vel_ub + left_j1_vel_ub +
+        left_j2_vel_ub + right_j0_vel_ub + right_j1_vel_ub + right_j2_vel_ub +
+        left_j0_p_ub + left_j1_p_ub + left_j2_p_ub + right_j0_p_ub +
+        right_j1_p_ub + right_j2_p_ub + prev_height_cmd_ub +
+        prev_left_j0_tau_ub + prev_left_j1_tau_ub + prev_left_j2_tau_ub +
+        prev_right_j0_tau_ub + prev_right_j1_tau_ub + prev_right_j2_tau_ub)
+
+    def __init__(
+        self,
+        object_pos,
+        object_vel,
+        elevator_pos,
+        elevator_vel,
+        left_pos,
+        right_pos,
+        left_vel,
+        right_vel,
+        left_j0_pressures,
+        left_j1_pressures,
+        left_j2_pressures,
+        right_j0_pressures,
+        right_j1_pressures,
+        right_j2_pressures,
+        prev_height_cmd,
+        prev_left_j0_tau,
+        prev_left_j1_tau,
+        prev_left_j2_tau,
+        prev_right_j0_tau,
+        prev_right_j1_tau,
+        prev_right_j2_tau,
+    ):
+        self.object_pos = object_pos
+        self.object_vel = object_vel
+        self.elevator_pos = elevator_pos
+        self.elevator_vel = elevator_vel
+        self.left_j0_pos = left_pos[0:2]
+        self.left_j1_pos = left_pos[2:4]
+        self.left_j2_pos = left_pos[4:6]
+        self.right_j0_pos = right_pos[0:2]
+        self.right_j1_pos = right_pos[2:4]
+        self.right_j2_pos = right_pos[4:6]
+        self.left_j0_vel = left_vel[0:2]
+        self.left_j1_vel = left_vel[2:4]
+        self.left_j2_vel = left_vel[4:6]
+        self.right_j0_vel = right_vel[0:2]
+        self.right_j1_vel = right_vel[2:4]
+        self.right_j2_vel = right_vel[4:6]
+        self.left_j0_p = left_j0_pressures
+        self.left_j1_p = left_j1_pressures
+        self.left_j2_p = left_j2_pressures
+        self.right_j0_p = right_j0_pressures
+        self.right_j1_p = right_j1_pressures
+        self.right_j2_p = right_j2_pressures
+        self.prev_height_cmd = prev_height_cmd
+        self.prev_left_j0_tau = prev_left_j0_tau
+        self.prev_left_j1_tau = prev_left_j1_tau
+        self.prev_left_j2_tau = prev_left_j2_tau
+        self.prev_right_j0_tau = prev_right_j0_tau
+        self.prev_right_j1_tau = prev_right_j1_tau
+        self.prev_right_j2_tau = prev_right_j2_tau
+
+    def to_array(self):
+        return np.hstack([
+            self.object_pos,
+            self.object_vel,
+            self.elevator_pos,
+            self.elevator_vel,
+            self.left_j0_pos,
+            self.left_j1_pos,
+            self.left_j2_pos,
+            self.right_j0_pos,
+            self.right_j1_pos,
+            self.right_j2_pos,
+            self.left_j0_vel,
+            self.left_j1_vel,
+            self.left_j2_vel,
+            self.right_j0_vel,
+            self.right_j1_vel,
+            self.right_j2_vel,
+            self.left_j0_p,
+            self.left_j1_p,
+            self.left_j2_p,
+            self.right_j0_p,
+            self.right_j1_p,
+            self.right_j2_p,
+            self.prev_height_cmd,
+            self.prev_left_j0_tau,
+            self.prev_left_j1_tau,
+            self.prev_left_j2_tau,
+            self.prev_right_j0_tau,
+            self.prev_right_j1_tau,
+            self.prev_right_j2_tau,
+        ])
+
+    def __repr__(self):
+        return f"{self.to_array()}"
+
+    def normalize_and_center(self):
+        return (2 *
+                (self.to_array() -
+                 StateObservationPressurePrevActionsNoError.obs_lower_bound) /
+                (StateObservationPressurePrevActionsNoError.obs_upper_bound -
+                 StateObservationPressurePrevActionsNoError.obs_lower_bound) -
+                1)
+
+    @staticmethod
+    def from_standardized_array(observation_array):
+
+        #unnormalize the observation array
+        observation_array = 0.5 * (observation_array + 1) * (
+            StateObservationPressurePrevActionsNoError.obs_upper_bound -
+            StateObservationPressurePrevActionsNoError.obs_lower_bound
+        ) + StateObservationPressurePrevActionsNoError.obs_lower_bound
+
+        return StateObservationPressurePrevActionsNoError(
+            object_pos=observation_array[0:3],
+            object_vel=observation_array[3:6],
+            elevator_pos=observation_array[6],
+            elevator_vel=observation_array[7],
+            left_pos=observation_array[8:14],
+            right_pos=observation_array[14:20],
+            left_vel=observation_array[20:26],
+            right_vel=observation_array[26:32],
+            left_j0_pressures=observation_array[32:36],
+            left_j1_pressures=observation_array[36:40],
+            left_j2_pressures=observation_array[40:44],
+            right_j0_pressures=observation_array[44:48],
+            right_j1_pressures=observation_array[48:52],
+            right_j2_pressures=observation_array[52:56],
+            prev_height_cmd=observation_array[56],
+            prev_left_j0_tau=observation_array[57:59],
+            prev_left_j1_tau=observation_array[59:61],
+            prev_left_j2_tau=observation_array[61:63],
+            prev_right_j0_tau=observation_array[63:65],
+            prev_right_j1_tau=observation_array[65:67],
+            prev_right_j2_tau=observation_array[67:69],
+        )

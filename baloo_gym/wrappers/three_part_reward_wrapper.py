@@ -11,6 +11,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_contact_forces_on_body,
     detect_box_touch,
     get_joint_angles,
+    detect_box_on_ground,
 )
 import mujoco
 import numpy as np
@@ -36,6 +37,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.previous_action = np.zeros(self.unwrapped.action_space.shape)
         self.reward_selection = reward_selection
         self.max_zerror = 1
+        self.box_lifted_already = False
         self.initial_box_zerror = 0
 
     def step(self, action):
@@ -56,6 +58,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.convex_hull_visual_initialized = False
         self.box_zerror_prev = 0
         self.previous_action = np.zeros(self.unwrapped.action_space.shape)
+        self.box_lifted_already = False
 
         box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
         chest_xpos = get_chest_position(self.unwrapped.model,
@@ -101,19 +104,32 @@ class ThreePartRewardWrapper(gym.Wrapper):
         ##### PRIMARY REWARD #####
         reward = 0
 
-        scaling_factor = 1 / self.max_zerror**2
-        reward -= scaling_factor * box_zerror**2
-        self.unwrapped.model.geom('box').rgba = [
-            box_zerror / self.initial_box_zerror,
-            1 - box_zerror / self.initial_box_zerror, 0, .5
-        ]
+        # scaling_factor = 1 / self.max_zerror**2
+        # reward -= scaling_factor * box_zerror**2
+        # self.unwrapped.model.geom('box').rgba = [
+        #     box_zerror / self.initial_box_zerror,
+        #     1 - box_zerror / self.initial_box_zerror, 0, .5
+        # ]
 
-        #goal bonuses
-        threshold = 0.05
-        if box_zerror < threshold:
-            #green
-            reward += 1
-            self.unwrapped.model.geom('box').rgba = [1, 1, 1, .5]
+        # #goal bonuses
+        # threshold = 0.05
+        # if box_zerror < threshold:
+        #     #green
+        #     reward += 1
+        #     self.unwrapped.model.geom('box').rgba = [1, 1, 1, .5]
+
+        if "dont_drop" in self.reward_selection:
+            if not detect_box_on_ground(self.unwrapped.model,
+                                        self.unwrapped.data):
+                self.box_lifted_already = True
+                reward += 1
+                self.unwrapped.model.geom('box').rgba = [0, 1, 0, .5]
+            else:
+                # this seemed to learn very conservative behaviors and just to avoid touching the box.
+                # reward -= 1 if self.box_lifted_already else .1
+
+                reward -= .1
+                self.unwrapped.model.geom('box').rgba = [1, 0, 0, .5]
 
         if "chest_proximity" in self.reward_selection:
             reward -= self._calc_chest_proximity_reward(box_xpos)
@@ -126,9 +142,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
             reward -= centering_weight * self.get_joint_centering_reward()
 
         if "action_smoothness" in self.reward_selection:
-            smoothness_weight = 0.1
+            # action_diff = 1 is max change corresponding to -1 to 1 actions. 
+            normalizer = np.linalg.norm([2] * len(action))
             action_diff = np.linalg.norm(action - self.previous_action)
-            reward -= smoothness_weight * action_diff
+            reward -= action_diff / normalizer
 
         if "high_contact_forces" in self.reward_selection:
             #if contact forces anywhere are high enough to cause damages, penalize.
