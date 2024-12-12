@@ -9,13 +9,16 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
 )
 
 from stable_baselines3.common.env_checker import check_env
-from baloo_gym.wrappers import (TimeLimitTerminationWrapper,
-                                ThreePartRewardWrapper,
-                                OpenLoopBaselineWrapper, VecVideoRecorder,
-                                CurriculumEnv)
+from baloo_gym.wrappers import (
+    TimeLimitTerminationWrapper,
+    ThreePartRewardWrapper,
+    OpenLoopBaselineWrapper,
+    # VecVideoRecorder,
+    CurriculumEnv)
+
 from gymnasium.wrappers import TimeAwareObservation
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder, DummyVecEnv
 
 import numpy as np
 
@@ -137,7 +140,9 @@ def build_env(config: dict, folder_name, baseline: bool, monitor: bool,
         print("Using open-loop baseline policy.")
 
     if monitor:
-        env = Monitor(env, f"./experiments/{folder_name}/monitor_logs")
+        env = Monitor(env,
+                      f"./experiments/{folder_name}/monitor_logs",
+                      info_keywords=("is_success", ))
 
     return env
 
@@ -156,17 +161,14 @@ def make_parallel_env(config,
 
     env = SubprocVecEnv([env_func for _ in range(num_envs)])
 
-    #record video roughly every 100000 steps
-    total_episodes = 100000 / (
-        (config["time_limit_sec"] / config["ctrl_timestep"]) * num_envs)
-
+    vec_step_id = 100000 // num_envs
     if record_video:
         env = VecVideoRecorder(
             env,
             f"./experiments/{folder_name}/rollout_videos",
-            record_video_trigger=lambda x: int(x % total_episodes) == 0,
-            video_length=config["time_limit_sec"] / config["ctrl_timestep"],
+            record_video_trigger=lambda x: int(x % vec_step_id) == 0,
+            video_length=30 / config["ctrl_timestep"],
             name_prefix="rollout",
-            wandb=wandb)
+        )
 
     return env

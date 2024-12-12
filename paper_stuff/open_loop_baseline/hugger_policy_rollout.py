@@ -25,6 +25,10 @@ env = build_env(config,
 # N = int(config["time_limit_sec"] / config["ctrl_timestep"])
 model = OpenLoopHuggerPolicy(N=100)
 
+# todo: implement evaluation across different weights and object sizes. 
+# todo: implement placing box at specific distance from robot logic.
+# todo: add surface plotting for weight vs size vs success rate.  
+# todo: sample weight and size monte carlo style, record (AVG?) success rate in tuples.
 frames, rewards, actions, observations = record_rollout(env, model)
 
 make_movie(frames, "test.mp4", fps=1 / config["ctrl_timestep"])

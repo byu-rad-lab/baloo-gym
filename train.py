@@ -44,7 +44,7 @@ def train(args):
                              sync_tensorboard=True,
                              monitor_gym=True,
                              save_code=True,
-                             tags=["experiments"])
+                             tags=["success"])
         else:
             run = wandb.init(
                 project="ppo_baloo",
@@ -53,7 +53,7 @@ def train(args):
                 monitor_gym=
                 True,  # auto-upload the videos of agents playing the game
                 save_code=True,  # optional
-                tags=["experiments"],
+                tags=["success"],
             )
 
         wandb.run.log_code("./baloo_gym/wrappers/")

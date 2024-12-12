@@ -109,10 +109,12 @@ class BalooBase(gym.Env, ABC):
             print(f"Loading {os.path.basename(self.xml_path)} model.")
             self.first_load = False
 
-        self.model = mujoco.MjModel.from_xml_path(self.xml_path)
-        self.model.vis.global_.offwidth = self.render_width
-        self.model.vis.global_.offheight = self.render_height
-        self.data = mujoco.MjData(self.model)
+            self.model = mujoco.MjModel.from_xml_path(self.xml_path)
+            self.model.vis.global_.offwidth = self.render_width
+            self.model.vis.global_.offheight = self.render_height
+            self.data = mujoco.MjData(self.model)
+
+        mujoco.mj_resetData(self.model, self.data)
 
         #send in either camera_id or camera_name
         self.mujoco_renderer = MujocoRenderer(self.model,

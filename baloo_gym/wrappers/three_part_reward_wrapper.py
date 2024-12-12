@@ -39,6 +39,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.max_zerror = 1
         self.box_lifted_already = False
         self.initial_box_zerror = 0
+        self.object_off_floor_consecutive_steps = 0
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
@@ -46,6 +47,12 @@ class ThreePartRewardWrapper(gym.Wrapper):
         observation, reward, terminated, truncated, info = self.env.step(
             action)
         reward = self.calculate_reward(action)
+
+        info["is_success"] = False
+        if self.object_off_floor_consecutive_steps > 5 / self.unwrapped.control_timestep:
+            terminated = True
+            info["is_success"] = True
+            reward += 1
         self.previous_action = action
 
         return observation, reward, terminated, truncated, info
@@ -59,6 +66,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.box_zerror_prev = 0
         self.previous_action = np.zeros(self.unwrapped.action_space.shape)
         self.box_lifted_already = False
+        self.object_off_floor_consecutive_steps = 0
 
         box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
         chest_xpos = get_chest_position(self.unwrapped.model,
@@ -122,13 +130,12 @@ class ThreePartRewardWrapper(gym.Wrapper):
             if not detect_box_on_ground(self.unwrapped.model,
                                         self.unwrapped.data):
                 self.box_lifted_already = True
+                self.object_off_floor_consecutive_steps += 1
                 reward += 1
                 self.unwrapped.model.geom('box').rgba = [0, 1, 0, .5]
             else:
-                # this seemed to learn very conservative behaviors and just to avoid touching the box.
-                # reward -= 1 if self.box_lifted_already else .1
-
                 reward -= .1
+                self.object_off_floor_consecutive_steps = 0
                 self.unwrapped.model.geom('box').rgba = [1, 0, 0, .5]
 
         if "chest_proximity" in self.reward_selection:
@@ -142,7 +149,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             reward -= centering_weight * self.get_joint_centering_reward()
 
         if "action_smoothness" in self.reward_selection:
-            # action_diff = 1 is max change corresponding to -1 to 1 actions. 
+            # action_diff = 1 is max change corresponding to -1 to 1 actions.
             normalizer = np.linalg.norm([2] * len(action))
             action_diff = np.linalg.norm(action - self.previous_action)
             reward -= action_diff / normalizer
