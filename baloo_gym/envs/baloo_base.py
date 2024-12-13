@@ -7,6 +7,8 @@ import baloo_mujoco_sim as baloo_mj
 from baloo_mujoco_sim.utils.baloo_mj_api import (
     set_elevator_cmd,
     set_joint_pressure_commands,
+    set_box_position,
+    set_box_size,
 )
 import os
 import numpy as np
@@ -36,6 +38,8 @@ class BalooBase(gym.Env, ABC):
         render_width=320,
         render_height=240,
         randomize_initial_height=False,
+        randomize_object_size=False,
+        randomize_object_mass=False,
     ):
         super().__init__()
 
@@ -54,6 +58,8 @@ class BalooBase(gym.Env, ABC):
 
         self.first_load = True
         self.randomize_initial_height = randomize_initial_height
+        self.randomize_object_size = randomize_object_size
+        self.randomize_object_mass = randomize_object_mass
         self._reinitialize_states()
 
         self.simulation_timestep = self.model.opt.timestep
@@ -105,15 +111,40 @@ class BalooBase(gym.Env, ABC):
         self.data.time = 0
 
     def _initialize_model_from_xml(self):
+        """
+        ! need to load model via from_string(). from_file() is not working in 3.2.3.
+        ! (see https://github.com/google-deepmind/mujoco/issues/2142)
+        ! but need to upgrade python > 3.8 to upgrade past 3.2.3. 
+        """
         if self.first_load:
-            print(f"Loading {os.path.basename(self.xml_path)} model.")
             self.first_load = False
 
-            self.model = mujoco.MjModel.from_xml_path(self.xml_path)
-            self.model.vis.global_.offwidth = self.render_width
-            self.model.vis.global_.offheight = self.render_height
+            # load xml file into string
+            with open(baloo_mj.XML_PATH, 'r') as file:
+                xml_string = file.read()
+
+            self.mjspec = mujoco.MjSpec()
+            self.mjspec.from_string(xml_string)
+            print(f"Loading {os.path.basename(self.xml_path)} model.")
+            self.model = self.mjspec.compile()
             self.data = mujoco.MjData(self.model)
 
+        # # change whatever you want in spec before compiling model
+        # if self.randomize_object_size:
+        #     # chosen to resemble TABLE II BBox in Baloo paper.
+        #     l, w = np.random.uniform(0.25, 0.8, 2)
+        #     h = np.random.uniform(0.5, 1.5)
+
+        #     set_box_size(self.model, self.data, l, w, h)
+
+        #     distance_from_chest = 25e-2
+        #     y_box = l / 2 + distance_from_chest
+        #     z_box = h / 2
+        #     set_box_position(self.model, self.data, [0, y_box, z_box])
+
+        self.model = self.mjspec.compile()
+        self.model.vis.global_.offwidth = self.render_width
+        self.model.vis.global_.offheight = self.render_height
         mujoco.mj_resetData(self.model, self.data)
 
         #send in either camera_id or camera_name

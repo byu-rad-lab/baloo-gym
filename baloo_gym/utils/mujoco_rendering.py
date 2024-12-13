@@ -34,6 +34,7 @@ _ALL_RENDERERS = {
 
 
 class BaseRender:
+
     def __init__(
         self,
         model: "mujoco.MjModel",
@@ -66,7 +67,6 @@ class BaseRender:
         # Keep in Mujoco Context
         self.con = mujoco.MjrContext(self.model,
                                      mujoco.mjtFontScale.mjFONTSCALE_150)
-        
 
         self._set_mujoco_buffer()
 
@@ -97,10 +97,6 @@ class BaseRender:
         g.objtype = mujoco.mjtObj.mjOBJ_UNKNOWN
         g.objid = -1
         g.category = mujoco.mjtCatBit.mjCAT_DECOR
-        g.texid = -1
-        g.texuniform = 0
-        g.texrepeat[0] = 1
-        g.texrepeat[1] = 1
         g.emission = 0
         g.specular = 0.5
         g.shininess = 0.5
@@ -140,6 +136,7 @@ class BaseRender:
 
 class OffScreenViewer(BaseRender):
     """Offscreen rendering class with opengl context."""
+
     def __init__(
         self,
         model: "mujoco.MjMujoco",
@@ -213,7 +210,7 @@ class OffScreenViewer(BaseRender):
                 self.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
             self.cam.fixedcamid = camera_id
 
-        #update scene updates ONLY based on geoms in model, nothing in markers. 
+        #update scene updates ONLY based on geoms in model, nothing in markers.
         mujoco.mjv_updateScene(
             self.model,
             self.data,
@@ -230,7 +227,6 @@ class OffScreenViewer(BaseRender):
 
         for marker_params in self._markers:
             self._add_marker_to_scene(marker_params)
-        
 
         mujoco.mjr_render(self.viewport, self.scn, self.con)
 
@@ -247,7 +243,6 @@ class OffScreenViewer(BaseRender):
         if segmentation:
             self.scn.flags[mujoco.mjtRndFlag.mjRND_SEGMENT] = 0
             self.scn.flags[mujoco.mjtRndFlag.mjRND_IDCOLOR] = 0
-
 
         rgb_arr = np.zeros(3 * self.viewport.width * self.viewport.height,
                            dtype=np.uint8)
@@ -290,6 +285,7 @@ class OffScreenViewer(BaseRender):
 
 class WindowViewer(BaseRender):
     """Class for window rendering in all MuJoCo environments."""
+
     def __init__(
         self,
         model: "mujoco.MjModel",
@@ -620,6 +616,7 @@ class MujocoRenderer:
     - :meth:`close` - Closes all contexts initialized with the renderer
 
     """
+
     def __init__(
         self,
         model: "mujoco.MjModel",
