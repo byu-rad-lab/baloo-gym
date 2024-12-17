@@ -10,6 +10,8 @@ from baloo_gym.utils.helpers import build_env, record_rollout, make_movie
 from baloo_gym.policies.open_loop_hugger import OpenLoopHuggerPolicy
 import wandb
 import os
+from baloo_mujoco_sim.utils.baloo_mj_api import (set_box_size,
+                                                 set_box_position)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--runid', type=str, help="Wandb run id")
@@ -22,7 +24,7 @@ args = parser.parse_args()
 
 #load the config from the wandb synced run.
 
-run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/k22mzsys")
+run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
 folder_name = f"{run.name}-{run.id}"
 config = {
     "total_timesteps": run.config["total_timesteps"],

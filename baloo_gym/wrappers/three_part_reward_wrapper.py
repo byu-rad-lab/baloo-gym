@@ -52,7 +52,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         if self.object_off_floor_consecutive_steps > 5 / self.unwrapped.control_timestep:
             terminated = True
             info["is_success"] = True
-            reward += 1
+            reward += 10
         self.previous_action = action
 
         return observation, reward, terminated, truncated, info
@@ -134,12 +134,11 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 reward += 1
                 self.unwrapped.model.geom('box').rgba = [0, 1, 0, .5]
             else:
-                reward -= .1
+                if "chest_proximity" in self.reward_selection:
+                    reward -= self._calc_chest_proximity_reward(box_xpos)
+
                 self.object_off_floor_consecutive_steps = 0
                 self.unwrapped.model.geom('box').rgba = [1, 0, 0, .5]
-
-        if "chest_proximity" in self.reward_selection:
-            reward -= self._calc_chest_proximity_reward(box_xpos)
 
         ##### SECONDARY REWARDS #####
         #this just feels really unnatural, but its effective at avoiding finger crushing.
@@ -159,7 +158,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             pass
 
         if "tactile_nonzero" in self.reward_selection:
-            taxel_reward = self._count_nonzero_taxels()
+            taxel_reward = self._count_nonzero_percentage()
             reward += taxel_reward
 
         if "arm_convex_hull" in self.reward_selection:
@@ -186,16 +185,23 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         Up till now, I've been using all three, so the finger try to approach the object which gets 
         the arms into bad configurations. 
+
+        The absolute distance has a time pressure component.
+        Since agent wants error to go away, it will try to get object as close to chest as fast as possible
+
+        So then, if I reward changes in position, then nothing is the matter
         '''
 
+        # this assumes that the robot has already "aligned" the object in the x and y directions (if it were mobile).
         chest_xpos = get_chest_position(self.unwrapped.model,
                                         self.unwrapped.data)
 
-        z_error = np.abs(chest_xpos[2] - box_xpos[2])
+        #-.13 to get to geoetric center of tactile sensor on chest.
+        z_error = np.abs((chest_xpos[2] - .13) - box_xpos[2])
         reward = 1 * z_error**2
         return reward
 
-    def _count_nonzero_taxels(self):
+    def _count_nonzero_percentage(self):
         left_link0_taxels = get_tactile_image(self.unwrapped.model,
                                               self.unwrapped.data, "left", 0)
         left_link1_taxels = get_tactile_image(self.unwrapped.model,

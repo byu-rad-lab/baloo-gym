@@ -129,23 +129,27 @@ class BalooBase(gym.Env, ABC):
             self.model = self.mjspec.compile()
             self.data = mujoco.MjData(self.model)
 
-        # # change whatever you want in spec before compiling model
-        # if self.randomize_object_size:
-        #     # chosen to resemble TABLE II BBox in Baloo paper.
-        #     l, w = np.random.uniform(0.25, 0.8, 2)
-        #     h = np.random.uniform(0.5, 1.5)
+        # change whatever you want in spec before compiling model for use during episode
+        if self.randomize_object_size:
+            # chosen to resemble TABLE II BBox in Baloo paper.
+            xsize, ysize = np.random.uniform(0.25, 0.8, 2)
+            zsize = np.random.uniform(0.5, 1.5)
 
-        #     set_box_size(self.model, self.data, l, w, h)
+            print(f"Randomizing object size to: {xsize, ysize, zsize}")
+            set_box_size(self.mjspec, xsize, ysize, zsize)
 
-        #     distance_from_chest = 25e-2
-        #     y_box = l / 2 + distance_from_chest
-        #     z_box = h / 2
-        #     set_box_position(self.model, self.data, [0, y_box, z_box])
-
+        #recompile model and reset data for episode.
         self.model = self.mjspec.compile()
         self.model.vis.global_.offwidth = self.render_width
         self.model.vis.global_.offheight = self.render_height
         mujoco.mj_resetData(self.model, self.data)
+
+        if self.randomize_object_size:
+            #place box on the ground, according to new size.
+            distance_from_chest = 25e-2
+            y_box = ysize / 2 + distance_from_chest
+            z_box = zsize / 2
+            set_box_position(self.model, self.data, 0, y_box, z_box)
 
         #send in either camera_id or camera_name
         self.mujoco_renderer = MujocoRenderer(self.model,

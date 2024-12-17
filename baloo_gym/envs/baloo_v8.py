@@ -19,13 +19,17 @@ class BalooV8(BalooBase):
         render_height=240,
         desired_box_pos=None,
         randomize_initial_height=False,
+        randomize_object_size=False,
+        randomize_object_mass=False,
     ):
         super().__init__(render_mode=render_mode,
                          camera_name=camera_name,
                          ctrl_timestep=ctrl_timestep,
                          render_width=render_width,
                          render_height=render_height,
-                         randomize_initial_height=randomize_initial_height)
+                         randomize_initial_height=randomize_initial_height,
+                         randomize_object_size=randomize_object_size,
+                         randomize_object_mass=randomize_object_mass)
 
         action_size = IncrementalTorques.shape[0]
         self.action_space = self.action_space = spaces.MultiDiscrete(

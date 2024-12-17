@@ -62,7 +62,7 @@ def record_rollout(env, policy):
     observations = []
 
     while not done:
-        action, _states = policy.predict(obs)
+        action, _states = policy.predict(obs, deterministic=True)
         observations.append(obs)
         actions.append(action)
         frames.append(env.render())
@@ -111,12 +111,16 @@ def build_env(config: dict, folder_name, baseline: bool, monitor: bool,
         importlib.import_module(f"baloo_gym.envs.{config['env_name']}"),
         name2class[config["env_name"]])
 
-    env = EnvClass(render_mode=render_mode,
-                   camera_name="fixedcam",
-                   ctrl_timestep=config["ctrl_timestep"],
-                   render_width=320,
-                   render_height=240,
-                   randomize_initial_height=config["randomize_initial_height"])
+    env = EnvClass(
+        render_mode=render_mode,
+        camera_name="fixedcam",
+        ctrl_timestep=config["ctrl_timestep"],
+        render_width=320,
+        render_height=240,
+        randomize_initial_height=config["randomize_initial_height"],
+        randomize_object_size=config["randomize_object_size"],
+        randomize_object_mass=config["randomize_object_mass"],
+    )
 
     check_env(env)
     '''
@@ -159,7 +163,9 @@ def make_parallel_env(config,
     env_func = lambda: build_env(config, folder_name, baseline, monitor,
                                  render_mode)
 
+    #! todo: problem savings videos now
     env = SubprocVecEnv([env_func for _ in range(num_envs)])
+    # env = DummyVecEnv([env_func for _ in range(num_envs)])
 
     vec_step_id = 100000 // num_envs
     if record_video:

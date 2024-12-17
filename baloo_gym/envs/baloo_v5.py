@@ -20,7 +20,9 @@ class BalooV5(BalooBase):
         render_width=320,
         render_height=240,
         desired_box_pos=None,
-        randomize_initial_height=False
+        randomize_initial_height=False,
+        randomize_object_size=False,
+        randomize_object_mass=False,
     ):
         super().__init__(
             render_mode=render_mode,

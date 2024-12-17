@@ -31,6 +31,8 @@ def train(args):
         "curriculum_selection": args.curriculum_selection,
         'reward_selection': args.reward_selection,
         "randomize_initial_height": args.randomize_initial_height,
+        "randomize_object_size": args.randomize_object_size,
+        "randomize_object_mass": args.randomize_object_mass,
     }
 
     if args.wandb:
@@ -198,6 +200,14 @@ if __name__ == "__main__":
     parser.add_argument('--randomize_initial_height',
                         action='store_true',
                         help='Randomize initial height of the elevator')
+
+    parser.add_argument('--randomize_object_size',
+                        action='store_true',
+                        help='Randomize object size')
+
+    parser.add_argument('--randomize_object_mass',
+                        action='store_true',
+                        help='Randomize object mass')
 
     parser.add_argument('--resume_training_runid',
                         type=str,
