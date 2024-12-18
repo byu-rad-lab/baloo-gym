@@ -9,16 +9,9 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
 )
 
 from stable_baselines3.common.env_checker import check_env
-from baloo_gym.wrappers import (
-    TimeLimitTerminationWrapper,
-    ThreePartRewardWrapper,
-    OpenLoopBaselineWrapper,
-    # VecVideoRecorder,
-    CurriculumEnv)
+from baloo_gym.wrappers import OpenLoopBaselineWrapper, ThreePartRewardWrapper
 
-from gymnasium.wrappers import TimeAwareObservation
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder, DummyVecEnv
+from gymnasium.wrappers import TimeLimit
 
 import numpy as np
 
@@ -82,8 +75,7 @@ def make_movie(frames: list, filename: str, fps=30):
     clip.write_videofile(filename)
 
 
-def build_env(config: dict, folder_name, baseline: bool, monitor: bool,
-              render_mode):
+def build_env(config: dict, baseline: bool, render_mode):
     """Builds a gym environment with the given configuration.
 
     Args:
@@ -123,58 +115,18 @@ def build_env(config: dict, folder_name, baseline: bool, monitor: bool,
     )
 
     check_env(env)
-    '''
-    When using time aware observation, I should use terminated instead of truncated. 
-    #! requires float 32, but then np.appends self.t on line 51, which numpy casts as float64. 
-    #! Looks like this wrapper will change alot with new release of gymnasium (not on pip yet). this is v0.29.1.
-    '''
 
-    if config["time_aware_obs"]:
-        env = TimeAwareObservation(env)
-
-        env = TimeLimitTerminationWrapper(env, config["time_limit_sec"],
-                                          config["ctrl_timestep"])
+    #emit truncation signal at the end of the episode.
+    env = TimeLimit(env,
+                    max_episode_steps=int(
+                        config["time_limit_sec"] / config["ctrl_timestep"], ))
 
     env = ThreePartRewardWrapper(env, config["reward_selection"])
-    env = CurriculumEnv(env, config["curriculum_selection"])
+    # env = CurriculumEnv(env, config["curriculum_selection"])
 
     if baseline:
         #overwrite to be compatible with open-loop baseline policy.
         env = OpenLoopBaselineWrapper(env)
         print("Using open-loop baseline policy.")
-
-    if monitor:
-        env = Monitor(env,
-                      f"./experiments/{folder_name}/monitor_logs",
-                      info_keywords=("is_success", ))
-
-    return env
-
-
-def make_parallel_env(config,
-                      folder_name,
-                      baseline: bool = False,
-                      monitor: bool = True,
-                      record_video: bool = False,
-                      num_envs=1,
-                      wandb=False,
-                      render_mode="rgb_array"):  #applies for num_envs > 0
-
-    env_func = lambda: build_env(config, folder_name, baseline, monitor,
-                                 render_mode)
-
-    #! todo: problem savings videos now
-    env = SubprocVecEnv([env_func for _ in range(num_envs)])
-    # env = DummyVecEnv([env_func for _ in range(num_envs)])
-
-    vec_step_id = 100000 // num_envs
-    if record_video:
-        env = VecVideoRecorder(
-            env,
-            f"./experiments/{folder_name}/rollout_videos",
-            record_video_trigger=lambda x: int(x % vec_step_id) == 0,
-            video_length=30 / config["ctrl_timestep"],
-            name_prefix="rollout",
-        )
 
     return env

@@ -64,6 +64,8 @@ models/
 
 experiments/
 
+new_experiments/
+
 *.png
 
 *.npy
