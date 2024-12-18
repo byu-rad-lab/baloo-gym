@@ -12,7 +12,7 @@ from baloo_gym.utils.helpers import build_env
 
 
 # Parallel environments
-def main(args):
+def train(args):
     set_random_seed(args.seed)
 
     run_folder = "test-0000"
@@ -116,8 +116,7 @@ def main(args):
     vec_env.close()
 
 
-if __name__ == "__main__":
-
+def main():
     # Set up argument parsing
     parser = argparse.ArgumentParser(
         description="Train a reinforcement learning model.")
@@ -210,4 +209,8 @@ if __name__ == "__main__":
         import os
         os.environ["MUJOCO_GL"] = "egl"
 
-    main(args)
+    train(args)
+
+
+if __name__ == "__main__":
+    main()
