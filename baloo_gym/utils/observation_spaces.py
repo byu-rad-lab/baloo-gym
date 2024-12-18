@@ -1122,7 +1122,7 @@ class StateObservationPressurePrevActionsNoError:
     prev_right_j1_tau_lb = [-300] * 2
     prev_right_j2_tau_lb = [-300] * 2
 
-    object_pos_ub = [2, 2, 2]
+    object_pos_ub = [3, 3, 2]
     object_vel_ub = [2] * 3
     elevator_pos_ub = [0]
     elevator_vel_ub = [5]
