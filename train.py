@@ -5,7 +5,7 @@ from wandb.integration.sb3 import WandbCallback
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder, VecMonitor
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder
 from stable_baselines3.common.utils import set_random_seed
 
 from baloo_gym.utils.helpers import build_env
@@ -130,7 +130,7 @@ def main():
     parser.add_argument(
         '--num_envs',
         type=int,
-        default=2,
+        default=1,
         help='Number of environments for SubprocVecEnv',
     )
     parser.add_argument(

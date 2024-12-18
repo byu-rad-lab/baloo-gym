@@ -345,7 +345,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
         return centering
 
     def render(self):
-
         if not self.sphere_visual_initialized and 'rms_robot_dist' in self.reward_selection:
             super().render()  #to initialize viewer.
             self.sphere_visual_initialized = True
@@ -361,21 +360,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 pos=np.array([0, 0, 0]),
                 mat=np.eye(3).flatten(),
                 rgba=np.array([1, 0, 0, .1]),
-            )
-
-        if not self.desired_box_visual_initialized:
-            super().render()  #to initialize viewer.
-            self.desired_box_visual_initialized = True
-
-            self.desired_boxid = len(
-                self.unwrapped.mujoco_renderer.viewer._markers)
-
-            self.unwrapped.mujoco_renderer.viewer.add_marker(
-                type=mujoco.mjtGeom.mjGEOM_BOX,
-                size=np.array([0.1, 0.1, 0.1]),
-                pos=self.get_wrapper_attr("desired_box_pos"),
-                mat=np.eye(3).flatten(),
-                rgba=np.array([0, 1, 0, 1]),
             )
 
         if not self.convex_hull_visual_initialized and "arm_convex_hull" in self.reward_selection:
