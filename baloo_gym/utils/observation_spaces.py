@@ -1090,7 +1090,7 @@ class StateObservationPressurePrevActionsNoError:
     #designed this way to be able to standardize and unstandardize observations easily without having class isntantiations.
     shape = (69, )
 
-    object_pos_lb = [-2, -2, -2]
+    object_pos_lb = [-3, -3, 0]
     object_vel_lb = [-2] * 3
     elevator_pos_lb = [-1.5]
     elevator_vel_lb = [-5]

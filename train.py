@@ -17,6 +17,8 @@ def train(args):
 
     run_folder = "test-0000"
 
+    save_freq = 100000 // args.num_envs
+
     config = {
         "total_timesteps": args.total_timesteps,
         "ctrl_timestep": .1,
@@ -46,8 +48,8 @@ def train(args):
         wandb.run.log_code("./baloo_gym/wrappers/")
 
         callbacks = WandbCallback(
-            gradient_save_freq=100000,
-            model_save_freq=100000,
+            gradient_save_freq=save_freq,
+            model_save_freq=save_freq,
             model_save_path=f"new_experiments/{run_folder}/recent_model",
             verbose=2,
         )
@@ -71,8 +73,8 @@ def train(args):
     vec_env = VecVideoRecorder(
         vec_env,
         f"new_experiments/{run_folder}/videos",
-        record_video_trigger=lambda x: x % 100000 == 0,
-        video_length=20 / config["ctrl_timestep"],
+        record_video_trigger=lambda x: x % save_freq == 0,
+        video_length=30 / config["ctrl_timestep"],
         name_prefix=run_folder,
     )
 

@@ -135,7 +135,6 @@ class BalooBase(gym.Env, ABC):
             xsize, ysize = np.random.uniform(0.25, 0.8, 2)
             zsize = np.random.uniform(0.5, 1.5)
 
-            print(f"Randomizing object size to: {xsize, ysize, zsize}")
             set_box_size(self.mjspec, xsize, ysize, zsize)
 
         #recompile model and reset data for episode.
@@ -146,7 +145,7 @@ class BalooBase(gym.Env, ABC):
 
         if self.randomize_object_size:
             #place box on the ground, according to new size.
-            distance_from_chest = 25e-2
+            distance_from_chest = 35e-2
             y_box = ysize / 2 + distance_from_chest
             z_box = zsize / 2
             set_box_position(self.model, self.data, 0, y_box, z_box)

@@ -47,8 +47,7 @@ class BalooV8(BalooBase):
 
         if desired_box_pos is None:
             self.desired_box_pos = np.array([0, 0.5, .75])
-            print("No desired box position given, defaulting to ",
-                  self.desired_box_pos)
+
         else:
             self.desired_box_pos = desired_box_pos
 
