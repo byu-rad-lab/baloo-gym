@@ -80,7 +80,7 @@ def train(args):
             "baseline": False,
             "render_mode": "rgb_array",
         },
-        n_envs=1,
+        n_envs=args.num_envs,
         vec_env_cls=SubprocVecEnv,
         monitor_kwargs={
             'info_keywords': ('is_success', ),
@@ -90,7 +90,7 @@ def train(args):
     eval_callback = EvalCallback(
         eval_env,
         n_eval_episodes=10,
-        eval_freq=save_freq,
+        eval_freq=max(5000 // args.num_envs, 1),
         log_path=f"new_experiments/{run_folder}/eval_logs",
         best_model_save_path=f"new_experiments/{run_folder}/best_model",
         deterministic=True,
