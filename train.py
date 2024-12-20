@@ -7,8 +7,10 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder
 from stable_baselines3.common.utils import set_random_seed
+from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnNoModelImprovement
 
 from baloo_gym.utils.helpers import build_env
+import copy
 
 
 # Parallel environments
@@ -31,7 +33,7 @@ def train(args):
         "randomize_object_mass": args.randomize_object_mass,
     }
 
-    callbacks = None
+    callbacks = []
     if args.wandb:
         run = wandb.init(
             project="ppo_baloo",
@@ -47,12 +49,13 @@ def train(args):
 
         wandb.run.log_code("./baloo_gym/wrappers/")
 
-        callbacks = WandbCallback(
-            gradient_save_freq=save_freq,
-            model_save_freq=save_freq,
-            model_save_path=f"new_experiments/{run_folder}/recent_model",
-            verbose=2,
-        )
+        callbacks.append(
+            WandbCallback(
+                gradient_save_freq=save_freq,
+                model_save_freq=save_freq,
+                model_save_path=f"new_experiments/{run_folder}/recent_model",
+                verbose=2,
+            ))
 
     #automatically wraps each environment in a monitor
     vec_env = make_vec_env(
@@ -69,6 +72,32 @@ def train(args):
             'info_keywords': ('is_success', ),
         },
     )
+
+    eval_env = make_vec_env(
+        build_env,
+        env_kwargs={
+            "config": config,
+            "baseline": False,
+            "render_mode": "rgb_array",
+        },
+        n_envs=1,
+        vec_env_cls=SubprocVecEnv,
+        monitor_kwargs={
+            'info_keywords': ('is_success', ),
+        },
+    )
+
+    eval_callback = EvalCallback(
+        eval_env,
+        n_eval_episodes=10,
+        eval_freq=save_freq,
+        log_path=f"new_experiments/{run_folder}/eval_logs",
+        best_model_save_path=f"new_experiments/{run_folder}/best_model",
+        deterministic=True,
+        verbose=1,
+    )
+
+    callbacks.append(eval_callback)
 
     vec_env = VecVideoRecorder(
         vec_env,

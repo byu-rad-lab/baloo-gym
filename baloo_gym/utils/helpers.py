@@ -14,6 +14,8 @@ from baloo_gym.wrappers import OpenLoopBaselineWrapper, ThreePartRewardWrapper
 from gymnasium.wrappers import TimeLimit
 
 import numpy as np
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder
 
 
 def get_sensor_data(model, data):
@@ -130,3 +132,31 @@ def build_env(config: dict, baseline: bool, render_mode):
         print("Using open-loop baseline policy.")
 
     return env
+
+
+def parallelize_env(args, config, run_folder, save_freq):
+    #automatically wraps each environment in a monitor
+    vec_env = make_vec_env(
+        build_env,
+        env_kwargs={
+            "config": config,
+            "baseline": False,
+            "render_mode": "rgb_array",
+        },
+        n_envs=args.num_envs,
+        vec_env_cls=SubprocVecEnv,
+        monitor_dir=f"new_experiments/{run_folder}/monitor",
+        monitor_kwargs={
+            'info_keywords': ('is_success', ),
+        },
+    )
+
+    vec_env = VecVideoRecorder(
+        vec_env,
+        f"new_experiments/{run_folder}/videos",
+        record_video_trigger=lambda x: x % save_freq == 0,
+        video_length=30 / config["ctrl_timestep"],
+        name_prefix=run_folder,
+    )
+
+    return vec_env
