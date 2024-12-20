@@ -9,9 +9,21 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     set_joint_pressure_commands,
     set_box_position,
     set_box_size,
+    set_box_mass,
 )
 import os
 import numpy as np
+import random
+
+from dataclasses import dataclass
+
+
+@dataclass
+class Object:
+    name: str
+    size: np.ndarray
+    mass: float
+    color: np.ndarray
 
 
 class BalooBase(gym.Env, ABC):
@@ -55,6 +67,30 @@ class BalooBase(gym.Env, ABC):
         self.len_command = 25
 
         self.xml_path = baloo_mj.XML_PATH
+
+        # self.object_bounding_boxes = [
+        #     np.array([.8, .2, .8]),
+        #     np.array([.7, .7, 1.0]),
+        #     np.array([.6, .2, 1.2]),
+        #     np.array([.4, .4, .8]),
+        #     np.array([.7, .3, 1.9]),
+        #     np.array([.5, .5, .6]),
+        # ]
+
+        self.object_bounding_boxes = [
+            Object("tire", np.array([.7, .2, .7]), 21.9, np.array([0, 0, 0,
+                                                                   1])),
+            Object("chair", np.array([.5, .5, 1.0]), 11.9,
+                   np.array([0, 0.66, 1, 1])),
+            Object("ladder", np.array([.5, .2, 1.2]), 15.6,
+                   np.array([.5, .5, .5, 1])),
+            Object("duffel", np.array([.4, .4, .8]), 6.75,
+                   np.array([.8, 1, .8, 1])),
+            Object("kayak", np.array([.5, .3, 1.8]), 8.5,
+                   np.array([0, 1, .22, 1])),
+            Object("box", np.array([.5, .5, .6]), 7.3,
+                   np.array([.59, .32, 0.05, 1])),
+        ]
 
         self.first_load = True
         self.randomize_initial_height = randomize_initial_height
@@ -131,11 +167,17 @@ class BalooBase(gym.Env, ABC):
 
         # change whatever you want in spec before compiling model for use during episode
         if self.randomize_object_size:
-            # chosen to resemble TABLE II BBox in Baloo paper.
-            xsize, ysize = np.random.uniform(0.25, 0.8, 2)
-            zsize = np.random.uniform(0.5, 1.5)
-
+            self.object = random.choice(self.object_bounding_boxes)
+            xsize, ysize, zsize = self.object.size
             set_box_size(self.mjspec, xsize, ysize, zsize)
+
+        if self.randomize_object_mass:
+            if not hasattr(self, "object"):
+                raise ValueError(
+                    "randomize_object_mass without size is not yet supported.")
+
+            mass = self.object.mass
+            set_box_mass(self.mjspec, mass)
 
         #recompile model and reset data for episode.
         self.model = self.mjspec.compile()
@@ -145,10 +187,12 @@ class BalooBase(gym.Env, ABC):
 
         if self.randomize_object_size:
             #place box on the ground, according to new size.
-            distance_from_chest = 35e-2
+            distance_from_chest = 45e-2
             y_box = ysize / 2 + distance_from_chest
             z_box = zsize / 2
             set_box_position(self.model, self.data, 0, y_box, z_box)
+
+            self.model.geom("box").rgba = self.object.color
 
         #send in either camera_id or camera_name
         self.mujoco_renderer = MujocoRenderer(self.model,

@@ -132,13 +132,18 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 self.box_lifted_already = True
                 self.object_off_floor_consecutive_steps += 1
                 reward += 1
-                self.unwrapped.model.geom('box').rgba = [0, 1, 0, .5]
+                self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
             else:
                 if "chest_proximity" in self.reward_selection:
                     reward -= self._calc_chest_proximity_reward(box_xpos)
 
                 self.object_off_floor_consecutive_steps = 0
-                self.unwrapped.model.geom('box').rgba = [1, 0, 0, .5]
+
+                if self.unwrapped.object is not None:
+                    self.unwrapped.model.geom(
+                        'box').rgba = self.unwrapped.object.color
+                else:
+                    self.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
 
         ##### SECONDARY REWARDS #####
         #this just feels really unnatural, but its effective at avoiding finger crushing.
