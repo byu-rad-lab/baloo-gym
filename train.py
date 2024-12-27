@@ -90,7 +90,7 @@ def train(args):
     eval_callback = EvalCallback(
         eval_env,
         n_eval_episodes=10,
-        eval_freq=max(5000 // args.num_envs, 1),
+        eval_freq=save_freq,
         log_path=f"new_experiments/{run_folder}/eval_logs",
         best_model_save_path=f"new_experiments/{run_folder}/best_model",
         deterministic=True,

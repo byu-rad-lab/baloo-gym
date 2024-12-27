@@ -167,16 +167,18 @@ class BalooBase(gym.Env, ABC):
 
         # change whatever you want in spec before compiling model for use during episode
         if self.randomize_object_size:
-            self.object = random.choice(self.object_bounding_boxes)
-            xsize, ysize, zsize = self.object.size
+            # self.object = random.choice(self.object_bounding_boxes)
+            # xsize, ysize, zsize = self.object.size
+            xsize, ysize, zsize = np.random.uniform(0.1, 0.6, 3)
             set_box_size(self.mjspec, xsize, ysize, zsize)
 
         if self.randomize_object_mass:
-            if not hasattr(self, "object"):
+            if not self.randomize_object_size:
                 raise ValueError(
                     "randomize_object_mass without size is not yet supported.")
 
-            mass = self.object.mass
+            # mass = self.object.mass
+            mass = np.random.uniform(5, 20)
             set_box_mass(self.mjspec, mass)
 
         #recompile model and reset data for episode.
@@ -192,7 +194,7 @@ class BalooBase(gym.Env, ABC):
             z_box = zsize / 2
             set_box_position(self.model, self.data, 0, y_box, z_box)
 
-            self.model.geom("box").rgba = self.object.color
+            # self.model.geom("box").rgba = self.object.color
 
         #send in either camera_id or camera_name
         self.mujoco_renderer = MujocoRenderer(self.model,
