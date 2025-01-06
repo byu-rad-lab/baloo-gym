@@ -143,7 +143,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 #     self.unwrapped.model.geom(
                 #         'box').rgba = self.unwrapped.object.color
                 # else:
-                self.unwrapped.model.geom('box').rgba = [1, 0, 0, 1]
+
+                #redness as an indicator of mass. dark red = heavy, light red = light
+                redness = 1 - self.unwrapped.model.body('box').mass.item() / 20
+                self.unwrapped.model.geom('box').rgba = [1, redness, redness, 1]
 
         ##### SECONDARY REWARDS #####
         #this just feels really unnatural, but its effective at avoiding finger crushing.

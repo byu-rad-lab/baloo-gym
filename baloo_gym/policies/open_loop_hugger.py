@@ -47,13 +47,13 @@ class OpenLoopHuggerPolicy:
 
         self.actions = np.zeros(25)
 
-    def predict(self, obs):
+    def predict(self, obs, deterministic=True):
         #get elevator height out of observation [0,1,2]
         #recall that timeawareobservation appends the time step to the end of the observation, so we ignore it here.
         if len(obs) > 1:
             #to be compatible with gym env, accept whole observation vector
             mujoco_observation = StateObservationPressurePrevActionsNoError.from_standardized_array(
-                obs[:-1])
+                obs)
             elevator_height = mujoco_observation.elevator_pos
         else:
             #or assume its the height since that's the only thing we need here.
@@ -82,7 +82,7 @@ class OpenLoopHuggerPolicy:
 
             #if elevator and pressures are both close, move to GRASP
             if np.isclose(elevator_height, -.875,
-                          atol=.05) and self.step_along_trajectory == self.N:
+                          atol=.1) and self.step_along_trajectory == self.N:
                 self.state = "GRASP"
                 print(f"Changing state to GRASP")
                 self.step_along_trajectory = 0

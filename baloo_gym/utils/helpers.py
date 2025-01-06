@@ -46,7 +46,7 @@ def get_sensor_data(model, data):
     }
 
 
-def record_rollout(env, policy):
+def record_rollout(env, policy, render=True):
     obs, info = env.reset()
     print(f"In rollout, obs shape: {obs.shape}")
     done = False
@@ -55,19 +55,22 @@ def record_rollout(env, policy):
     rewards = []
     actions = []
     observations = []
+    infos = []
 
     while not done:
         action, _states = policy.predict(obs, deterministic=True)
         observations.append(obs)
         actions.append(action)
-        frames.append(env.render())
+        if render:
+            frames.append(env.render())
         obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated
         rewards.append(reward)
+        infos.append(info)
 
     env.close()
 
-    return frames, rewards, actions, observations
+    return frames, rewards, actions, observations, infos
 
 
 def make_movie(frames: list, filename: str, fps=30):
@@ -77,7 +80,7 @@ def make_movie(frames: list, filename: str, fps=30):
     clip.write_videofile(filename)
 
 
-def build_env(config: dict, baseline: bool, render_mode):
+def build_env(config: dict, baseline: bool, render_mode, **kwargs):
     """Builds a gym environment with the given configuration.
 
     Args:
@@ -114,6 +117,8 @@ def build_env(config: dict, baseline: bool, render_mode):
         randomize_initial_height=config["randomize_initial_height"],
         randomize_object_size=config["randomize_object_size"],
         randomize_object_mass=config["randomize_object_mass"],
+        object_size=kwargs.get("object_size", None),
+        object_mass=kwargs.get("object_mass", None),
     )
 
     check_env(env)

@@ -1088,7 +1088,7 @@ class StateObservationPressureNoError:
 class StateObservationPressurePrevActionsNoError:
     #class attributes.
     #designed this way to be able to standardize and unstandardize observations easily without having class isntantiations.
-    shape = (69, )
+    shape = (72, )
 
     object_pos_lb = [-3, -3, 0]
     object_vel_lb = [-2] * 3
@@ -1122,6 +1122,8 @@ class StateObservationPressurePrevActionsNoError:
     prev_right_j1_tau_lb = [-300] * 2
     prev_right_j2_tau_lb = [-300] * 2
 
+    object_size_lb = [0.1, 0.1, 0.5]
+
     object_pos_ub = [3, 3, 2]
     object_vel_ub = [2] * 3
     elevator_pos_ub = [0]
@@ -1154,6 +1156,8 @@ class StateObservationPressurePrevActionsNoError:
     prev_right_j1_tau_ub = [300] * 2
     prev_right_j2_tau_ub = [300] * 2
 
+    object_size_ub = [0.6, 0.6, 1.25]
+
     obs_lower_bound = np.asarray(
         object_pos_lb + object_vel_lb + elevator_pos_lb + elevator_vel_lb +
         left_j0_pos_lb + left_j1_pos_lb + left_j2_pos_lb + right_j0_pos_lb +
@@ -1162,7 +1166,8 @@ class StateObservationPressurePrevActionsNoError:
         left_j0_p_lb + left_j1_p_lb + left_j2_p_lb + right_j0_p_lb +
         right_j1_p_lb + right_j2_p_lb + prev_height_cmd_lb +
         prev_left_j0_tau_lb + prev_left_j1_tau_lb + prev_left_j2_tau_lb +
-        prev_right_j0_tau_lb + prev_right_j1_tau_lb + prev_right_j2_tau_lb)
+        prev_right_j0_tau_lb + prev_right_j1_tau_lb + prev_right_j2_tau_lb +
+        object_size_lb)
 
     obs_upper_bound = np.asarray(
         object_pos_ub + object_vel_ub + elevator_pos_ub + elevator_vel_ub +
@@ -1172,7 +1177,8 @@ class StateObservationPressurePrevActionsNoError:
         left_j0_p_ub + left_j1_p_ub + left_j2_p_ub + right_j0_p_ub +
         right_j1_p_ub + right_j2_p_ub + prev_height_cmd_ub +
         prev_left_j0_tau_ub + prev_left_j1_tau_ub + prev_left_j2_tau_ub +
-        prev_right_j0_tau_ub + prev_right_j1_tau_ub + prev_right_j2_tau_ub)
+        prev_right_j0_tau_ub + prev_right_j1_tau_ub + prev_right_j2_tau_ub +
+        object_size_ub)
 
     def __init__(
         self,
@@ -1197,6 +1203,7 @@ class StateObservationPressurePrevActionsNoError:
         prev_right_j0_tau,
         prev_right_j1_tau,
         prev_right_j2_tau,
+        object_size,
     ):
         self.object_pos = object_pos
         self.object_vel = object_vel
@@ -1227,6 +1234,7 @@ class StateObservationPressurePrevActionsNoError:
         self.prev_right_j0_tau = prev_right_j0_tau
         self.prev_right_j1_tau = prev_right_j1_tau
         self.prev_right_j2_tau = prev_right_j2_tau
+        self.object_size = object_size
 
     def to_array(self):
         return np.hstack([
@@ -1259,6 +1267,7 @@ class StateObservationPressurePrevActionsNoError:
             self.prev_right_j0_tau,
             self.prev_right_j1_tau,
             self.prev_right_j2_tau,
+            self.object_size,
         ])
 
     def __repr__(self):
@@ -1303,4 +1312,5 @@ class StateObservationPressurePrevActionsNoError:
             prev_right_j0_tau=observation_array[63:65],
             prev_right_j1_tau=observation_array[65:67],
             prev_right_j2_tau=observation_array[67:69],
+            object_size=observation_array[69:72],
         )

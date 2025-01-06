@@ -52,6 +52,8 @@ class BalooBase(gym.Env, ABC):
         randomize_initial_height=False,
         randomize_object_size=False,
         randomize_object_mass=False,
+        object_size=None,
+        object_mass=None,
     ):
         super().__init__()
 
@@ -96,6 +98,9 @@ class BalooBase(gym.Env, ABC):
         self.randomize_initial_height = randomize_initial_height
         self.randomize_object_size = randomize_object_size
         self.randomize_object_mass = randomize_object_mass
+
+        self.object_size = object_size
+        self.object_mass = object_mass
         self._reinitialize_states()
 
         self.simulation_timestep = self.model.opt.timestep
@@ -169,8 +174,13 @@ class BalooBase(gym.Env, ABC):
         if self.randomize_object_size:
             # self.object = random.choice(self.object_bounding_boxes)
             # xsize, ysize, zsize = self.object.size
-            xsize, ysize, zsize = np.random.uniform(0.1, 0.6, 3)
+            xsize, ysize = np.random.uniform(0.1, 0.6, 2)
+            zsize = np.random.uniform(0.5, 1.25)
             set_box_size(self.mjspec, xsize, ysize, zsize)
+        else:
+            if self.object_size is not None:
+                xsize, ysize, zsize = self.object_size
+                set_box_size(self.mjspec, xsize, ysize, zsize)
 
         if self.randomize_object_mass:
             if not self.randomize_object_size:
@@ -180,6 +190,11 @@ class BalooBase(gym.Env, ABC):
             # mass = self.object.mass
             mass = np.random.uniform(5, 20)
             set_box_mass(self.mjspec, mass)
+
+        else:
+            if self.object_mass is not None:
+                mass = self.object_mass
+                set_box_mass(self.mjspec, mass)
 
         #recompile model and reset data for episode.
         self.model = self.mjspec.compile()

@@ -31,77 +31,86 @@ config = {
     "ctrl_timestep": run.config["ctrl_timestep"],
     "env_name": run.config["env_name"],
     "time_limit_sec": run.config["time_limit_sec"],
-    "time_aware_obs": run.config["time_aware_obs"],
     "curriculum_selection": run.config["curriculum_selection"],
     'reward_selection': run.config['reward_selection'],
     "randomize_initial_height": False,
+    "randomize_object_size": True,
+    "randomize_object_mass": True,
 }
 
 saved_model = run.file("model.zip").download(replace=True)
 model = PPO.load(saved_model.name)
 
-env = build_env(config,
-                folder_name,
-                baseline=False,
-                monitor=False,
-                render_mode="rgb_array")
+env = build_env(config, baseline=False, render_mode="rgb_array")
 
-#todo: rollout several times and average results.
-for i in range(args.num_rollouts):
-    frames, rewards, actions, observations = record_rollout(env, model)
+successes = []
 
-print(len(frames), len(rewards), len(actions), len(observations))
+for j in range(args.num_rollouts):
+    frames, rewards, actions, observations, infos = record_rollout(env, model)
 
-#plot rewards, actions, and observations over time, make video with moviepy
-import matplotlib.pyplot as plt
-import numpy as np
+    if "is_success" in infos[-1]:
+        successes.append(infos[-1]["is_success"])
 
-# model_path = os.path.dirname(args.model_file)
-model_path = "./evaluation_results"
-os.makedirs(model_path, exist_ok=True)
+    print(len(frames), len(rewards), len(actions), len(observations))
 
-make_movie(frames,
-           model_path + "/evaluation_rollout.mp4",
-           fps=1 / config["ctrl_timestep"])
+    #plot rewards, actions, and observations over time, make video with moviepy
+    import matplotlib.pyplot as plt
+    import numpy as np
 
-plt.plot(rewards)
-plt.xlabel("Timesteps")
-plt.ylabel("Rewards")
-plt.savefig(model_path + "/rewards.png", dpi=300)
+    # model_path = os.path.dirname(args.model_file)
+    model_path = f"./evaluation_results/rollout_{j}"
+    os.makedirs(model_path, exist_ok=True)
 
-fig, axs = plt.subplots(
-    env.action_space.shape[0],
-    1,
-    sharex=True,
-    figsize=(10, 30),
-)
-for i in range(env.action_space.shape[0]):
-    axs[i].plot(np.array(actions)[:, i])
-    axs[i].set_ylabel(f"a{i}")
+    make_movie(frames,
+               model_path + f"/evaluation_rollout.mp4",
+               fps=1 / config["ctrl_timestep"])
 
-axs[-1].set_xlabel("Timesteps")
-plt.savefig(model_path + "/actions.png", dpi=300, bbox_inches='tight')
+    fig = plt.figure()
 
-# make histogram of actions
-fig, axs = plt.subplots(
-    env.action_space.shape[0],
-    1,
-    figsize=(10, 30),
-)
-for i in range(env.action_space.shape[0]):
-    axs[i].hist(np.array(actions)[:, i], bins=100)
-    axs[i].set_ylabel(f"a{i}")
+    plt.plot(rewards)
+    plt.xlabel("Timesteps")
+    plt.ylabel("Rewards")
+    plt.savefig(model_path + f"/rewards.png", dpi=300)
 
-axs[-1].set_xlabel("Action Value")
-plt.savefig(model_path + "/actions_hist.png", dpi=300, bbox_inches='tight')
+    fig, axs = plt.subplots(
+        env.action_space.shape[0],
+        1,
+        sharex=True,
+        figsize=(10, 30),
+    )
+    for i in range(env.action_space.shape[0]):
+        axs[i].plot(np.array(actions)[:, i])
+        axs[i].set_ylabel(f"a{i}")
 
-fig, axs = plt.subplots(env.observation_space.shape[0],
-                        1,
-                        sharex=True,
-                        figsize=(10, 40))
-for i in range(env.observation_space.shape[0]):
-    axs[i].plot(np.array(observations)[:, i])
-    axs[i].set_ylabel(f"o{i}")
+    axs[-1].set_xlabel("Timesteps")
+    plt.savefig(model_path + f"/actions.png", dpi=300, bbox_inches='tight')
 
-axs[-1].set_xlabel("Timesteps")
-plt.savefig(model_path + "/observations.png", dpi=300, bbox_inches='tight')
+    # make histogram of actions
+    fig, axs = plt.subplots(
+        env.action_space.shape[0],
+        1,
+        figsize=(10, 30),
+    )
+    for i in range(env.action_space.shape[0]):
+        axs[i].hist(np.array(actions)[:, i], bins=100)
+        axs[i].set_ylabel(f"a{i}")
+
+    axs[-1].set_xlabel("Action Value")
+    plt.savefig(model_path + f"/actions_hist.png",
+                dpi=300,
+                bbox_inches='tight')
+
+    fig, axs = plt.subplots(env.observation_space.shape[0],
+                            1,
+                            sharex=True,
+                            figsize=(10, 40))
+    for i in range(env.observation_space.shape[0]):
+        axs[i].plot(np.array(observations)[:, i])
+        axs[i].set_ylabel(f"o{i}")
+
+    axs[-1].set_xlabel("Timesteps")
+    plt.savefig(model_path + f"/observations.png",
+                dpi=300,
+                bbox_inches='tight')
+
+print(f"Success rate: {np.mean(successes)}")

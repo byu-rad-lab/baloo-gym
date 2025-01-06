@@ -21,6 +21,8 @@ class BalooV8(BalooBase):
         randomize_initial_height=False,
         randomize_object_size=False,
         randomize_object_mass=False,
+        object_size=None,
+        object_mass=None,
     ):
         super().__init__(render_mode=render_mode,
                          camera_name=camera_name,
@@ -29,7 +31,9 @@ class BalooV8(BalooBase):
                          render_height=render_height,
                          randomize_initial_height=randomize_initial_height,
                          randomize_object_size=randomize_object_size,
-                         randomize_object_mass=randomize_object_mass)
+                         randomize_object_mass=randomize_object_mass,
+                         object_size=object_size,
+                         object_mass=object_mass)
 
         action_size = IncrementalTorques.shape[0]
         self.action_space = self.action_space = spaces.MultiDiscrete(
@@ -81,6 +85,9 @@ class BalooV8(BalooBase):
             "prev_right_j1_tau"] = self.torque_cmds.prev_right_j1_tau_cmd
         sensor_data[
             "prev_right_j2_tau"] = self.torque_cmds.prev_right_j2_tau_cmd
+
+        # 2x bc mujoco reports sizes as half sizes
+        sensor_data["object_size"] = self.unwrapped.model.geom('box').size * 2
 
         rawObs = StateObservationPressurePrevActionsNoError(**sensor_data)
 
