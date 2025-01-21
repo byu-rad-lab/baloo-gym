@@ -48,7 +48,7 @@ def get_sensor_data(model, data):
 
 def record_rollout(env, policy, render=True):
     obs, info = env.reset()
-    print(f"In rollout, obs shape: {obs.shape}")
+    # print(f"In rollout, obs shape: {obs.shape}")
     done = False
 
     frames = []
@@ -58,7 +58,7 @@ def record_rollout(env, policy, render=True):
     infos = []
 
     while not done:
-        action, _states = policy.predict(obs, deterministic=True)
+        action, _states = policy.predict(obs, deterministic=False)
         observations.append(obs)
         actions.append(action)
         if render:

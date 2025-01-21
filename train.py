@@ -71,29 +71,32 @@ def train(args):
         monitor_kwargs={
             'info_keywords': ('is_success', ),
         },
+        seed=args.seed,
     )
 
-    eval_env = make_vec_env(
-        build_env,
-        env_kwargs={
-            "config": config,
-            "baseline": False,
-            "render_mode": "rgb_array",
-        },
-        n_envs=args.num_envs,
-        vec_env_cls=SubprocVecEnv,
-        monitor_kwargs={
-            'info_keywords': ('is_success', ),
-        },
-    )
+    eval_env = build_env(config, baseline=False, render_mode="rgb_array")
+    # eval_env = make_vec_env(
+    #     build_env,
+    #     env_kwargs={
+    #         "config": config,
+    #         "baseline": False,
+    #         "render_mode": "rgb_array",
+    #     },
+    #     n_envs=args.num_envs,
+    #     vec_env_cls=SubprocVecEnv,
+    #     monitor_kwargs={
+    #         'info_keywords': ('is_success', ),
+    #     },
+    #     seed=args.seed,
+    # )
 
     eval_callback = EvalCallback(
         eval_env,
-        n_eval_episodes=100,
+        n_eval_episodes=10,
         eval_freq=save_freq,
         log_path=f"new_experiments/{run_folder}/eval_logs",
         best_model_save_path=f"new_experiments/{run_folder}/best_model",
-        deterministic=True,
+        deterministic=False,
         verbose=1,
     )
 
@@ -107,17 +110,39 @@ def train(args):
         name_prefix=run_folder,
     )
 
-    policy_kwargs = dict(net_arch=[128, 128])
+    policy_kwargs = dict(net_arch=[256, 128, 64])
+
+    def linear_schedule(initial_value: float, final_value: float):
+        """
+        Linear learning rate schedule from initial to final value.
+
+        :param initial_value: Initial learning rate.
+        :param final_value: Final learning rate at the end of training.
+        :return: schedule that computes current learning rate depending on remaining progress
+        """
+
+        def func(progress_remaining: float) -> float:
+            """
+            Progress will decrease from 1 (beginning) to 0.
+
+            :param progress_remaining: Remaining progress as a fraction from 1 to 0.
+            :return: current learning rate
+            """
+            return progress_remaining * (initial_value -
+                                         final_value) + final_value
+
+        return func
+
     model = PPO(
         "MlpPolicy",
         vec_env,
         policy_kwargs=policy_kwargs,
         batch_size=256,
-        learning_rate=3e-4,
+        learning_rate=linear_schedule(3e-4, 1e-6),
         ent_coef=.005,
         verbose=2,
         tensorboard_log=f"new_experiments/{run_folder}/tensorboard_logs",
-        device="cpu",
+        device="auto",
     )
 
     if args.resume_training_runid:

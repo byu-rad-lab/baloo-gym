@@ -84,7 +84,7 @@ class OpenLoopHuggerPolicy:
             if np.isclose(elevator_height, -.875,
                           atol=.1) and self.step_along_trajectory == self.N:
                 self.state = "GRASP"
-                print(f"Changing state to GRASP")
+                # print(f"Changing state to GRASP")
                 self.step_along_trajectory = 0
 
         elif self.state == "GRASP":
@@ -107,7 +107,7 @@ class OpenLoopHuggerPolicy:
 
             # if arms are close, move to lift
             if self.step_along_trajectory == self.N:
-                print(f"Changing state to LIFT")
+                # print(f"Changing state to LIFT")
                 self.state = "LIFT"
                 self.step_along_trajectory = 0
 
