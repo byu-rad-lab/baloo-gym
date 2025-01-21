@@ -12,6 +12,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     detect_box_touch,
     get_joint_angles,
     detect_box_on_ground,
+    get_all_contact_wrenches,
 )
 import mujoco
 import numpy as np
@@ -40,6 +41,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.box_lifted_already = False
         self.initial_box_zerror = 0
         self.object_off_floor_consecutive_steps = 0
+        self.prev_box_proximity = np.zeros(3)
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
@@ -134,21 +136,17 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 reward += .1 * self.object_off_floor_consecutive_steps
                 self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
             else:
-                if "chest_proximity" in self.reward_selection:
-                    reward -= self._calc_chest_proximity_reward(box_xpos)
-
                 self.object_off_floor_consecutive_steps = 0
-
-                # if self.unwrapped.object is not None:
-                #     self.unwrapped.model.geom(
-                #         'box').rgba = self.unwrapped.object.color
-                # else:
-
                 #redness as an indicator of mass. dark red = heavy, light red = light
                 redness = 1 - self.unwrapped.model.body('box').mass.item() / 20
-                self.unwrapped.model.geom('box').rgba = [1, redness, redness, 1]
+                self.unwrapped.model.geom('box').rgba = [
+                    1, redness, redness, 1
+                ]
 
         ##### SECONDARY REWARDS #####
+        if "chest_proximity" in self.reward_selection:
+            reward += 0.5 * self._calc_chest_proximity_reward(box_xpos)
+
         #this just feels really unnatural, but its effective at avoiding finger crushing.
         # but Im not sure occasionally getting into bad states is bad. Its a natural part of learning.
         if "joint_centering" in self.reward_selection:
@@ -163,7 +161,27 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         if "high_contact_forces" in self.reward_selection:
             #if contact forces anywhere are high enough to cause damages, penalize.
-            pass
+            wrenches = get_all_contact_wrenches(self.unwrapped.model,
+                                                self.unwrapped.data)
+            #wrenches is ncon x 6
+            # if there's contact forces, check if they're too high.
+            if wrenches.size > 0:
+                force_norms = np.linalg.norm(wrenches[:, :3], axis=1)
+                # torque_norms = np.linalg.norm(wrenches[:, 3:], axis=1)
+                # wrench_norms = np.sqrt(force_norms**2 + torque_norms**2)
+
+                # print(
+                #     f"min/max wrench norms: {np.min(force_norms), np.max(force_norms)}"
+                # )
+
+                max_object_mass = 20
+                max_force_threshold = max_object_mass * 9.81
+
+                if np.max(force_norms) / max_force_threshold > 1:
+                    normalized = np.max(force_norms) / max_force_threshold
+                    reward -= 0.01 * (normalized - 1)**2
+                    #make box yellow to indicate high forces.
+                    self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
 
         if "tactile_nonzero" in self.reward_selection:
             taxel_reward = self._count_nonzero_percentage()
@@ -205,9 +223,29 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                         self.unwrapped.data)
 
         #-.13 to get to geoetric center of tactile sensor on chest.
-        z_error = np.abs((chest_xpos[2] - .13) - box_xpos[2])
-        reward = 1 * z_error**2
+        # x_error = np.abs((chest_xpos[0] - box_xpos[0]))
+        # y_error = np.abs((chest_xpos[1] - box_xpos[1]))
+        # z_error = np.abs((chest_xpos[2] - .13) - box_xpos[2])
+
+        proximity = chest_xpos - box_xpos
+        box_xerror = np.linalg.norm(proximity)
+
+        # reward = 1 * z_error**2
+        # reward = np.exp(-a*box_xerror**2) - np.exp(-a*np.linalg.norm(self.prev_box_proximity)**2)
+
+        # reward = self._phi(box_xerror) - self._phi(
+        #     np.linalg.norm(self.prev_box_proximity))
+
+        reward = self._phi(box_xerror)
+
+        # print(f"chest proximity error: {box_xerror}")
+
+        self.prev_box_proximity = proximity
         return reward
+
+    def _phi(self, x):
+        a = 2  #tune to some small signal from anywhere in state space.
+        return np.exp(-a * x**2)
 
     def _count_nonzero_percentage(self):
         left_link0_taxels = get_tactile_image(self.unwrapped.model,

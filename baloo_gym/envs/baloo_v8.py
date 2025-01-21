@@ -3,7 +3,7 @@ from gymnasium import spaces
 import numpy as np
 from baloo_gym.utils.observation_spaces import StateObservationPressurePrevActionsNoError
 from baloo_gym.utils.helpers import get_sensor_data
-from baloo_mujoco_sim.utils.baloo_mj_api import get_joint_pressures, get_elevator_cmd, get_contact_forces_on_body
+from baloo_mujoco_sim.utils.baloo_mj_api import get_joint_pressures, get_elevator_cmd, get_contact_forces_on_body, get_box_position, get_chest_position
 from baloo_gym.utils.action_spaces import IncrementalTorques
 import mujoco
 
@@ -86,13 +86,20 @@ class BalooV8(BalooBase):
         sensor_data[
             "prev_right_j2_tau"] = self.torque_cmds.prev_right_j2_tau_cmd
 
-        # 2x bc mujoco reports sizes as half sizes
-        sensor_data["object_size"] = self.unwrapped.model.geom('box').size * 2
+        box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
+        chest_xpos = get_chest_position(self.unwrapped.model,
+                                        self.unwrapped.data)
+
+        sensor_data["chest_proximity"] = chest_xpos - box_xpos
 
         rawObs = StateObservationPressurePrevActionsNoError(**sensor_data)
 
-        return rawObs.normalize_and_center().astype(
+        print(rawObs.elevator_pos)
+        tmp = rawObs.normalize_and_center().astype(
             self.observation_space.dtype)
+
+        print(tmp[6])
+        return tmp
 
     def map_action_to_commands(self, action):
         # ! gym 0.29.0 added start parameter for multidiscrete action space [-1,1] and sb3 2.1.0 I don't think follows it. [0,2]
