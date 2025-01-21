@@ -94,11 +94,9 @@ class BalooV8(BalooBase):
 
         rawObs = StateObservationPressurePrevActionsNoError(**sensor_data)
 
-        print(rawObs.elevator_pos)
         tmp = rawObs.normalize_and_center().astype(
             self.observation_space.dtype)
 
-        print(tmp[6])
         return tmp
 
     def map_action_to_commands(self, action):

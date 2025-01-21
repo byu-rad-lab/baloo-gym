@@ -67,21 +67,21 @@ def run_simulation(combination):
 if __name__ == "__main__":
 
     #create grid of object sizes and weights
-    xsize = np.linspace(0.1, 0.6, 2)
-    ysize = np.linspace(0.1, 0.6, 2)
-    zsize = np.linspace(.5, 1.25, 2)
-    mass = np.linspace(5, 20, 2)
+    xsize = np.linspace(0.1, 0.6, 5)
+    ysize = np.linspace(0.1, 0.6, 5)
+    zsize = np.linspace(.5, 1.25, 5)
+    mass = np.linspace(5, 20, 5)
 
     combinations = list(product(xsize, ysize, zsize, mass))
 
-    run_simulation(combinations[-1])
-    # with Pool(processes=16) as pool:
-    #     results = list(pool.imap(run_simulation, combinations))
+    with Pool(processes=16) as pool:
+        results = list(pool.imap(run_simulation, combinations))
 
-    # # print results to a file
-    # with open("lifting_trials.json", "w") as f:
-    #     json.dump(results, f)
-    #     f.close()
+    # print results to a file
+    with open("lifting_trials.json", "w") as f:
+        for result in results:
+            json.dump(result, f)
+            f.write("\n")
 
 # X, Y, Z, M = np.meshgrid(xsize, ysize, zsize, mass)
 
