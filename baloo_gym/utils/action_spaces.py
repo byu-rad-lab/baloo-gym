@@ -218,7 +218,7 @@ class IncrementalTorques:
         self.right_j1_tau_cmd = np.asarray(current_command[9:11])
         self.right_j2_tau_cmd = np.asarray(current_command[11:])
 
-        self.cmd_lower_bound = np.asarray([-1000] + [-300] * 12)
+        self.cmd_lower_bound = np.asarray([-800] + [-300] * 12)
         self.cmd_upper_bound = np.asarray([0] + [300] * 12)
 
         self.prev_elevator_height_cmd = 0
