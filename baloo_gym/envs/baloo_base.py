@@ -208,8 +208,15 @@ class BalooBase(gym.Env, ABC):
             y_box = ysize / 2 + distance_from_chest
             z_box = zsize / 2
             set_box_position(self.model, self.data, 0, y_box, z_box)
+        
+        else:
+            if self.object_size is not None:
+                xsize, ysize, zsize = self.object_size
+                distance_from_chest = 45e-2
+                y_box = ysize / 2 + distance_from_chest
+                z_box = zsize / 2
+                set_box_position(self.model, self.data, 0, y_box, z_box)
 
-            # self.model.geom("box").rgba = self.object.color
 
         #send in either camera_id or camera_name
         self.mujoco_renderer = MujocoRenderer(self.model,
