@@ -74,7 +74,9 @@ def train(args):
         seed=args.seed,
     )
 
-    eval_env = build_env(config, baseline=False, render_mode="rgb_array")
+    eval_config = copy.deepcopy(config)
+    eval_config["randomize_initial_height"] = False
+    eval_env = build_env(eval_config, baseline=False, render_mode="rgb_array")
     # eval_env = make_vec_env(
     #     build_env,
     #     env_kwargs={
@@ -136,6 +138,7 @@ def train(args):
     model = PPO(
         "MlpPolicy",
         vec_env,
+        n_steps=40960 // args.num_envs,  #40960 is experimentally determined
         policy_kwargs=policy_kwargs,
         batch_size=256,
         learning_rate=linear_schedule(3e-4, 1e-6),

@@ -4,9 +4,14 @@ from baloo_gym.utils.helpers import build_env, record_rollout, make_movie
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
-from multiprocessing import Pool
+from multiprocessing import Pool, Lock
 from itertools import product
 import gc
+import argparse
+import json
+import wandb
+from stable_baselines3 import PPO
+import os
 
 #parallelize running simulation over each combination ith multiprocessing
 
@@ -26,8 +31,9 @@ def run_simulation(combination):
     }
     x, y, z, m = combination
     print(f"Running trial with object size: {x, y, z} and mass: {m}")
+
     env = build_env(config,
-                    baseline=True,
+                    baseline=False if args.runid else True,
                     render_mode="rgb_array",
                     object_size=[x, y, z],
                     object_mass=m)
@@ -44,10 +50,22 @@ def run_simulation(combination):
         "mass": mass.item(),
     }
 
-    for _ in tqdm(range(10), desc=f"Combination {combination}"):
-        model = OpenLoopHuggerPolicy(N=50)
+    for _ in range(args.num_trials):
+        if args.runid:
+            with lock:
+                model = PPO.load("./model.zip")
+        else:
+            model = OpenLoopHuggerPolicy(N=50)
+
         frames, rewards, actions, observations, infos = record_rollout(
             env, model, render=False)
+
+        # success = infos[-1]["is_success"]
+        # os.makedirs("./videos", exist_ok=True)
+        # make_movie(frames,
+        #            f"./videos/test{combination}_{success}.mp4",
+        #            fps=1 / config["ctrl_timestep"])
+
         if infos[-1]["is_success"]:
             successes.append(1)
         else:
@@ -66,23 +84,42 @@ def run_simulation(combination):
 
 if __name__ == "__main__":
 
+    #parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_trials", type=int, default=1)
+    parser.add_argument('--runid', type=str, help="Wandb run id")
+
+    args = parser.parse_args()
+
+    if args.runid:
+        run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
+        saved_model = run.file("model.zip").download(replace=True)
+
     #create grid of object sizes and weights
-    xsize = np.linspace(0.1, 0.6, 5)
-    ysize = np.linspace(0.1, 0.6, 5)
+    xsize = np.linspace(0.2, 0.6, 5)
+    ysize = np.linspace(0.2, 0.6, 5)
     zsize = np.linspace(.5, 1.25, 5)
     mass = np.linspace(5, 20, 5)
 
     combinations = list(product(xsize, ysize, zsize, mass))
 
+    lock = Lock()
+
     with Pool(processes=16) as pool:
-        results = list(pool.imap(run_simulation, combinations))
+        results = list(
+            tqdm(pool.imap(run_simulation, combinations),
+                 total=len(combinations)))
 
     # print results to a file
-    with open("lifting_trials.json", "w") as f:
+    tag = args.runid if args.runid else "baseline"
+    with open(f"lifting_trials_{tag}.txt", "w") as f:
         for result in results:
             json.dump(result, f)
             f.write("\n")
 
+    #cleanup saved model
+    if args.runid:
+        os.remove("model.zip")
 # X, Y, Z, M = np.meshgrid(xsize, ysize, zsize, mass)
 
 # X = X.flatten()

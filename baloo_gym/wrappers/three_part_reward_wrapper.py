@@ -13,6 +13,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_joint_angles,
     detect_box_on_ground,
     get_all_contact_wrenches,
+    check_arms_touching_ground,
 )
 import mujoco
 import numpy as np
@@ -145,7 +146,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         ##### SECONDARY REWARDS #####
         if "chest_proximity" in self.reward_selection:
-            reward += 0.5 * self._calc_chest_proximity_reward(box_xpos)
+            reward += 1 * self._calc_chest_proximity_reward(box_xpos)
 
         #this just feels really unnatural, but its effective at avoiding finger crushing.
         # but Im not sure occasionally getting into bad states is bad. Its a natural part of learning.
@@ -179,19 +180,25 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
                 if np.max(force_norms) / max_force_threshold > 1:
                     normalized = np.max(force_norms) / max_force_threshold
-                    reward -= 0.01 * (normalized - 1)**2
+                    reward -= 0.05 * (normalized - 1)**2
                     #make box yellow to indicate high forces.
                     self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
 
         if "tactile_nonzero" in self.reward_selection:
             taxel_reward = self._count_nonzero_percentage()
-            reward += taxel_reward
+            reward += 8 * taxel_reward
 
         if "arm_convex_hull" in self.reward_selection:
             reward -= self._get_convex_hull_distance(box_xpos)
 
         if "rms_robot_dist" in self.reward_selection:
             reward -= self._get_rms_robot_dist(box_xpos, chest_xpos)
+
+        if "touch_ground" in self.reward_selection:
+            #penalize any part of arms touching the ground.
+            if check_arms_touching_ground(self.unwrapped.model,
+                                          self.unwrapped.data):
+                reward -= .5
 
         # #reward moving towards desired position, penalize moving away
         # if box_zerror < self.box_zerror_prev - numerical_threshold:
@@ -245,7 +252,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
     def _phi(self, x):
         a = 2  #tune to some small signal from anywhere in state space.
-        return np.exp(-a * x**2)
+        # return np.exp(-a * x**2) # too smooth near 0? larger objects don't approach as much
+        return np.exp(-a * x)
 
     def _count_nonzero_percentage(self):
         left_link0_taxels = get_tactile_image(self.unwrapped.model,
