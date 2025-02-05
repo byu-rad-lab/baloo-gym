@@ -36,6 +36,7 @@ def train(args):
     callbacks = []
     if args.wandb:
         run = wandb.init(
+            mode="offline" if args.remote_train else "online",
             project="ppo_baloo",
             config=config,
             sync_tensorboard=True,
@@ -84,7 +85,7 @@ def train(args):
 
     eval_callback = EvalCallback(
         eval_env,
-        n_eval_episodes=1,
+        n_eval_episodes=10,
         eval_freq=save_freq,
         log_path=f"new_experiments/{run_folder}/eval_logs",
         best_model_save_path=f"new_experiments/{run_folder}/best_model",
