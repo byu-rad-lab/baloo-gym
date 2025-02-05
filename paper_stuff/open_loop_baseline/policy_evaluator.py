@@ -19,8 +19,8 @@ import os
 def run_simulation(combination):
     config = {
         "total_timesteps": 1000000,
-        "ctrl_timestep": .1,
-        "env_name": "baloo_v8",
+        "ctrl_timestep": .05,
+        "env_name": "baloo_v9",
         "time_limit_sec": 30,
         "curriculum_selection": [],
         'reward_selection':
@@ -53,12 +53,12 @@ def run_simulation(combination):
     for _ in range(args.num_trials):
         if args.runid:
             with lock:
-                model = PPO.load("./model.zip")
+                model = PPO.load(model_path)
         else:
             model = OpenLoopHuggerPolicy(N=50)
 
         frames, rewards, actions, observations, infos = record_rollout(
-            env, model, render=False)
+            env, model, render=False, deterministic=False)
 
         # success = infos[-1]["is_success"]
         # os.makedirs("./videos", exist_ok=True)
@@ -90,10 +90,17 @@ if __name__ == "__main__":
     parser.add_argument('--runid', type=str, help="Wandb run id")
 
     args = parser.parse_args()
-
+    experiment_folder = "/home/curtis/baloo/baloo-gym/new_experiments"
     if args.runid:
-        run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
-        saved_model = run.file("model.zip").download(replace=True)
+        #find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
+        for f in os.listdir(experiment_folder):
+            if args.runid in f:
+                run_folder = f
+                break
+
+        #then get best model from run folder
+        model_path = f"{experiment_folder}/{run_folder}/best_model/best_model.zip"
+        print(f"Loading model from {model_path}")
 
     #create grid of object sizes and weights
     xsize = np.linspace(0.2, 0.6, 5)
@@ -117,9 +124,6 @@ if __name__ == "__main__":
             json.dump(result, f)
             f.write("\n")
 
-    #cleanup saved model
-    if args.runid:
-        os.remove("model.zip")
 # X, Y, Z, M = np.meshgrid(xsize, ysize, zsize, mass)
 
 # X = X.flatten()

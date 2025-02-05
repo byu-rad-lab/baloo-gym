@@ -1123,7 +1123,7 @@ class StateObservationPressurePrevActionsNoError:
     prev_right_j2_tau_lb = [-300] * 2
 
     chest_proximity_lb = [-2, -2, 0]
-    
+
     object_pos_ub = [3, 3, 2]
     object_vel_ub = [2] * 3
     elevator_pos_ub = [0]
@@ -1313,4 +1313,183 @@ class StateObservationPressurePrevActionsNoError:
             prev_right_j1_tau=observation_array[65:67],
             prev_right_j2_tau=observation_array[67:69],
             chest_proximity=observation_array[69:72],
+        )
+
+
+class StateObservationObjectOnly:
+    '''
+    Markov property is P(s[t+1] | s[t], a[t], s[t-1], a[t-1], ...) = P(s[t+1] | s[t], a[t])
+
+    Elevator is stateful because of Ruckig.
+    Pressures are stateful b/c I made them that way in mujoco.
+    Pressure commands are stateful b/c I am low pass filtering the policy inputs.
+
+    So the state is defined as follows:
+    q = [h, left_q, right_q, box_pos, box_quat]
+    v = [hd, left_qd, right_qd, box_vel, box_omega]
+    p = [left_p, right_p]
+    p_cmd = [left_p_cmd, right_p_cmd] 
+
+    With actions defined as:
+    a = [h_des, left_p_des, right_p_des]
+    '''
+
+    #class attributes.
+    elevator_pos_lb = [-1.5]
+    left_pos_lb = [-np.pi] * 6
+    right_pos_lb = [-np.pi] * 6
+    box_pose_lb = [-3, -3, 0, -1, -1, -1, -1]
+    elevator_vel_lb = [-1]
+    left_vel_lb = [-2 * np.pi] * 6
+    right_vel_lb = [-2 * np.pi] * 6
+    box_twist_lb = [-2, -2, -2, -np.pi, -np.pi, -np.pi]
+    left_j0_p_lb = [0] * 4
+    left_j1_p_lb = [0] * 4
+    left_j2_p_lb = [0] * 4
+    right_j0_p_lb = [0] * 4
+    right_j1_p_lb = [0] * 4
+    right_j2_p_lb = [0] * 4
+    left_j0_pcmd_lb = [0] * 4
+    left_j1_pcmd_lb = [0] * 4
+    left_j2_pcmd_lb = [0] * 4
+    right_j0_pcmd_lb = [0] * 4
+    right_j1_pcmd_lb = [0] * 4
+    right_j2_pcmd_lb = [0] * 4
+
+    elevator_pos_ub = [0]
+    left_pos_ub = [np.pi] * 6
+    right_pos_ub = [np.pi] * 6
+    box_pose_ub = [3, 3, 2, 1, 1, 1, 1]
+    elevator_vel_ub = [1]
+    left_vel_ub = [2 * np.pi] * 6
+    right_vel_ub = [2 * np.pi] * 6
+    box_twist_ub = [2, 2, 2, np.pi, np.pi, np.pi]
+    left_j0_p_ub = [300] * 4
+    left_j1_p_ub = [300] * 4
+    left_j2_p_ub = [300] * 4
+    right_j0_p_ub = [300] * 4
+    right_j1_p_ub = [300] * 4
+    right_j2_p_ub = [300] * 4
+    left_j0_pcmd_ub = [300] * 4
+    left_j1_pcmd_ub = [300] * 4
+    left_j2_pcmd_ub = [300] * 4
+    right_j0_pcmd_ub = [300] * 4
+    right_j1_pcmd_ub = [300] * 4
+    right_j2_pcmd_ub = [300] * 4
+
+    obs_lower_bound = np.asarray(elevator_pos_lb + left_pos_lb + right_pos_lb +
+                                 box_pose_lb + elevator_vel_lb + left_vel_lb +
+                                 right_vel_lb + box_twist_lb + left_j0_p_lb +
+                                 left_j1_p_lb + left_j2_p_lb + right_j0_p_lb +
+                                 right_j1_p_lb + right_j2_p_lb +
+                                 left_j0_pcmd_lb + left_j1_pcmd_lb +
+                                 left_j2_pcmd_lb + right_j0_pcmd_lb +
+                                 right_j1_pcmd_lb + right_j2_pcmd_lb)
+
+    obs_upper_bound = np.asarray(elevator_pos_ub + left_pos_ub + right_pos_ub +
+                                 box_pose_ub + elevator_vel_ub + left_vel_ub +
+                                 right_vel_ub + box_twist_ub + left_j0_p_ub +
+                                 left_j1_p_ub + left_j2_p_ub + right_j0_p_ub +
+                                 right_j1_p_ub + right_j2_p_ub +
+                                 left_j0_pcmd_ub + left_j1_pcmd_ub +
+                                 left_j2_pcmd_ub + right_j0_pcmd_ub +
+                                 right_j1_pcmd_ub + right_j2_pcmd_ub)
+
+    shape = (len(obs_lower_bound), )
+
+    def __init__(
+        self,
+        elevator_pos,
+        left_pos,
+        right_pos,
+        box_pose,  # [x,y,z,quat_w,quat_x,quat_y,quat_z]
+        elevator_vel,
+        left_vel,
+        right_vel,
+        box_twist,  #[vx,vy,vz,wx,wy,wz]
+        left_j0_pressures,
+        left_j1_pressures,
+        left_j2_pressures,
+        right_j0_pressures,
+        right_j1_pressures,
+        right_j2_pressures,
+        left_j0_p_cmd,
+        left_j1_p_cmd,
+        left_j2_p_cmd,
+        right_j0_p_cmd,
+        right_j1_p_cmd,
+        right_j2_p_cmd,
+    ):
+        self.elevator_pos = elevator_pos
+        self.left_pos = left_pos
+        self.right_pos = right_pos
+        self.box_pose = box_pose
+        self.elevator_vel = elevator_vel
+        self.left_vel = left_vel
+        self.right_vel = right_vel
+        self.box_twist = box_twist
+        self.left_j0_pressures = left_j0_pressures
+        self.left_j1_pressures = left_j1_pressures
+        self.left_j2_pressures = left_j2_pressures
+        self.right_j0_pressures = right_j0_pressures
+        self.right_j1_pressures = right_j1_pressures
+        self.right_j2_pressures = right_j2_pressures
+        self.left_j0_p_cmd = left_j0_p_cmd
+        self.left_j1_p_cmd = left_j1_p_cmd
+        self.left_j2_p_cmd = left_j2_p_cmd
+        self.right_j0_p_cmd = right_j0_p_cmd
+        self.right_j1_p_cmd = right_j1_p_cmd
+        self.right_j2_p_cmd = right_j2_p_cmd
+
+    def to_array(self):
+        return np.hstack([
+            self.elevator_pos, self.left_pos, self.right_pos, self.box_pose,
+            self.elevator_vel, self.left_vel, self.right_vel, self.box_twist,
+            self.left_j0_pressures, self.left_j1_pressures,
+            self.left_j2_pressures, self.right_j0_pressures,
+            self.right_j1_pressures, self.right_j2_pressures,
+            self.left_j0_p_cmd, self.left_j1_p_cmd, self.left_j2_p_cmd,
+            self.right_j0_p_cmd, self.right_j1_p_cmd, self.right_j2_p_cmd
+        ])
+
+    def __repr__(self):
+        return f"{self.to_array()}"
+
+    def normalize_and_center(self):
+        return (
+            2 *
+            (self.to_array() - StateObservationObjectOnly.obs_lower_bound) /
+            (StateObservationObjectOnly.obs_upper_bound -
+             StateObservationObjectOnly.obs_lower_bound) - 1)
+
+    @staticmethod
+    def from_standardized_array(observation_array):
+
+        #unnormalize the observation array
+        observation_array = 0.5 * (observation_array + 1) * (
+            StateObservationObjectOnly.obs_upper_bound -
+            StateObservationObjectOnly.obs_lower_bound
+        ) + StateObservationObjectOnly.obs_lower_bound
+
+        return StateObservationObjectOnly(
+            elevator_pos=observation_array[0],
+            left_pos=observation_array[1:7],
+            right_pos=observation_array[7:13],
+            box_pose=observation_array[13:20],
+            elevator_vel=observation_array[20],
+            left_vel=observation_array[21:27],
+            right_vel=observation_array[27:33],
+            box_twist=observation_array[33:39],
+            left_j0_pressures=observation_array[39:43],
+            left_j1_pressures=observation_array[43:47],
+            left_j2_pressures=observation_array[47:51],
+            right_j0_pressures=observation_array[51:55],
+            right_j1_pressures=observation_array[55:59],
+            right_j2_pressures=observation_array[59:63],
+            left_j0_p_cmd=observation_array[63:67],
+            left_j1_p_cmd=observation_array[67:71],
+            left_j2_p_cmd=observation_array[71:75],
+            right_j0_p_cmd=observation_array[75:79],
+            right_j1_p_cmd=observation_array[79:83],
+            right_j2_p_cmd=observation_array[83:87],
         )

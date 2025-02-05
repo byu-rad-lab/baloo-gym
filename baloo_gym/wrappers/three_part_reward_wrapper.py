@@ -56,7 +56,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
             terminated = True
             info["is_success"] = True
             # reward += 50
-        self.previous_action = action
 
         return observation, reward, terminated, truncated, info
 
@@ -71,13 +70,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.box_lifted_already = False
         self.object_off_floor_consecutive_steps = 0
 
-        box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
-        chest_xpos = get_chest_position(self.unwrapped.model,
-                                        self.unwrapped.data)
-
-        desired_box_pos = self.get_wrapper_attr("desired_box_pos")
-        box_xerror = desired_box_pos - box_xpos
-        self.initial_box_zerror = np.abs(box_xerror[2])
         return self.env.reset()
 
     def _decay_sphere_radius(self):
@@ -105,12 +97,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
         box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
         chest_xpos = get_chest_position(self.unwrapped.model,
                                         self.unwrapped.data)
-
-        desired_box_pos = self.get_wrapper_attr("desired_box_pos")
-        box_xerror = desired_box_pos - box_xpos
-        box_zerror = np.abs(box_xerror[2])
-
-        numerical_threshold = 1e-3
 
         ##### PRIMARY REWARD #####
         reward = 0
@@ -148,17 +134,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
         if "chest_proximity" in self.reward_selection:
             reward += 1 * self._calc_chest_proximity_reward(box_xpos)
 
-        #this just feels really unnatural, but its effective at avoiding finger crushing.
-        # but Im not sure occasionally getting into bad states is bad. Its a natural part of learning.
         if "joint_centering" in self.reward_selection:
             centering_weight = 0.1
             reward -= centering_weight * self.get_joint_centering_reward()
 
         if "action_smoothness" in self.reward_selection:
             # action_diff = 1 is max change corresponding to -1 to 1 actions.
-            normalizer = np.linalg.norm([2] * len(action))
-            action_diff = np.linalg.norm(action - self.previous_action)
-            reward -= action_diff / normalizer
+            action_diff = np.linalg.norm(action - self.previous_action)**2
+            reward -= .1 * action_diff
 
         if "high_contact_forces" in self.reward_selection:
             #if contact forces anywhere are high enough to cause damages, penalize.
@@ -207,8 +190,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         #     reward += .5
         # elif box_zerror > self.box_zerror_prev + numerical_threshold:
         #     reward -= .1
-
-        self.box_zerror_prev = box_zerror
+        self.previous_action = action
         return reward
 
     def _calc_chest_proximity_reward(self, box_xpos):
@@ -392,9 +374,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             left_j0_q, right_j0_q, left_j1_q, right_j1_q, left_j2_q, right_j2_q
         ])
 
-        q_max = np.array([np.pi] * 12)
-        normalizer = np.linalg.norm(q_max)
-        centering = np.linalg.norm(joint_angles) / normalizer
+        centering = np.linalg.norm(joint_angles)**2
 
         return centering
 

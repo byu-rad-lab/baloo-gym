@@ -16,6 +16,7 @@ from gymnasium.wrappers import TimeLimit
 import numpy as np
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder
+from stable_baselines3.common.monitor import Monitor
 
 
 def get_sensor_data(model, data):
@@ -46,7 +47,7 @@ def get_sensor_data(model, data):
     }
 
 
-def record_rollout(env, policy, render=True):
+def record_rollout(env, policy, render=True, deterministic=True):
     obs, info = env.reset()
     # print(f"In rollout, obs shape: {obs.shape}")
     done = False
@@ -58,7 +59,7 @@ def record_rollout(env, policy, render=True):
     infos = []
 
     while not done:
-        action, _states = policy.predict(obs, deterministic=False)
+        action, _states = policy.predict(obs, deterministic=deterministic)
         observations.append(obs)
         actions.append(action)
         if render:
@@ -102,6 +103,7 @@ def build_env(config: dict, baseline: bool, render_mode, **kwargs):
         "baloo_v6": "BalooV6",
         "baloo_v7": "BalooV7",
         "baloo_v8": "BalooV8",
+        "baloo_v9": "BalooV9",
     }
 
     EnvClass = getattr(
@@ -112,8 +114,8 @@ def build_env(config: dict, baseline: bool, render_mode, **kwargs):
         render_mode=render_mode,
         camera_name="fixedcam",
         ctrl_timestep=config["ctrl_timestep"],
-        render_width=320,
-        render_height=240,
+        render_width=160,
+        render_height=120,
         randomize_initial_height=config["randomize_initial_height"],
         randomize_object_size=config["randomize_object_size"],
         randomize_object_mass=config["randomize_object_mass"],
@@ -136,6 +138,9 @@ def build_env(config: dict, baseline: bool, render_mode, **kwargs):
         env = OpenLoopBaselineWrapper(env)
         print("Using open-loop baseline policy.")
 
+    #needs monitor after time limit since that emits the done signals.
+    if kwargs.get("monitor", False) == True:
+        env = Monitor(env, info_keywords=("is_success", ))
     return env
 
 

@@ -38,15 +38,25 @@ config = {
     "randomize_object_mass": True,
 }
 
-saved_model = run.file("model.zip").download(replace=True)
-model = PPO.load(saved_model.name)
+#get best saved model
+#find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
+for f in os.listdir("/home/curtis/baloo/baloo-gym/new_experiments/"):
+    if args.runid in f:
+        run_folder = f
+        break
+
+#then get best model from run folder
+model_path = f"new_experiments/{run_folder}/best_model/best_model.zip"
+print(f"Loading model from {model_path}")
+model = PPO.load(model_path)
 
 env = build_env(config, baseline=False, render_mode="rgb_array")
 
 successes = []
 
 for j in range(args.num_rollouts):
-    frames, rewards, actions, observations, infos = record_rollout(env, model)
+    frames, rewards, actions, observations, infos = record_rollout(
+        env, model, deterministic=False)
 
     if "is_success" in infos[-1]:
         successes.append(infos[-1]["is_success"])
@@ -103,7 +113,7 @@ for j in range(args.num_rollouts):
     fig, axs = plt.subplots(env.observation_space.shape[0],
                             1,
                             sharex=True,
-                            figsize=(10, 40))
+                            figsize=(10, 60))
     for i in range(env.observation_space.shape[0]):
         axs[i].plot(np.array(observations)[:, i])
         axs[i].set_ylabel(f"o{i}")

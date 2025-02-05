@@ -19,11 +19,11 @@ def train(args):
 
     run_folder = "test-0000"
 
-    save_freq = 100000 // args.num_envs
+    save_freq = 500000 // args.num_envs
 
     config = {
         "total_timesteps": args.total_timesteps,
-        "ctrl_timestep": .1,
+        "ctrl_timestep": .05,
         "env_name": args.env_name,
         "time_limit_sec": 30,
         "curriculum_selection": args.curriculum_selection,
@@ -74,27 +74,17 @@ def train(args):
         seed=args.seed,
     )
 
+    print("Building evaluation environment...")
     eval_config = copy.deepcopy(config)
     eval_config["randomize_initial_height"] = False
-    eval_env = build_env(eval_config, baseline=False, render_mode="rgb_array")
-    # eval_env = make_vec_env(
-    #     build_env,
-    #     env_kwargs={
-    #         "config": config,
-    #         "baseline": False,
-    #         "render_mode": "rgb_array",
-    #     },
-    #     n_envs=args.num_envs,
-    #     vec_env_cls=SubprocVecEnv,
-    #     monitor_kwargs={
-    #         'info_keywords': ('is_success', ),
-    #     },
-    #     seed=args.seed,
-    # )
+    eval_env = build_env(eval_config,
+                         baseline=False,
+                         render_mode="rgb_array",
+                         monitor=True)
 
     eval_callback = EvalCallback(
         eval_env,
-        n_eval_episodes=10,
+        n_eval_episodes=1,
         eval_freq=save_freq,
         log_path=f"new_experiments/{run_folder}/eval_logs",
         best_model_save_path=f"new_experiments/{run_folder}/best_model",
@@ -112,7 +102,7 @@ def train(args):
         name_prefix=run_folder,
     )
 
-    policy_kwargs = dict(net_arch=[256, 128, 64])
+    policy_kwargs = dict(net_arch=[128, 128, 64])
 
     def linear_schedule(initial_value: float, final_value: float):
         """
@@ -142,7 +132,7 @@ def train(args):
         policy_kwargs=policy_kwargs,
         batch_size=256,
         learning_rate=linear_schedule(3e-4, 1e-6),
-        ent_coef=.005,
+        ent_coef=.000,
         verbose=2,
         tensorboard_log=f"new_experiments/{run_folder}/tensorboard_logs",
         device="auto",
@@ -170,6 +160,8 @@ def train(args):
     )
 
     if args.wandb:
+        #log best model to wandb too
+        wandb.save(f"new_experiments/{run_folder}/best_model/best_model.zip")
         run.finish()
 
     vec_env.close()
@@ -200,7 +192,7 @@ def main():
     parser.add_argument(
         '--env_name',
         type=str,
-        default='baloo_v8',
+        default='baloo_v9',
         help='Name of the environment',
     )
 
