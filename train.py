@@ -36,7 +36,6 @@ def train(args):
     callbacks = []
     if args.wandb:
         run = wandb.init(
-            mode="offline" if args.remote_train else "online",
             project="ppo_baloo",
             config=config,
             sync_tensorboard=True,
