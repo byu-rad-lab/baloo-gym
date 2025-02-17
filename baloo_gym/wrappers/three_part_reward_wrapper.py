@@ -169,7 +169,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         if "tactile_nonzero" in self.reward_selection:
             taxel_reward = self._count_nonzero_percentage()
-            reward += 8 * taxel_reward
+            reward += 10 * taxel_reward
 
         if "arm_convex_hull" in self.reward_selection:
             reward -= self._get_convex_hull_distance(box_xpos)

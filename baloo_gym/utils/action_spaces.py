@@ -59,7 +59,7 @@ class NormalizedDifferentialPressure:
         self.right_j2_delta_pressure = current_command[11:13]
 
         self.average_pressure = 150
-        self.cmd_lower_bound = np.asarray([-1000] + [-150] * 12)
+        self.cmd_lower_bound = np.asarray([-900] + [-150] * 12)
         self.cmd_upper_bound = np.asarray([0] + [150] * 12)
 
     def __repr__(self):
