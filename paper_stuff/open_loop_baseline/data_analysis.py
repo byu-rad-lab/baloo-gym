@@ -77,7 +77,7 @@ def plot_data(data):
 
 
 #get all the data files in this directory using glob
-data_files = glob.glob("*.txt")
+data_files = glob.glob("data/*.txt")
 
 for file_path in data_files:
     # Initialize variables to store the total success rate and the number of trials

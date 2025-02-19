@@ -125,6 +125,7 @@ if __name__ == "__main__":
                     shutil.move(old_path, new_path)
                     print(f"Downloaded best model to {new_path}")
                     model_path = new_path
+                    shutil.rmtree(old_path.split("/")[0])
                     break
 
             if model_path is None:
@@ -149,7 +150,7 @@ if __name__ == "__main__":
 
     # print results to a file
     tag = args.runid if args.runid else "baseline"
-    with open(f"lifting_trials_{tag}.txt", "w") as f:
+    with open(f"data/lifting_trials_{tag}.txt", "w") as f:
         for result in results:
             json.dump(result, f)
             f.write("\n")
