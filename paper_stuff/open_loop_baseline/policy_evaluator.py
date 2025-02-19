@@ -12,6 +12,7 @@ import json
 import wandb
 from stable_baselines3 import PPO
 import os
+import shutil
 
 #parallelize running simulation over each combination ith multiprocessing
 
@@ -90,17 +91,46 @@ if __name__ == "__main__":
     parser.add_argument('--runid', type=str, help="Wandb run id")
 
     args = parser.parse_args()
-    experiment_folder = "/home/curtis/baloo/baloo-gym/new_experiments"
-    if args.runid:
-        #find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
-        for f in os.listdir(experiment_folder):
-            if args.runid in f:
-                run_folder = f
-                break
+    local_experiment_folder = "/home/curtis/baloo/baloo-gym/new_experiments"
+    model_path = None
 
-        #then get best model from run folder
-        model_path = f"{experiment_folder}/{run_folder}/best_model/best_model.zip"
-        print(f"Loading model from {model_path}")
+    if args.runid:
+        try:
+            #try loading model from local experiments folder
+            #find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
+            for f in os.listdir(local_experiment_folder):
+                if args.runid in f:
+                    model_path = f"{local_experiment_folder}/{f}/best_model/best_model.zip"
+                    print(f"Loading model from {model_path}")
+                    break
+
+            if model_path is None:
+                raise FileNotFoundError(
+                    f"{args.runid} not found in experiments folder.")
+        except:
+            #try downloading model from wandb
+            print(
+                f"{args.runid} not found in experiments folder. Trying download from wandb instead..."
+            )
+            run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
+            for file in run.files():
+                if "best_model" in file.name:
+                    file.download(replace=True)
+                    print(f"Found best model.")
+                    old_path = file.name
+                    new_path = os.path.join(
+                        local_experiment_folder,
+                        os.sep.join(file.name.split("/")[1:]))
+                    os.makedirs(os.path.dirname(new_path), exist_ok=True)
+                    shutil.move(old_path, new_path)
+                    print(f"Downloaded best model to {new_path}")
+                    model_path = new_path
+                    break
+
+            if model_path is None:
+                raise FileNotFoundError(
+                    f"{args.runid} not found in experiments folder or on wandb."
+                )
 
     #create grid of object sizes and weights
     xsize = np.linspace(0.2, 0.6, 5)
