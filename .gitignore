@@ -69,3 +69,5 @@ new_experiments/
 *.png
 
 *.npy
+
+*.txt

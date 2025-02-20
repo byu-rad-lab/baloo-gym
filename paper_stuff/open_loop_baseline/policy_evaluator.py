@@ -59,7 +59,7 @@ def run_simulation(combination):
             model = OpenLoopHuggerPolicy(N=50)
 
         frames, rewards, actions, observations, infos = record_rollout(
-            env, model, render=False, deterministic=False)
+            env, model, render=False, deterministic=True)
 
         # success = infos[-1]["is_success"]
         # os.makedirs("./videos", exist_ok=True)

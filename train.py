@@ -88,7 +88,7 @@ def train(args):
         eval_freq=save_freq,
         log_path=f"new_experiments/{run_folder}/eval_logs",
         best_model_save_path=f"new_experiments/{run_folder}/best_model",
-        deterministic=False,
+        deterministic=True,
         verbose=1,
     )
 
@@ -130,9 +130,9 @@ def train(args):
         vec_env,
         n_steps=40960 // args.num_envs,  #40960 is experimentally determined
         policy_kwargs=policy_kwargs,
-        batch_size=256,
+        batch_size=1024,
         learning_rate=linear_schedule(3e-4, 1e-6),
-        ent_coef=.000,
+        ent_coef=.01,
         verbose=2,
         tensorboard_log=f"new_experiments/{run_folder}/tensorboard_logs",
         device="auto",

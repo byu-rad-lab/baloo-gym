@@ -135,7 +135,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             reward += 1 * self._calc_chest_proximity_reward(box_xpos)
 
         if "joint_centering" in self.reward_selection:
-            centering_weight = 0.1
+            centering_weight = 0.05
             reward -= centering_weight * self.get_joint_centering_reward()
 
         if "action_smoothness" in self.reward_selection:
@@ -233,7 +233,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         return reward
 
     def _phi(self, x):
-        a = 2  #tune to some small signal from anywhere in state space.
+        a = 4  #tune to some small signal from anywhere in state space.
         # return np.exp(-a * x**2) # too smooth near 0? larger objects don't approach as much
         return np.exp(-a * x)
 
