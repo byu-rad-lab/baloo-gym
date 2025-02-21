@@ -102,7 +102,7 @@ def train(args):
         name_prefix=run_folder,
     )
 
-    policy_kwargs = dict(net_arch=[128, 128, 64])
+    policy_kwargs = dict(net_arch=[256, 128, 64])
 
     def linear_schedule(initial_value: float, final_value: float):
         """
@@ -128,7 +128,7 @@ def train(args):
     model = PPO(
         "MlpPolicy",
         vec_env,
-        n_steps=2048,
+        n_steps=4096,
         policy_kwargs=policy_kwargs,
         # batch_size=256,
         learning_rate=linear_schedule(5e-4, 1e-5),
