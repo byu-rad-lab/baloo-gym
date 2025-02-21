@@ -174,7 +174,7 @@ class BalooBase(gym.Env, ABC):
         if self.randomize_object_size:
             # self.object = random.choice(self.object_bounding_boxes)
             # xsize, ysize, zsize = self.object.size
-            xsize, ysize = np.random.uniform(0.1, 0.6, 2)
+            xsize, ysize = np.random.uniform(0.2, 0.6, 2)
             zsize = np.random.uniform(0.5, 1.25)
             set_box_size(self.mjspec, xsize, ysize, zsize)
         else:

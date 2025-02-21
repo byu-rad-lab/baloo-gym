@@ -1355,6 +1355,7 @@ class StateObservationObjectOnly:
     right_j0_pcmd_lb = [0] * 4
     right_j1_pcmd_lb = [0] * 4
     right_j2_pcmd_lb = [0] * 4
+    box_size_lb = [.2, .2, .5]
 
     elevator_pos_ub = [0]
     left_pos_ub = [np.pi] * 6
@@ -1376,6 +1377,7 @@ class StateObservationObjectOnly:
     right_j0_pcmd_ub = [300] * 4
     right_j1_pcmd_ub = [300] * 4
     right_j2_pcmd_ub = [300] * 4
+    box_size_ub = [.6, .6, 1.25]
 
     obs_lower_bound = np.asarray(elevator_pos_lb + left_pos_lb + right_pos_lb +
                                  box_pose_lb + elevator_vel_lb + left_vel_lb +
@@ -1384,7 +1386,8 @@ class StateObservationObjectOnly:
                                  right_j1_p_lb + right_j2_p_lb +
                                  left_j0_pcmd_lb + left_j1_pcmd_lb +
                                  left_j2_pcmd_lb + right_j0_pcmd_lb +
-                                 right_j1_pcmd_lb + right_j2_pcmd_lb)
+                                 right_j1_pcmd_lb + right_j2_pcmd_lb +
+                                 box_size_lb)
 
     obs_upper_bound = np.asarray(elevator_pos_ub + left_pos_ub + right_pos_ub +
                                  box_pose_ub + elevator_vel_ub + left_vel_ub +
@@ -1393,7 +1396,8 @@ class StateObservationObjectOnly:
                                  right_j1_p_ub + right_j2_p_ub +
                                  left_j0_pcmd_ub + left_j1_pcmd_ub +
                                  left_j2_pcmd_ub + right_j0_pcmd_ub +
-                                 right_j1_pcmd_ub + right_j2_pcmd_ub)
+                                 right_j1_pcmd_ub + right_j2_pcmd_ub +
+                                 box_size_ub)
 
     shape = (len(obs_lower_bound), )
 
@@ -1419,6 +1423,7 @@ class StateObservationObjectOnly:
         right_j0_p_cmd,
         right_j1_p_cmd,
         right_j2_p_cmd,
+        box_size,
     ):
         self.elevator_pos = elevator_pos
         self.left_pos = left_pos
@@ -1440,16 +1445,31 @@ class StateObservationObjectOnly:
         self.right_j0_p_cmd = right_j0_p_cmd
         self.right_j1_p_cmd = right_j1_p_cmd
         self.right_j2_p_cmd = right_j2_p_cmd
+        self.box_size = box_size
 
     def to_array(self):
         return np.hstack([
-            self.elevator_pos, self.left_pos, self.right_pos, self.box_pose,
-            self.elevator_vel, self.left_vel, self.right_vel, self.box_twist,
-            self.left_j0_pressures, self.left_j1_pressures,
-            self.left_j2_pressures, self.right_j0_pressures,
-            self.right_j1_pressures, self.right_j2_pressures,
-            self.left_j0_p_cmd, self.left_j1_p_cmd, self.left_j2_p_cmd,
-            self.right_j0_p_cmd, self.right_j1_p_cmd, self.right_j2_p_cmd
+            self.elevator_pos,
+            self.left_pos,
+            self.right_pos,
+            self.box_pose,
+            self.elevator_vel,
+            self.left_vel,
+            self.right_vel,
+            self.box_twist,
+            self.left_j0_pressures,
+            self.left_j1_pressures,
+            self.left_j2_pressures,
+            self.right_j0_pressures,
+            self.right_j1_pressures,
+            self.right_j2_pressures,
+            self.left_j0_p_cmd,
+            self.left_j1_p_cmd,
+            self.left_j2_p_cmd,
+            self.right_j0_p_cmd,
+            self.right_j1_p_cmd,
+            self.right_j2_p_cmd,
+            self.box_size,
         ])
 
     def __repr__(self):
@@ -1492,4 +1512,5 @@ class StateObservationObjectOnly:
             right_j0_p_cmd=observation_array[75:79],
             right_j1_p_cmd=observation_array[79:83],
             right_j2_p_cmd=observation_array[83:87],
+            box_size=observation_array[87:90],
         )

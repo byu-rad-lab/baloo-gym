@@ -94,6 +94,10 @@ class BalooV9(BalooBase):
         sensor_data["right_j1_p_cmd"] = self.p_cmd[16:20]
         sensor_data["right_j2_p_cmd"] = self.p_cmd[20:24]
 
+        box_size = self.unwrapped.model.geom("box").size
+        sensor_data["box_size"] = 2 * np.array(
+            box_size)  #2* because mujoco reports half sizes
+
         # chest_xpos = get_chest_position(self.unwrapped.model,
         #                                 self.unwrapped.data)
 
