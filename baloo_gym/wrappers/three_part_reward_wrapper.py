@@ -123,12 +123,18 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 reward += .1 * self.object_off_floor_consecutive_steps
                 self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
             else:
+                #penalize if the box WAS off the ground, but is now on the ground.
+                if self.object_off_floor_consecutive_steps > 0:
+                    reward -= .1 * self.object_off_floor_consecutive_steps
+
                 self.object_off_floor_consecutive_steps = 0
                 #redness as an indicator of mass. dark red = heavy, light red = light
                 redness = 1 - self.unwrapped.model.body('box').mass.item() / 20
                 self.unwrapped.model.geom('box').rgba = [
                     1, redness, redness, 1
                 ]
+
+            
 
         ##### SECONDARY REWARDS #####
         if "chest_proximity" in self.reward_selection:

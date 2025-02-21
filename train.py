@@ -128,10 +128,10 @@ def train(args):
     model = PPO(
         "MlpPolicy",
         vec_env,
-        n_steps=2048 * args.num_envs,  #40960 is experimentally determined
+        n_steps=2048,
         policy_kwargs=policy_kwargs,
         # batch_size=256,
-        learning_rate=linear_schedule(3e-4, 1e-6),
+        learning_rate=linear_schedule(5e-4, 1e-5),
         ent_coef=.01,
         verbose=2,
         tensorboard_log=f"new_experiments/{run_folder}/tensorboard_logs",
