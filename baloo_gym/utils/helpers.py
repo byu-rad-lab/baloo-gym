@@ -10,6 +10,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
 
 from stable_baselines3.common.env_checker import check_env
 from baloo_gym.wrappers import OpenLoopBaselineWrapper, ThreePartRewardWrapper
+from stable_baselines3.common.policies import obs_as_tensor
 
 from gymnasium.wrappers import TimeLimit
 
@@ -47,7 +48,19 @@ def get_sensor_data(model, data):
     }
 
 
-def record_rollout(env, policy, render=True, deterministic=True):
+def get_action_dist_params(model, obs):
+    obs = model.policy.obs_to_tensor(obs)[0]
+    dis = model.policy.get_distribution(obs)
+    loc = dis.distribution.loc.detach().cpu().numpy()
+    scale = dis.distribution.scale.detach().cpu().numpy()
+    return loc.squeeze(), scale.squeeze()
+
+
+def record_rollout(env,
+                   policy,
+                   render=True,
+                   deterministic=True,
+                   return_dist=True):
     obs, info = env.reset()
     # print(f"In rollout, obs shape: {obs.shape}")
     done = False
@@ -57,9 +70,12 @@ def record_rollout(env, policy, render=True, deterministic=True):
     actions = []
     observations = []
     infos = []
+    action_dist = []
 
     while not done:
         action, _states = policy.predict(obs, deterministic=deterministic)
+        if return_dist:
+            action_dist.append(get_action_dist_params(policy, obs))
         observations.append(obs)
         actions.append(action)
         if render:
@@ -71,7 +87,10 @@ def record_rollout(env, policy, render=True, deterministic=True):
 
     env.close()
 
-    return frames, rewards, actions, observations, infos
+    if return_dist:
+        return frames, rewards, actions, observations, infos, action_dist
+    else:
+        return frames, rewards, actions, observations, infos
 
 
 def make_movie(frames: list, filename: str, fps=30):

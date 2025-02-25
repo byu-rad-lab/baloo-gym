@@ -55,8 +55,8 @@ env = build_env(config, baseline=False, render_mode="rgb_array")
 successes = []
 
 for j in range(args.num_rollouts):
-    frames, rewards, actions, observations, infos = record_rollout(
-        env, model, deterministic=False)
+    frames, rewards, actions, observations, infos, dists = record_rollout(
+        env, model, deterministic=True)
 
     if "is_success" in infos[-1]:
         successes.append(infos[-1]["is_success"])
@@ -122,5 +122,34 @@ for j in range(args.num_rollouts):
     plt.savefig(model_path + f"/observations.png",
                 dpi=300,
                 bbox_inches='tight')
+
+    #plot the action distribution for each action, 13 x 2
+    means = [dists[i][0] for i in range(len(dists))]
+    stds = [dists[i][1] for i in range(len(dists))]
+
+    means = np.array(means)
+    stds = np.array(stds)
+
+    fig, axs = plt.subplots(env.action_space.shape[0], 1, figsize=(10, 30))
+
+    for i in range(env.action_space.shape[0]):
+        axs[i].plot(means[:, i], label="mean")
+        axs[i].plot(np.array(actions)[:, i], 'r--', label="action")
+        axs[i].plot(np.ones(len(means)) * env.action_space.low[i], 'k--')
+        axs[i].plot(np.ones(len(means)) * env.action_space.high[i], 'k--')
+        axs[i].fill_between(
+            np.arange(len(means)),
+            means[:, i] - 3 * stds[:, i],
+            means[:, i] + 3 * stds[:, i],
+            alpha=0.5,
+            label="3 std",
+        )
+        axs[i].legend()
+        axs[i].set_ylabel(f"a{i}")
+        axs[i].grid()
+
+    axs[-1].set_xlabel("Timesteps")
+    plt.savefig(model_path + f"/action_dist.png", dpi=300, bbox_inches='tight')
+    plt.close('all')
 
 print(f"Success rate: {np.mean(successes)}")

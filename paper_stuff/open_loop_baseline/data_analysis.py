@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 import glob
+import os
 
 
 def plot_data(data):
@@ -76,6 +77,14 @@ def plot_data(data):
     plot_avg_success_rate(df, "mass")
 
 
+def plot_correlation(correlation, runid):
+    # Create a heatmap of the correlation matrix
+    fig = px.imshow(correlation,
+                    color_continuous_scale=px.colors.sequential.Bluered,
+                    title=f"Correlation Matrix for {runid}")
+    fig.show()
+
+
 #get all the data files in this directory using glob
 data_files = glob.glob("data/*.txt")
 
@@ -100,3 +109,10 @@ for file_path in data_files:
     print(
         f"{file_path}: Average success rate over {num_trials} trials: {average_success_rate}"
     )
+
+    #perform correlation analysis on over all trials against sizes and mass
+    data = pd.DataFrame(data)
+
+    correlation_matrix = data.corr()
+
+    plot_correlation(correlation_matrix, os.path.basename(file_path))

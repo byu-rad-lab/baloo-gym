@@ -1,10 +1,11 @@
 import numpy as np
-from baloo_gym.utils.observation_spaces import StateObservationPressurePrevActionsNoError
+from baloo_gym.utils.observation_spaces import StateObservationObjectOnly
 
 
 class OpenLoopHuggerPolicy:
 
     def __init__(self, N):
+        self.min_height = -.9
         self.step_along_trajectory = 0
         self.state = "APPROACH"
 
@@ -52,7 +53,7 @@ class OpenLoopHuggerPolicy:
         #recall that timeawareobservation appends the time step to the end of the observation, so we ignore it here.
         if len(obs) > 1:
             #to be compatible with gym env, accept whole observation vector
-            mujoco_observation = StateObservationPressurePrevActionsNoError.from_standardized_array(
+            mujoco_observation = StateObservationObjectOnly.from_standardized_array(
                 obs)
             elevator_height = mujoco_observation.elevator_pos
         else:

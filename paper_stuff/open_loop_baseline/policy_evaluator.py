@@ -58,14 +58,16 @@ def run_simulation(combination):
         else:
             model = OpenLoopHuggerPolicy(N=50)
 
-        frames, rewards, actions, observations, infos = record_rollout(
-            env, model, render=False, deterministic=True)
-
-        # success = infos[-1]["is_success"]
-        # os.makedirs("./videos", exist_ok=True)
-        # make_movie(frames,
-        #            f"./videos/test{combination}_{success}.mp4",
-        #            fps=1 / config["ctrl_timestep"])
+        if args.runid:
+            frames, rewards, actions, observations, infos = record_rollout(
+                env,
+                model,
+                render=False,
+                deterministic=False,
+                return_dist=False)
+        else:
+            frames, rewards, actions, observations, infos, dist = record_rollout(
+                env, model, deterministic=False, render=False)
 
         if infos[-1]["is_success"]:
             successes.append(1)
@@ -89,6 +91,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_trials", type=int, default=1)
     parser.add_argument('--runid', type=str, help="Wandb run id")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--grid', action='store_true')
+    group.add_argument('--random', action='store_true')
 
     args = parser.parse_args()
     local_experiment_folder = "/home/curtis/baloo/baloo-gym/new_experiments"
@@ -133,13 +138,22 @@ if __name__ == "__main__":
                     f"{args.runid} not found in experiments folder or on wandb."
                 )
 
-    #create grid of object sizes and weights
-    xsize = np.linspace(0.2, 0.6, 5)
-    ysize = np.linspace(0.2, 0.6, 5)
-    zsize = np.linspace(.5, 1.25, 5)
-    mass = np.linspace(5, 20, 5)
+    if args.grid:
+        #create grid of object sizes and weights
+        xsize = np.linspace(0.2, 0.6, 5)
+        ysize = np.linspace(0.2, 0.6, 5)
+        zsize = np.linspace(.5, 1.25, 5)
+        mass = np.linspace(5, 20, 5)
 
-    combinations = list(product(xsize, ysize, zsize, mass))
+        combinations = list(product(xsize, ysize, zsize, mass))
+    elif args.random:
+        #create random combinations of object sizes and weights
+        xsize = np.random.uniform(0.2, 0.6, 5)
+        ysize = np.random.uniform(0.2, 0.6, 5)
+        zsize = np.random.uniform(.5, 1.25, 5)
+        mass = np.random.uniform(5, 20, 5)
+
+        combinations = list(product(xsize, ysize, zsize, mass))
 
     lock = Lock()
 
@@ -150,7 +164,8 @@ if __name__ == "__main__":
 
     # print results to a file
     tag = args.runid if args.runid else "baseline"
-    with open(f"data/lifting_trials_{tag}.txt", "w") as f:
+    type = "grid" if args.grid else "random"
+    with open(f"data/lifting_trials_{tag}_{type}.txt", "w") as f:
         for result in results:
             json.dump(result, f)
             f.write("\n")
