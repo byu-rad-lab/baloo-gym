@@ -102,8 +102,6 @@ def train(args):
         name_prefix=run_folder,
     )
 
-    policy_kwargs = dict(net_arch=[256, 128, 64])
-
     def linear_schedule(initial_value: float, final_value: float):
         """
         Linear learning rate schedule from initial to final value.
@@ -125,14 +123,17 @@ def train(args):
 
         return func
 
+    policy_kwargs = dict(net_arch=[256, 128, 64], squash_output=True)
     model = PPO(
         "MlpPolicy",
         vec_env,
         n_steps=4096,
         policy_kwargs=policy_kwargs,
+        use_sde=True,
+        sde_sample_freq=100,
         # batch_size=256,
         learning_rate=linear_schedule(5e-4, 1e-5),
-        ent_coef=.01,
+        ent_coef=.00,
         verbose=2,
         tensorboard_log=f"new_experiments/{run_folder}/tensorboard_logs",
         device="auto",

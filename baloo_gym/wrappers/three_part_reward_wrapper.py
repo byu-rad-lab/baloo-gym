@@ -134,14 +134,12 @@ class ThreePartRewardWrapper(gym.Wrapper):
                     1, redness, redness, 1
                 ]
 
-            
-
         ##### SECONDARY REWARDS #####
         if "chest_proximity" in self.reward_selection:
-            reward += 1 * self._calc_chest_proximity_reward(box_xpos)
+            reward += 5 * self._calc_chest_proximity_reward(box_xpos)
 
         if "joint_centering" in self.reward_selection:
-            centering_weight = 0.05
+            centering_weight = 0.01
             reward -= centering_weight * self.get_joint_centering_reward()
 
         if "action_smoothness" in self.reward_selection:
