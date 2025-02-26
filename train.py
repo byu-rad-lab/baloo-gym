@@ -123,16 +123,18 @@ def train(args):
 
         return func
 
-    policy_kwargs = dict(net_arch=[128, 128, 64], squash_output=True)
+    policy_kwargs = dict(net_arch=[128, 128, 64],
+                         squash_output=True,
+                         use_expln=True)
     model = PPO(
         "MlpPolicy",
         vec_env,
         n_steps=4096,
         policy_kwargs=policy_kwargs,
         use_sde=True,
-        sde_sample_freq=1/config["ctrl_timestep"],
+        sde_sample_freq=1 / config["ctrl_timestep"],
         # batch_size=256,
-        learning_rate=linear_schedule(1e-4, 1e-6),
+        learning_rate=linear_schedule(5e-4, 1e-6),
         ent_coef=.00,
         verbose=2,
         tensorboard_log=f"new_experiments/{run_folder}/tensorboard_logs",
