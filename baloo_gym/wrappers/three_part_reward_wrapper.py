@@ -120,12 +120,12 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                         self.unwrapped.data):
                 self.box_lifted_already = True
                 self.object_off_floor_consecutive_steps += 1
-                reward += .1 * self.object_off_floor_consecutive_steps
+                reward += .01 * self.object_off_floor_consecutive_steps
                 self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
             else:
                 #penalize if the box WAS off the ground, but is now on the ground.
                 if self.object_off_floor_consecutive_steps > 0:
-                    reward -= .1 * self.object_off_floor_consecutive_steps
+                    reward -= .01 * self.object_off_floor_consecutive_steps
 
                 self.object_off_floor_consecutive_steps = 0
                 #redness as an indicator of mass. dark red = heavy, light red = light
@@ -136,7 +136,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         ##### SECONDARY REWARDS #####
         if "chest_proximity" in self.reward_selection:
-            reward += 5 * self._calc_chest_proximity_reward(box_xpos)
+            reward += 10 * self._calc_chest_proximity_reward(box_xpos)
 
         if "joint_centering" in self.reward_selection:
             centering_weight = 0.01
@@ -216,12 +216,13 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                         self.unwrapped.data)
 
         #-.13 to get to geoetric center of tactile sensor on chest.
-        # x_error = np.abs((chest_xpos[0] - box_xpos[0]))
-        # y_error = np.abs((chest_xpos[1] - box_xpos[1]))
-        # z_error = np.abs((chest_xpos[2] - .13) - box_xpos[2])
+        x_error = chest_xpos[0] - box_xpos[0]
+        y_error = chest_xpos[1] - box_xpos[1]
+        z_error = (chest_xpos[2] + .13) - box_xpos[2]
 
-        proximity = chest_xpos - box_xpos
-        box_xerror = np.linalg.norm(proximity)
+        error = np.array([x_error, y_error, z_error])
+
+        box_xerror = np.linalg.norm(error)
 
         # reward = 1 * z_error**2
         # reward = np.exp(-a*box_xerror**2) - np.exp(-a*np.linalg.norm(self.prev_box_proximity)**2)
@@ -233,7 +234,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         # print(f"chest proximity error: {box_xerror}")
 
-        self.prev_box_proximity = proximity
+        self.prev_box_proximity = error
         return reward
 
     def _phi(self, x):
