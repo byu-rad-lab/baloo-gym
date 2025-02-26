@@ -123,7 +123,7 @@ def train(args):
 
         return func
 
-    policy_kwargs = dict(net_arch=[256, 128, 64], squash_output=True)
+    policy_kwargs = dict(net_arch=[128, 128, 64], squash_output=True)
     model = PPO(
         "MlpPolicy",
         vec_env,
