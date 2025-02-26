@@ -63,11 +63,11 @@ def run_simulation(combination):
                 env,
                 model,
                 render=False,
-                deterministic=False,
+                deterministic=True,
                 return_dist=False)
         else:
             frames, rewards, actions, observations, infos, dist = record_rollout(
-                env, model, deterministic=False, render=False)
+                env, model, deterministic=True, render=False)
 
         if infos[-1]["is_success"]:
             successes.append(1)
