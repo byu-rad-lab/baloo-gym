@@ -123,14 +123,15 @@ def train(args):
 
         return func
 
-    policy_kwargs = dict(net_arch=[128, 128, 64])
+    policy_kwargs = dict(net_arch=[128, 128, 64], use_expln=True)
     model = PPO(
         "MlpPolicy",
         vec_env,
-        n_steps=65536,
+        n_steps=4096,
+        use_sde=True,
         policy_kwargs=policy_kwargs,
         sde_sample_freq=1 / config["ctrl_timestep"],
-        batch_size=1024,
+        batch_size=256,
         learning_rate=linear_schedule(5e-4, 1e-6),
         ent_coef=.001,
         verbose=2,
