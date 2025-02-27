@@ -120,12 +120,12 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                         self.unwrapped.data):
                 self.box_lifted_already = True
                 self.object_off_floor_consecutive_steps += 1
-                reward += .01 * self.object_off_floor_consecutive_steps
+                reward += .1 * self.object_off_floor_consecutive_steps
                 self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
             else:
                 #penalize if the box WAS off the ground, but is now on the ground.
                 if self.object_off_floor_consecutive_steps > 0:
-                    reward -= .01 * self.object_off_floor_consecutive_steps
+                    reward -= .05 * self.object_off_floor_consecutive_steps
 
                 self.object_off_floor_consecutive_steps = 0
                 #redness as an indicator of mass. dark red = heavy, light red = light
@@ -139,7 +139,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             reward += 10 * self._calc_chest_proximity_reward(box_xpos)
 
         if "joint_centering" in self.reward_selection:
-            centering_weight = 0.01
+            centering_weight = 0.001
             reward -= centering_weight * self.get_joint_centering_reward()
 
         if "action_smoothness" in self.reward_selection:
