@@ -186,9 +186,6 @@ class BalooBase(gym.Env, ABC):
         # change whatever you want in spec before compiling model for use during episode
         if self.randomize_object_size:
             self.object_attr = random.choice(self.object_combinations)
-            print(
-                f"Using object size: {self.object_attr[0:3]} and mass: {self.object_attr[3]}"
-            )
             # xsize, ysize = np.random.uniform(0.2, 0.6, 2)
             # zsize = np.random.uniform(0.5, 1.25)
             xsize, ysize, zsize = self.object_attr[0:3]
