@@ -15,7 +15,7 @@ import copy
 
 # Parallel environments
 def train(args):
-    set_random_seed(args.seed)
+    set_random_seed(args.seed, using_cuda=True)
 
     run_folder = "test-0000"
 
@@ -123,17 +123,18 @@ def train(args):
 
         return func
 
-    policy_kwargs = dict(net_arch=[128, 128, 64], use_expln=True)
+
+    policy_kwargs = dict(net_arch=[256, 128, 64], use_expln=True, squash_output=True)
     model = PPO(
         "MlpPolicy",
         vec_env,
         n_steps=4096,
         use_sde=True,
         policy_kwargs=policy_kwargs,
-        sde_sample_freq=1 / config["ctrl_timestep"],
+        sde_sample_freq=10 / config["ctrl_timestep"],
         batch_size=256,
         learning_rate=linear_schedule(5e-4, 1e-6),
-        ent_coef=.001,
+        ent_coef=.00,
         verbose=2,
         tensorboard_log=f"new_experiments/{run_folder}/tensorboard_logs",
         device="auto",

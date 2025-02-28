@@ -12,6 +12,49 @@ import wandb
 import os
 from baloo_mujoco_sim.utils.baloo_mj_api import (set_box_size,
                                                  set_box_position)
+import shutil
+
+
+def load_or_download_model(args, local_experiment_folder):
+    run_path = None
+    try:
+        #try loading model from local experiments folder
+        #find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
+        for f in os.listdir(local_experiment_folder):
+            if args.runid in f:
+                run_path = f"{local_experiment_folder}/{f}/best_model/best_model.zip"
+                print(f"Loading model from {run_path}")
+                break
+
+        if run_path is None:
+            raise FileNotFoundError(
+                f"{args.runid} not found in experiments folder.")
+    except:
+        #try downloading model from wandb
+        print(
+            f"{args.runid} not found in experiments folder. Trying download from wandb instead..."
+        )
+        run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
+        for file in run.files():
+            if "best_model" in file.name:
+                file.download(replace=True)
+                print(f"Found best model.")
+                old_path = file.name
+                new_path = os.path.join(local_experiment_folder,
+                                        os.sep.join(file.name.split("/")[1:]))
+                os.makedirs(os.path.dirname(new_path), exist_ok=True)
+                shutil.move(old_path, new_path)
+                print(f"Downloaded best model to {new_path}")
+                run_path = new_path
+                shutil.rmtree(old_path.split("/")[0])
+                break
+
+        if run_path is None:
+            raise FileNotFoundError(
+                f"{args.runid} not found in experiments folder or on wandb.")
+
+    return run_path
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--runid', type=str, help="Wandb run id")
@@ -38,16 +81,7 @@ config = {
     "randomize_object_mass": True,
 }
 
-#get best saved model
-#find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
-for f in os.listdir("/home/curtis/baloo/baloo-gym/new_experiments/"):
-    if args.runid in f:
-        run_folder = f
-        break
-
-#then get best model from run folder
-model_path = f"new_experiments/{run_folder}/best_model/best_model.zip"
-print(f"Loading model from {model_path}")
+model_path = load_or_download_model(args, f"./new_experiments")
 model = PPO.load(model_path)
 
 env = build_env(config, baseline=False, render_mode="rgb_array")
@@ -67,12 +101,12 @@ for j in range(args.num_rollouts):
     import matplotlib.pyplot as plt
     import numpy as np
 
-    # model_path = os.path.dirname(args.model_file)
-    model_path = f"./evaluation_results/rollout_{j}"
-    os.makedirs(model_path, exist_ok=True)
+    # run_path = os.path.dirname(args.model_file)
+    run_path = f"./evaluation_results/{folder_name}/rollout_{j}"
+    os.makedirs(run_path, exist_ok=True)
 
     make_movie(frames,
-               model_path + f"/evaluation_rollout.mp4",
+               run_path + f"/evaluation_rollout.mp4",
                fps=1 / config["ctrl_timestep"])
 
     fig = plt.figure()
@@ -80,7 +114,7 @@ for j in range(args.num_rollouts):
     plt.plot(rewards)
     plt.xlabel("Timesteps")
     plt.ylabel("Rewards")
-    plt.savefig(model_path + f"/rewards.png", dpi=300)
+    plt.savefig(run_path + f"/rewards.png", dpi=300)
 
     fig, axs = plt.subplots(
         env.action_space.shape[0],
@@ -93,7 +127,7 @@ for j in range(args.num_rollouts):
         axs[i].set_ylabel(f"a{i}")
 
     axs[-1].set_xlabel("Timesteps")
-    plt.savefig(model_path + f"/actions.png", dpi=300, bbox_inches='tight')
+    plt.savefig(run_path + f"/actions.png", dpi=300, bbox_inches='tight')
 
     # make histogram of actions
     fig, axs = plt.subplots(
@@ -106,9 +140,7 @@ for j in range(args.num_rollouts):
         axs[i].set_ylabel(f"a{i}")
 
     axs[-1].set_xlabel("Action Value")
-    plt.savefig(model_path + f"/actions_hist.png",
-                dpi=300,
-                bbox_inches='tight')
+    plt.savefig(run_path + f"/actions_hist.png", dpi=300, bbox_inches='tight')
 
     fig, axs = plt.subplots(env.observation_space.shape[0],
                             1,
@@ -119,9 +151,7 @@ for j in range(args.num_rollouts):
         axs[i].set_ylabel(f"o{i}")
 
     axs[-1].set_xlabel("Timesteps")
-    plt.savefig(model_path + f"/observations.png",
-                dpi=300,
-                bbox_inches='tight')
+    plt.savefig(run_path + f"/observations.png", dpi=300, bbox_inches='tight')
 
     #plot the action distribution for each action, 13 x 2
     means = [dists[i][0] for i in range(len(dists))]
@@ -149,7 +179,7 @@ for j in range(args.num_rollouts):
         axs[i].grid()
 
     axs[-1].set_xlabel("Timesteps")
-    plt.savefig(model_path + f"/action_dist.png", dpi=300, bbox_inches='tight')
+    plt.savefig(run_path + f"/action_dist.png", dpi=300, bbox_inches='tight')
     plt.close('all')
 
 print(f"Success rate: {np.mean(successes)}")

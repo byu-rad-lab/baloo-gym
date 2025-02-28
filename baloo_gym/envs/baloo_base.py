@@ -15,7 +15,7 @@ import os
 import numpy as np
 import random
 from itertools import product
-
+from scipy.stats import qmc
 from dataclasses import dataclass
 
 
@@ -25,6 +25,40 @@ class Object:
     size: np.ndarray
     mass: float
     color: np.ndarray
+
+
+def sample_lhs(seed):
+    # Define the parameter ranges (5 points each)
+    xsize = np.linspace(0.2, 0.6, 5)
+    ysize = np.linspace(0.2, 0.6, 5)
+    zsize = np.linspace(0.5, 1.25, 5)
+    mass = np.linspace(5, 20, 5)
+
+    # Create the Latin Hypercube sampler
+    sampler = qmc.LatinHypercube(d=4,
+                                 seed=seed)  # 4 dimensions (x, y, z, mass)
+
+    # Generate 5 samples (one for each range)
+    num_samples = 100
+    lhs_samples = sampler.random(n=num_samples)
+
+    # Scale the LHS samples to the respective parameter ranges
+    x_samples = np.interp(lhs_samples[:, 0], [0, 1],
+                          [xsize.min(), xsize.max()])
+    y_samples = np.interp(lhs_samples[:, 1], [0, 1],
+                          [ysize.min(), ysize.max()])
+    z_samples = np.interp(lhs_samples[:, 2], [0, 1],
+                          [zsize.min(), zsize.max()])
+    mass_samples = np.interp(lhs_samples[:, 3], [0, 1],
+                             [mass.min(), mass.max()])
+
+    # Combine the scaled samples into a list of tuples
+    sampled_points = [
+        (x, y, z, m)
+        for x, y, z, m in zip(x_samples, y_samples, z_samples, mass_samples)
+    ]
+
+    return sampled_points
 
 
 class BalooBase(gym.Env, ABC):
@@ -71,21 +105,7 @@ class BalooBase(gym.Env, ABC):
 
         self.xml_path = baloo_mj.XML_PATH
 
-        # self.object_bounding_boxes = [
-        #     np.array([.8, .2, .8]),
-        #     np.array([.7, .7, 1.0]),
-        #     np.array([.6, .2, 1.2]),
-        #     np.array([.4, .4, .8]),
-        #     np.array([.7, .3, 1.9]),
-        #     np.array([.5, .5, .6]),
-        # ]
-
-        xsize = np.linspace(0.2, 0.6, 5)
-        ysize = np.linspace(0.2, 0.6, 5)
-        zsize = np.linspace(.5, 1.25, 5)
-        mass = np.linspace(5, 20, 5)
-
-        self.object_combinations = list(product(xsize, ysize, zsize, mass))
+        self.object_combinations = sample_lhs(0)
 
         self.first_load = True
         self.randomize_initial_height = randomize_initial_height

@@ -13,6 +13,7 @@ import wandb
 from stable_baselines3 import PPO
 import os
 import shutil
+from scipy.stats import qmc
 
 #parallelize running simulation over each combination ith multiprocessing
 
@@ -55,10 +56,7 @@ def run_simulation(combination):
         if args.runid:
             with lock:
                 model = PPO.load(model_path)
-        else:
-            model = OpenLoopHuggerPolicy(N=50)
 
-        if args.runid:
             frames, rewards, actions, observations, infos = record_rollout(
                 env,
                 model,
@@ -66,8 +64,13 @@ def run_simulation(combination):
                 deterministic=True,
                 return_dist=False)
         else:
-            frames, rewards, actions, observations, infos, dist = record_rollout(
-                env, model, deterministic=True, render=False)
+            model = OpenLoopHuggerPolicy(N=50)
+            frames, rewards, actions, observations, infos = record_rollout(
+                env,
+                model,
+                deterministic=True,
+                render=False,
+                return_dist=False)
 
         if infos[-1]["is_success"]:
             successes.append(1)
@@ -85,7 +88,86 @@ def run_simulation(combination):
     return trial_data
 
 
+def load_or_download_model(args, local_experiment_folder):
+    model_path = None
+    try:
+        #try loading model from local experiments folder
+        #find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
+        for f in os.listdir(local_experiment_folder):
+            if args.runid in f:
+                model_path = f"{local_experiment_folder}/{f}/best_model/best_model.zip"
+                print(f"Loading model from {model_path}")
+                break
+
+        if model_path is None:
+            raise FileNotFoundError(
+                f"{args.runid} not found in experiments folder.")
+    except:
+        #try downloading model from wandb
+        print(
+            f"{args.runid} not found in experiments folder. Trying download from wandb instead..."
+        )
+        run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
+        for file in run.files():
+            if "best_model" in file.name:
+                file.download(replace=True)
+                print(f"Found best model.")
+                old_path = file.name
+                new_path = os.path.join(local_experiment_folder,
+                                        os.sep.join(file.name.split("/")[1:]))
+                os.makedirs(os.path.dirname(new_path), exist_ok=True)
+                shutil.move(old_path, new_path)
+                print(f"Downloaded best model to {new_path}")
+                model_path = new_path
+                shutil.rmtree(old_path.split("/")[0])
+                break
+
+        if model_path is None:
+            raise FileNotFoundError(
+                f"{args.runid} not found in experiments folder or on wandb.")
+
+    return model_path
+
+
+def sample_lhs(seed):
+    # Define the parameter ranges (5 points each)
+    xsize = np.linspace(0.2, 0.6, 5)
+    ysize = np.linspace(0.2, 0.6, 5)
+    zsize = np.linspace(0.5, 1.25, 5)
+    mass = np.linspace(5, 20, 5)
+
+    # Create the Latin Hypercube sampler
+    sampler = qmc.LatinHypercube(d=4,
+                                 seed=seed)  # 4 dimensions (x, y, z, mass)
+
+    # Generate 5 samples (one for each range)
+    num_samples = 200
+    lhs_samples = sampler.random(n=num_samples)
+
+    # Scale the LHS samples to the respective parameter ranges
+    x_samples = np.interp(lhs_samples[:, 0], [0, 1],
+                          [xsize.min(), xsize.max()])
+    y_samples = np.interp(lhs_samples[:, 1], [0, 1],
+                          [ysize.min(), ysize.max()])
+    z_samples = np.interp(lhs_samples[:, 2], [0, 1],
+                          [zsize.min(), zsize.max()])
+    mass_samples = np.interp(lhs_samples[:, 3], [0, 1],
+                             [mass.min(), mass.max()])
+
+    # Combine the scaled samples into a list of tuples
+    sampled_points = [
+        (x, y, z, m)
+        for x, y, z, m in zip(x_samples, y_samples, z_samples, mass_samples)
+    ]
+
+    return sampled_points
+
+
 if __name__ == "__main__":
+
+    #ssed numpy random number generator
+    seed = 42
+    np.random.seed(seed)
 
     #parse arguments
     parser = argparse.ArgumentParser()
@@ -94,49 +176,14 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--grid', action='store_true')
     group.add_argument('--random', action='store_true')
+    group.add_argument('--lhs', action='store_true')
 
     args = parser.parse_args()
     local_experiment_folder = "/home/curtis/baloo/baloo-gym/new_experiments"
     model_path = None
 
     if args.runid:
-        try:
-            #try loading model from local experiments folder
-            #find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
-            for f in os.listdir(local_experiment_folder):
-                if args.runid in f:
-                    model_path = f"{local_experiment_folder}/{f}/best_model/best_model.zip"
-                    print(f"Loading model from {model_path}")
-                    break
-
-            if model_path is None:
-                raise FileNotFoundError(
-                    f"{args.runid} not found in experiments folder.")
-        except:
-            #try downloading model from wandb
-            print(
-                f"{args.runid} not found in experiments folder. Trying download from wandb instead..."
-            )
-            run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
-            for file in run.files():
-                if "best_model" in file.name:
-                    file.download(replace=True)
-                    print(f"Found best model.")
-                    old_path = file.name
-                    new_path = os.path.join(
-                        local_experiment_folder,
-                        os.sep.join(file.name.split("/")[1:]))
-                    os.makedirs(os.path.dirname(new_path), exist_ok=True)
-                    shutil.move(old_path, new_path)
-                    print(f"Downloaded best model to {new_path}")
-                    model_path = new_path
-                    shutil.rmtree(old_path.split("/")[0])
-                    break
-
-            if model_path is None:
-                raise FileNotFoundError(
-                    f"{args.runid} not found in experiments folder or on wandb."
-                )
+        model_path = load_or_download_model(args, local_experiment_folder)
 
     if args.grid:
         #create grid of object sizes and weights
@@ -155,6 +202,9 @@ if __name__ == "__main__":
 
         combinations = list(product(xsize, ysize, zsize, mass))
 
+    elif args.lhs:
+        combinations = sample_lhs(seed=seed)
+
     lock = Lock()
 
     with Pool(processes=16) as pool:
@@ -164,7 +214,7 @@ if __name__ == "__main__":
 
     # print results to a file
     tag = args.runid if args.runid else "baseline"
-    type = "grid" if args.grid else "random"
+    type = "grid" if args.grid else "random" if args.random else "lhs"
     with open(f"data/lifting_trials_{tag}_{type}.txt", "w") as f:
         for result in results:
             json.dump(result, f)
