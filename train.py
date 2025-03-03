@@ -7,7 +7,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder
 from stable_baselines3.common.utils import set_random_seed
-from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnNoModelImprovement
+from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnNoModelImprovement, CheckpointCallback
 
 from baloo_gym.utils.helpers import build_env
 import copy
@@ -91,8 +91,15 @@ def train(args):
         deterministic=True,
         verbose=1,
     )
-
     callbacks.append(eval_callback)
+
+    checkpoint_callback = CheckpointCallback(
+        save_freq=save_freq//2,
+        save_path=f"new_experiments/{run_folder}/checkpoints",
+        verbose=2,
+    )
+
+    callbacks.append(checkpoint_callback)
 
     vec_env = VecVideoRecorder(
         vec_env,
@@ -123,8 +130,9 @@ def train(args):
 
         return func
 
-
-    policy_kwargs = dict(net_arch=[256, 128, 64], use_expln=True, squash_output=True)
+    policy_kwargs = dict(net_arch=[256, 128, 64],
+                         use_expln=True,
+                         squash_output=True)
     model = PPO(
         "MlpPolicy",
         vec_env,
@@ -164,6 +172,7 @@ def train(args):
     if args.wandb:
         #log best model to wandb too
         wandb.save(f"new_experiments/{run_folder}/best_model/best_model.zip")
+        wandb.save(f"new_experiments/{run_folder}/checkpoints/*.zip")
         run.finish()
 
     vec_env.close()
