@@ -141,7 +141,7 @@ def sample_lhs(seed):
                                  seed=seed)  # 4 dimensions (x, y, z, mass)
 
     # Generate 5 samples (one for each range)
-    num_samples = 200
+    num_samples = 100
     lhs_samples = sampler.random(n=num_samples)
 
     # Scale the LHS samples to the respective parameter ranges
