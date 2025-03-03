@@ -31,6 +31,7 @@ def train(args):
         "randomize_initial_height": args.randomize_initial_height,
         "randomize_object_size": args.randomize_object_size,
         "randomize_object_mass": args.randomize_object_mass,
+        "randomize_object_quat": args.randomize_object_quat,
     }
 
     callbacks = []
@@ -94,7 +95,7 @@ def train(args):
     callbacks.append(eval_callback)
 
     checkpoint_callback = CheckpointCallback(
-        save_freq=save_freq//2,
+        save_freq=save_freq // 2,
         save_path=f"new_experiments/{run_folder}/checkpoints",
         verbose=2,
     )
@@ -248,6 +249,12 @@ def main():
         '--randomize_object_mass',
         action='store_true',
         help='Randomize object mass',
+    )
+
+    parser.add_argument(
+        '--randomize_object_quat',
+        action='store_true',
+        help='Randomize object quaternion',
     )
 
     parser.add_argument(

@@ -140,6 +140,7 @@ def build_env(config: dict, baseline: bool, render_mode, **kwargs):
         randomize_object_mass=config["randomize_object_mass"],
         object_size=kwargs.get("object_size", None),
         object_mass=kwargs.get("object_mass", None),
+        randomize_object_quat=config["randomize_object_quat"],
     )
 
     check_env(env)

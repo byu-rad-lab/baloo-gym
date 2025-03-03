@@ -10,6 +10,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     set_box_position,
     set_box_size,
     set_box_mass,
+    set_box_quat,
 )
 import os
 import numpy as np
@@ -17,6 +18,7 @@ import random
 from itertools import product
 from scipy.stats import qmc
 from dataclasses import dataclass
+from scipy.spatial.transform import Rotation as R
 
 
 @dataclass
@@ -89,6 +91,7 @@ class BalooBase(gym.Env, ABC):
         randomize_object_mass=False,
         object_size=None,
         object_mass=None,
+        randomize_object_quat=False,
     ):
         super().__init__()
 
@@ -111,6 +114,7 @@ class BalooBase(gym.Env, ABC):
         self.randomize_initial_height = randomize_initial_height
         self.randomize_object_size = randomize_object_size
         self.randomize_object_mass = randomize_object_mass
+        self.randomize_object_quat = randomize_object_quat
 
         self.object_size = object_size
         self.object_mass = object_mass
@@ -238,6 +242,15 @@ class BalooBase(gym.Env, ABC):
                                               height=self.render_height,
                                               camera_name=self.camera_name,
                                               max_geom=100000)
+
+        if self.randomize_object_quat:
+            #get random rotation about z axis
+            random_rotation = np.random.uniform(0, 2 * np.pi)
+            rz = R.from_euler('z', random_rotation, degrees=False)
+            quat = np.roll(rz.as_quat(), 1)
+            #set box orientation
+            set_box_quat(self.model, self.data, quat[0], quat[1], quat[2],
+                         quat[3])
 
         self._get_to_equilibrium()
 

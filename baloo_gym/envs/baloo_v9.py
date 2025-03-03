@@ -32,6 +32,7 @@ class BalooV9(BalooBase):
         randomize_object_mass=False,
         object_size=None,
         object_mass=None,
+        randomize_object_quat=False,
     ):
         super().__init__(render_mode=render_mode,
                          camera_name=camera_name,
@@ -42,7 +43,8 @@ class BalooV9(BalooBase):
                          randomize_object_size=randomize_object_size,
                          randomize_object_mass=randomize_object_mass,
                          object_size=object_size,
-                         object_mass=object_mass)
+                         object_mass=object_mass,
+                         randomize_object_quat=randomize_object_quat)
 
         self.action_space = spaces.Box(
             -1,
