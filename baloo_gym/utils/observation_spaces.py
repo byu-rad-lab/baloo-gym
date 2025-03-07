@@ -1349,13 +1349,14 @@ class StateObservationObjectOnly:
     right_j0_p_lb = [0] * 4
     right_j1_p_lb = [0] * 4
     right_j2_p_lb = [0] * 4
-    left_j0_pcmd_lb = [0] * 4
-    left_j1_pcmd_lb = [0] * 4
-    left_j2_pcmd_lb = [0] * 4
-    right_j0_pcmd_lb = [0] * 4
-    right_j1_pcmd_lb = [0] * 4
-    right_j2_pcmd_lb = [0] * 4
+    left_j0_p_filt_cmd_lb = [0] * 4
+    left_j1_p_filt_cmd_lb = [0] * 4
+    left_j2_p_filt_cmd_lb = [0] * 4
+    right_j0_p_filt_cmd_lb = [0] * 4
+    right_j1_p_filt_cmd_lb = [0] * 4
+    right_j2_p_filt_cmd_lb = [0] * 4
     box_size_lb = [.2, .2, .5]
+    elevator_pos_filt_cmd_lb = [-1.5]
 
     elevator_pos_ub = [0]
     left_pos_ub = [np.pi] * 6
@@ -1371,33 +1372,40 @@ class StateObservationObjectOnly:
     right_j0_p_ub = [300] * 4
     right_j1_p_ub = [300] * 4
     right_j2_p_ub = [300] * 4
-    left_j0_pcmd_ub = [300] * 4
-    left_j1_pcmd_ub = [300] * 4
-    left_j2_pcmd_ub = [300] * 4
-    right_j0_pcmd_ub = [300] * 4
-    right_j1_pcmd_ub = [300] * 4
-    right_j2_pcmd_ub = [300] * 4
+    left_j0_p_filt_cmd_ub = [300] * 4
+    left_j1_p_filt_cmd_ub = [300] * 4
+    left_j2_p_filt_cmd_ub = [300] * 4
+    right_j0_p_filt_cmd_ub = [300] * 4
+    right_j1_p_filt_cmd_ub = [300] * 4
+    right_j2_p_filt_cmd_ub = [300] * 4
     box_size_ub = [.6, .6, 1.25]
+    elevator_pos_filt_cmd_ub = [0]
 
     obs_lower_bound = np.asarray(elevator_pos_lb + left_pos_lb + right_pos_lb +
                                  box_pose_lb + elevator_vel_lb + left_vel_lb +
                                  right_vel_lb + box_twist_lb + left_j0_p_lb +
                                  left_j1_p_lb + left_j2_p_lb + right_j0_p_lb +
                                  right_j1_p_lb + right_j2_p_lb +
-                                 left_j0_pcmd_lb + left_j1_pcmd_lb +
-                                 left_j2_pcmd_lb + right_j0_pcmd_lb +
-                                 right_j1_pcmd_lb + right_j2_pcmd_lb +
-                                 box_size_lb)
+                                 left_j0_p_filt_cmd_lb +
+                                 left_j1_p_filt_cmd_lb +
+                                 left_j2_p_filt_cmd_lb +
+                                 right_j0_p_filt_cmd_lb +
+                                 right_j1_p_filt_cmd_lb +
+                                 right_j2_p_filt_cmd_lb + box_size_lb +
+                                 elevator_pos_filt_cmd_lb)
 
     obs_upper_bound = np.asarray(elevator_pos_ub + left_pos_ub + right_pos_ub +
                                  box_pose_ub + elevator_vel_ub + left_vel_ub +
                                  right_vel_ub + box_twist_ub + left_j0_p_ub +
                                  left_j1_p_ub + left_j2_p_ub + right_j0_p_ub +
                                  right_j1_p_ub + right_j2_p_ub +
-                                 left_j0_pcmd_ub + left_j1_pcmd_ub +
-                                 left_j2_pcmd_ub + right_j0_pcmd_ub +
-                                 right_j1_pcmd_ub + right_j2_pcmd_ub +
-                                 box_size_ub)
+                                 left_j0_p_filt_cmd_ub +
+                                 left_j1_p_filt_cmd_ub +
+                                 left_j2_p_filt_cmd_ub +
+                                 right_j0_p_filt_cmd_ub +
+                                 right_j1_p_filt_cmd_ub +
+                                 right_j2_p_filt_cmd_ub + box_size_ub +
+                                 elevator_pos_filt_cmd_ub)
 
     shape = (len(obs_lower_bound), )
 
@@ -1417,13 +1425,14 @@ class StateObservationObjectOnly:
         right_j0_pressures,
         right_j1_pressures,
         right_j2_pressures,
-        left_j0_p_cmd,
-        left_j1_p_cmd,
-        left_j2_p_cmd,
-        right_j0_p_cmd,
-        right_j1_p_cmd,
-        right_j2_p_cmd,
+        left_j0_p_filt_cmd,
+        left_j1_p_filt_cmd,
+        left_j2_p_filt_cmd,
+        right_j0_p_filt_cmd,
+        right_j1_p_filt_cmd,
+        right_j2_p_filt_cmd,
         box_size,
+        elevator_pos_filt_cmd,
     ):
         self.elevator_pos = elevator_pos
         self.left_pos = left_pos
@@ -1439,13 +1448,14 @@ class StateObservationObjectOnly:
         self.right_j0_pressures = right_j0_pressures
         self.right_j1_pressures = right_j1_pressures
         self.right_j2_pressures = right_j2_pressures
-        self.left_j0_p_cmd = left_j0_p_cmd
-        self.left_j1_p_cmd = left_j1_p_cmd
-        self.left_j2_p_cmd = left_j2_p_cmd
-        self.right_j0_p_cmd = right_j0_p_cmd
-        self.right_j1_p_cmd = right_j1_p_cmd
-        self.right_j2_p_cmd = right_j2_p_cmd
+        self.left_j0_p_filt_cmd = left_j0_p_filt_cmd
+        self.left_j1_p_filt_cmd = left_j1_p_filt_cmd
+        self.left_j2_p_filt_cmd = left_j2_p_filt_cmd
+        self.right_j0_p_filt_cmd = right_j0_p_filt_cmd
+        self.right_j1_p_filt_cmd = right_j1_p_filt_cmd
+        self.right_j2_p_filt_cmd = right_j2_p_filt_cmd
         self.box_size = box_size
+        self.elevator_pos_filt_cmd = elevator_pos_filt_cmd
 
     def to_array(self):
         return np.hstack([
@@ -1463,13 +1473,14 @@ class StateObservationObjectOnly:
             self.right_j0_pressures,
             self.right_j1_pressures,
             self.right_j2_pressures,
-            self.left_j0_p_cmd,
-            self.left_j1_p_cmd,
-            self.left_j2_p_cmd,
-            self.right_j0_p_cmd,
-            self.right_j1_p_cmd,
-            self.right_j2_p_cmd,
+            self.left_j0_p_filt_cmd,
+            self.left_j1_p_filt_cmd,
+            self.left_j2_p_filt_cmd,
+            self.right_j0_p_filt_cmd,
+            self.right_j1_p_filt_cmd,
+            self.right_j2_p_filt_cmd,
             self.box_size,
+            self.elevator_pos_filt_cmd,
         ])
 
     def __repr__(self):
@@ -1506,11 +1517,12 @@ class StateObservationObjectOnly:
             right_j0_pressures=observation_array[51:55],
             right_j1_pressures=observation_array[55:59],
             right_j2_pressures=observation_array[59:63],
-            left_j0_p_cmd=observation_array[63:67],
-            left_j1_p_cmd=observation_array[67:71],
-            left_j2_p_cmd=observation_array[71:75],
-            right_j0_p_cmd=observation_array[75:79],
-            right_j1_p_cmd=observation_array[79:83],
-            right_j2_p_cmd=observation_array[83:87],
+            left_j0_p_filt_cmd=observation_array[63:67],
+            left_j1_p_filt_cmd=observation_array[67:71],
+            left_j2_p_filt_cmd=observation_array[71:75],
+            right_j0_p_filt_cmd=observation_array[75:79],
+            right_j1_p_filt_cmd=observation_array[79:83],
+            right_j2_p_filt_cmd=observation_array[83:87],
             box_size=observation_array[87:90],
+            elevator_pos_filt_cmd=observation_array[90],
         )

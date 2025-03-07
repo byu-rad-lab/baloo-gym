@@ -5,6 +5,7 @@ from baloo_gym.utils.observation_spaces import StateObservationObjectOnly
 from baloo_gym.utils.helpers import get_sensor_data
 from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_joint_pressures,
+    get_elevator_activation,
     get_elevator_cmd,
     get_contact_forces_on_body,
     get_box_position,
@@ -59,7 +60,7 @@ class BalooV9(BalooBase):
         self.rise_time = 3
         self.lpf = LowPassFilter(rise_time=self.rise_time,
                                  sampling_period=ctrl_timestep)
-        self.p_cmd = np.zeros(self.len_command - 1)
+        self.p_filt_cmd = np.zeros(self.len_command - 1)
 
     def get_observation_from_mujoco(self):
         #implement something that includes previous actions as well as state observations
@@ -89,21 +90,20 @@ class BalooV9(BalooBase):
         sensor_data["box_twist"] = np.hstack((box_vel, box_angvel))
         del sensor_data["object_vel"]
 
-        sensor_data["left_j0_p_cmd"] = self.p_cmd[:4]
-        sensor_data["left_j1_p_cmd"] = self.p_cmd[4:8]
-        sensor_data["left_j2_p_cmd"] = self.p_cmd[8:12]
-        sensor_data["right_j0_p_cmd"] = self.p_cmd[12:16]
-        sensor_data["right_j1_p_cmd"] = self.p_cmd[16:20]
-        sensor_data["right_j2_p_cmd"] = self.p_cmd[20:24]
+        sensor_data["left_j0_p_filt_cmd"] = self.p_filt_cmd[:4]
+        sensor_data["left_j1_p_filt_cmd"] = self.p_filt_cmd[4:8]
+        sensor_data["left_j2_p_filt_cmd"] = self.p_filt_cmd[8:12]
+        sensor_data["right_j0_p_filt_cmd"] = self.p_filt_cmd[12:16]
+        sensor_data["right_j1_p_filt_cmd"] = self.p_filt_cmd[16:20]
+        sensor_data["right_j2_p_filt_cmd"] = self.p_filt_cmd[20:24]
+
+        elev_filt_vel_cmd, elev_filt_pos_cmd = get_elevator_activation(
+            self.unwrapped.model, self.unwrapped.data)
+        sensor_data["elevator_pos_filt_cmd"] = elev_filt_pos_cmd
 
         box_size = self.unwrapped.model.geom("box").size
         sensor_data["box_size"] = 2 * np.array(
             box_size)  #2* because mujoco reports half sizes
-
-        # chest_xpos = get_chest_position(self.unwrapped.model,
-        #                                 self.unwrapped.data)
-
-        # sensor_data["chest_to_box"] = box_xpos - chest_xpos
 
         rawObs = StateObservationObjectOnly(**sensor_data)
 
@@ -126,51 +126,75 @@ class BalooV9(BalooBase):
         filtered_actions[0] = action[0]
         filtered_actions[1:] = filtered_pressure_actions
 
-        unnormalized_actions = NormalizedDifferentialPressure(
+        unnorm_filtered_actions = NormalizedDifferentialPressure(
             filtered_actions).unnormalize()
 
         #make this more concise later with a loop
-        commands = np.zeros(self.len_command)
-        commands[0] = unnormalized_actions.elevator_height_cmd
-        commands[1] = 150 + unnormalized_actions.left_j0_delta_pressure[0]
-        commands[2] = 150 - unnormalized_actions.left_j0_delta_pressure[0]
+        filt_commands = np.zeros(self.len_command)
+        filt_commands[0] = unnorm_filtered_actions.elevator_height_cmd
+        filt_commands[
+            1] = 150 + unnorm_filtered_actions.left_j0_delta_pressure[0]
+        filt_commands[
+            2] = 150 - unnorm_filtered_actions.left_j0_delta_pressure[0]
 
-        commands[3] = 150 + unnormalized_actions.left_j0_delta_pressure[1]
-        commands[4] = 150 - unnormalized_actions.left_j0_delta_pressure[1]
+        filt_commands[
+            3] = 150 + unnorm_filtered_actions.left_j0_delta_pressure[1]
+        filt_commands[
+            4] = 150 - unnorm_filtered_actions.left_j0_delta_pressure[1]
 
-        commands[5] = 150 + unnormalized_actions.left_j1_delta_pressure[0]
-        commands[6] = 150 - unnormalized_actions.left_j1_delta_pressure[0]
+        filt_commands[
+            5] = 150 + unnorm_filtered_actions.left_j1_delta_pressure[0]
+        filt_commands[
+            6] = 150 - unnorm_filtered_actions.left_j1_delta_pressure[0]
 
-        commands[7] = 150 + unnormalized_actions.left_j1_delta_pressure[1]
-        commands[8] = 150 - unnormalized_actions.left_j1_delta_pressure[1]
+        filt_commands[
+            7] = 150 + unnorm_filtered_actions.left_j1_delta_pressure[1]
+        filt_commands[
+            8] = 150 - unnorm_filtered_actions.left_j1_delta_pressure[1]
 
-        commands[9] = 150 + unnormalized_actions.left_j2_delta_pressure[0]
-        commands[10] = 150 - unnormalized_actions.left_j2_delta_pressure[0]
+        filt_commands[
+            9] = 150 + unnorm_filtered_actions.left_j2_delta_pressure[0]
+        filt_commands[
+            10] = 150 - unnorm_filtered_actions.left_j2_delta_pressure[0]
 
-        commands[11] = 150 + unnormalized_actions.left_j2_delta_pressure[1]
-        commands[12] = 150 - unnormalized_actions.left_j2_delta_pressure[1]
+        filt_commands[
+            11] = 150 + unnorm_filtered_actions.left_j2_delta_pressure[1]
+        filt_commands[
+            12] = 150 - unnorm_filtered_actions.left_j2_delta_pressure[1]
 
-        commands[13] = 150 + unnormalized_actions.right_j0_delta_pressure[0]
-        commands[14] = 150 - unnormalized_actions.right_j0_delta_pressure[0]
+        filt_commands[
+            13] = 150 + unnorm_filtered_actions.right_j0_delta_pressure[0]
+        filt_commands[
+            14] = 150 - unnorm_filtered_actions.right_j0_delta_pressure[0]
 
-        commands[15] = 150 + unnormalized_actions.right_j0_delta_pressure[1]
-        commands[16] = 150 - unnormalized_actions.right_j0_delta_pressure[1]
+        filt_commands[
+            15] = 150 + unnorm_filtered_actions.right_j0_delta_pressure[1]
+        filt_commands[
+            16] = 150 - unnorm_filtered_actions.right_j0_delta_pressure[1]
 
-        commands[17] = 150 + unnormalized_actions.right_j1_delta_pressure[0]
-        commands[18] = 150 - unnormalized_actions.right_j1_delta_pressure[0]
+        filt_commands[
+            17] = 150 + unnorm_filtered_actions.right_j1_delta_pressure[0]
+        filt_commands[
+            18] = 150 - unnorm_filtered_actions.right_j1_delta_pressure[0]
 
-        commands[19] = 150 + unnormalized_actions.right_j1_delta_pressure[1]
-        commands[20] = 150 - unnormalized_actions.right_j1_delta_pressure[1]
+        filt_commands[
+            19] = 150 + unnorm_filtered_actions.right_j1_delta_pressure[1]
+        filt_commands[
+            20] = 150 - unnorm_filtered_actions.right_j1_delta_pressure[1]
 
-        commands[21] = 150 + unnormalized_actions.right_j2_delta_pressure[0]
-        commands[22] = 150 - unnormalized_actions.right_j2_delta_pressure[0]
+        filt_commands[
+            21] = 150 + unnorm_filtered_actions.right_j2_delta_pressure[0]
+        filt_commands[
+            22] = 150 - unnorm_filtered_actions.right_j2_delta_pressure[0]
 
-        commands[23] = 150 + unnormalized_actions.right_j2_delta_pressure[1]
-        commands[24] = 150 - unnormalized_actions.right_j2_delta_pressure[1]
+        filt_commands[
+            23] = 150 + unnorm_filtered_actions.right_j2_delta_pressure[1]
+        filt_commands[
+            24] = 150 - unnorm_filtered_actions.right_j2_delta_pressure[1]
 
-        self.p_cmd = commands[1:]
+        self.p_filt_cmd = filt_commands[1:]
 
-        return commands
+        return filt_commands
 
     def calculate_reward(self) -> float:
         return 0
@@ -179,7 +203,7 @@ class BalooV9(BalooBase):
         #reset stateful info in this class
         self.lpf = LowPassFilter(rise_time=self.rise_time,
                                  sampling_period=self.control_timestep)
-        self.p_cmd = np.zeros(self.len_command - 1)
+        self.p_filt_cmd = np.zeros(self.len_command - 1)
 
         return super().reset(seed=seed, options=options)
 

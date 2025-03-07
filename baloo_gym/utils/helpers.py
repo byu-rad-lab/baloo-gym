@@ -9,7 +9,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
 )
 
 from stable_baselines3.common.env_checker import check_env
-from baloo_gym.wrappers import OpenLoopBaselineWrapper, ThreePartRewardWrapper
+from baloo_gym.wrappers import OpenLoopBaselineWrapper, ThreePartRewardWrapper, PotentialBasedRewardWrapper
 from stable_baselines3.common.policies import obs_as_tensor
 
 from gymnasium.wrappers import TimeLimit
@@ -151,6 +151,12 @@ def build_env(config: dict, baseline: bool, render_mode, **kwargs):
                         config["time_limit_sec"] / config["ctrl_timestep"], ))
 
     env = ThreePartRewardWrapper(env, config["reward_selection"])
+
+    if kwargs.get("potential_based_reward", False):
+        print("using potential based reward")
+        env = PotentialBasedRewardWrapper(
+            env, reward_selection=config["reward_selection"])
+
     # env = CurriculumEnv(env, config["curriculum_selection"])
 
     if baseline:

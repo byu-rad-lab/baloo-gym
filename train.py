@@ -65,6 +65,7 @@ def train(args):
             "config": config,
             "baseline": False,
             "render_mode": "rgb_array",
+            "potential_based_reward": args.potential_based_reward,
         },
         n_envs=args.num_envs,
         vec_env_cls=SubprocVecEnv,
@@ -269,6 +270,12 @@ def main():
         type=int,
         default=42,
         help='Random seed',
+    )
+
+    parser.add_argument(
+        '--potential_based_reward',
+        action='store_true',
+        help='Use potential based rewards',
     )
 
     args = parser.parse_args()
