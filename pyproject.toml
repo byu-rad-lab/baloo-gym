@@ -1,31 +1,32 @@
-[tool.poetry]
+[project]
 name = "baloo-gym"
 version = "0.1.0"
 description = ""
-authors = ["Curtis <curtiscarljohnson@gmail.com>"]
 readme = "README.md"
+authors = [
+    {name = "Curtis", email = "curtiscarljohnson@gmail.com"},
+]
+requires-python = "~=3.8"
+dependencies = [
+    "mujoco==3.2.3",
+    "numpy==1.24.3",
+    "scipy==1.10.1",
+    "glfw==2.7.0",
+    "imageio==2.35.1",
+    "stable-baselines3<=2.3.2",
+    "wandb==0.18.3",
+    "tensorboard==2.13.0",
+    "tqdm==4.66.5",
+    "rich==13.9.2",
+    "moviepy==1.0.3",
+    "torch==2.4.1",
+    "tabulate<1.0.0,>=0.9.0",
+    "domain-randomization",
+    "baloo-mujoco-sim",
+    "optuna<5.0.0,>=4.1.0",
+    "plotly<6.0.0,>=5.24.1",
+]
 
-[tool.poetry.dependencies]
-python = "~3.8"
-mujoco = "3.2.3"
-numpy = "1.24.3"
-scipy = "1.10.1"
-glfw = "2.7.0"
-imageio = "2.35.1"
-#multiple bugs limiting upgrade past 2.3.3. See https://github.com/DLR-RM/stable-baselines3/issues/2055 and https://github.com/DLR-RM/stable-baselines3/issues/2061
-stable-baselines3 = "<=2.3.2"
-wandb = "0.18.3"
-tensorboard = "2.13.0"
-tqdm = "4.66.5"
-rich = "13.9.2"
-moviepy = "1.0.3"
-torch = "2.4.1"
-tabulate = "^0.9.0"
-domain-randomization = { path = "./baloo_gym/domain_randomization/", develop = true }
-baloo-mujoco-sim = { path = "../baloo-mujoco-sim/", develop = true }
-optuna = "^4.1.0"
-plotly = "^5.24.1"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.uv.sources]
+baloo-mujoco-sim = { path = "../baloo-mujoco-sim", editable = true }
+domain-randomization = { path = "baloo_gym/domain_randomization", editable = true }

@@ -139,7 +139,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             reward += 10 * self._calc_chest_proximity_reward(box_xpos)
 
         if "joint_centering" in self.reward_selection:
-            centering_weight = 0.005
+            centering_weight = 0.05
             reward -= centering_weight * self.get_joint_centering_reward()
 
         if "action_smoothness" in self.reward_selection:
@@ -185,7 +185,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             #penalize any part of arms touching the ground.
             if check_arms_touching_ground(self.unwrapped.model,
                                           self.unwrapped.data):
-                reward -= .5
+                reward -= .1
 
         # #reward moving towards desired position, penalize moving away
         # if box_zerror < self.box_zerror_prev - numerical_threshold:
