@@ -6,20 +6,18 @@ This repo is an RL training environment for Baloo.
 
 Before you can run the application, you need to set up a virtual environment and install the necessary dependencies. Here's how you can do that:
 
-1. Install [poetry](https://python-poetry.org/docs/), the depndency manager for this project
-2. First, create a virtual environment. You can do this using the following command:
-   ```bash
-   python3 -m venv env
-   ```
-3. Next, activate the virtual environment:
-   ```bash
-   source env/bin/activate
-   ```
-4. Install [baloo_mujoco_sim](https://github.com/byu-rad-lab/baloo_mujoco_sim) repository.
-5. Install the remaining dependencies using poetry:
-   ```bash
-   poetry install
-   ```
+1. Install [uv](https://docs.astral.sh/uv/) which I use a dependency manager for this project. 
+2. Clone this repository, making sure to include the `--recurse-submodules` flag to include submodules. 
+3. Install the [baloo_mujoco_sim](https://github.com/byu-rad-lab/baloo_mujoco_sim) repository. It should be cloned in the same directory as this repository.
+4. Install this project's dependencies into a virtual environment by running the following command in the root directory of the project.
+``` bash
+uv sync
+```
+5. Activate the virtual environment by running the following command:
+``` bash
+source .venv/bin/activate
+```
+6. You can now start training.
 
 
 ### GPU Configuration ###
@@ -36,14 +34,6 @@ The virtual environment dependencies have been tested with this configuration:
 |  0%   41C    P8             28W /  320W |     694MiB /  10240MiB |     30%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
-```
-
-## Training the Agent ##
-After running ```poetry install```, you can train the agent from the command line using the following command:
-
-To get a list of all the available options to configure a training run, you can run:
-```bash
-train-baloo-ppo --help
 ```
 ## Structure ##
 
