@@ -44,6 +44,8 @@ def train(args):
             save_code=True,
             tags=["success"],
             dir="new_experiments",
+            group="potential_based_reward"
+            if args.potential_based_reward else None,
         )
 
         run_folder = f"{run.name}-{run.id}"
@@ -132,16 +134,19 @@ def train(args):
 
         return func
 
-    policy_kwargs = dict(net_arch=[256, 128, 64],
-                         use_expln=True,
-                         squash_output=True)
+    policy_kwargs = dict(
+        net_arch=[256, 128, 64],
+        use_expln=True,
+        squash_output=True,
+        log_std_init=-2.0,
+    )
     model = PPO(
         "MlpPolicy",
         vec_env,
         n_steps=4096,
         use_sde=True,
         policy_kwargs=policy_kwargs,
-        sde_sample_freq=10 / config["ctrl_timestep"],
+        sde_sample_freq=1 / config["ctrl_timestep"],
         batch_size=128,
         learning_rate=linear_schedule(5e-4, 1e-6),
         ent_coef=.00,

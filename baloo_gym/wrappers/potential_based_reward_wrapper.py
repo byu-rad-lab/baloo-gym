@@ -71,12 +71,30 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         self.prev_box_xpos = get_box_position(self.unwrapped.model,
                                               self.unwrapped.data)
 
+        left_j0_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
+                                     'left', 0)
+        right_j0_q = get_joint_angles(self.unwrapped.model,
+                                      self.unwrapped.data, 'right', 0)
+        left_j1_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
+                                     'left', 1)
+        right_j1_q = get_joint_angles(self.unwrapped.model,
+                                      self.unwrapped.data, 'right', 1)
+        left_j2_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
+                                     'left', 2)
+        right_j2_q = get_joint_angles(self.unwrapped.model,
+                                      self.unwrapped.data, 'right', 2)
+
+        self.prev_q = np.hstack([
+            left_j0_q, right_j0_q, left_j1_q, right_j1_q, left_j2_q, right_j2_q
+        ])
+
         return self.env.reset()
 
     def calculate_reward(self, action, info):
         """
         Calculates the reward to return. Used with Carlo Alessi at SSSA
         """
+        # todo: add weight rendering again. Accidetally deleted.
 
         ##### PRIMARY TASK REWARD #####
         info["is_success"] = False
@@ -102,12 +120,15 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
             # todo: scale this to sum to roughly 1 over the course of the episode.
             potential = self._calc_chest_proximity_potential()
             shaped_reward += potential
-            print(f"chest proximity potential: {potential}\n\n")
+            # print(f"chest proximity potential: {potential}\n\n")
 
         # 2. Lift Reward
 
         # 3. Joint Centering reward
-
+        if "joint_centering" in self.reward_selection:
+            centering_weight = 1
+            shaped_reward += centering_weight * self._calc_joint_centering_potential(
+            )
         # chest_xpos = get_chest_position(self.unwrapped.model,
         #                                 self.unwrapped.data)
 
@@ -148,7 +169,7 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
 
         # if "joint_centering" in self.reward_selection:
         #     centering_weight = 0.05
-        #     reward -= centering_weight * self.get_joint_centering_reward()
+        #     reward -= centering_weight * self._calc_joint_centering_potential()
 
         # if "action_smoothness" in self.reward_selection:
         #     # action_diff = 1 is max change corresponding to -1 to 1 actions.
@@ -239,13 +260,40 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
 
         #print previous to current error
         #check if prev_box_xerror and box_xerror are same variable
-        print(f"diff: {box_xerror - prev_box_xerror}")
+        # print(f"diff: {box_xerror - prev_box_xerror}")
 
         # box error and prev_box_error are always the same
 
         #update previous values
         self.prev_chest_xpos = chest_xpos
         self.prev_box_xpos = box_xpos
+
+        return potential
+
+    def _calc_joint_centering_potential(self, gamma=0.99):
+        left_j0_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
+                                     'left', 0)
+        right_j0_q = get_joint_angles(self.unwrapped.model,
+                                      self.unwrapped.data, 'right', 0)
+        left_j1_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
+                                     'left', 1)
+        right_j1_q = get_joint_angles(self.unwrapped.model,
+                                      self.unwrapped.data, 'right', 1)
+        left_j2_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
+                                     'left', 2)
+        right_j2_q = get_joint_angles(self.unwrapped.model,
+                                      self.unwrapped.data, 'right', 2)
+
+        def phi(q):
+            return np.linalg.norm(q)
+
+        q = np.hstack([
+            left_j0_q, right_j0_q, left_j1_q, right_j1_q, left_j2_q, right_j2_q
+        ])
+
+        potential = gamma * (-phi(q)) - (-phi(self.prev_q))
+
+        self.prev_q = q
 
         return potential
 
@@ -361,25 +409,3 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         #don't really care about the y or z error, we assume object is in front of us and elevator
         # will try to center it vertically.
         return np.sqrt((self.hull_centroid[0] - box_xpos[0])**2)
-
-    def get_joint_centering_reward(self):
-        left_j0_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
-                                     'left', 0)
-        right_j0_q = get_joint_angles(self.unwrapped.model,
-                                      self.unwrapped.data, 'right', 0)
-        left_j1_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
-                                     'left', 1)
-        right_j1_q = get_joint_angles(self.unwrapped.model,
-                                      self.unwrapped.data, 'right', 1)
-        left_j2_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
-                                     'left', 2)
-        right_j2_q = get_joint_angles(self.unwrapped.model,
-                                      self.unwrapped.data, 'right', 2)
-
-        joint_angles = np.hstack([
-            left_j0_q, right_j0_q, left_j1_q, right_j1_q, left_j2_q, right_j2_q
-        ])
-
-        centering = np.linalg.norm(joint_angles)**2
-
-        return centering
