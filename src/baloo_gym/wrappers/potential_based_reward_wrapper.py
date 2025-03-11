@@ -6,6 +6,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_link_position,
     get_chest_position,
     set_mocap_pose,
+    get_box_angvel,
     set_mocap_size,
     get_tactile_image,
     get_contact_forces_on_body,
@@ -53,6 +54,8 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         #override reward calculation with this class
         reward = self.calculate_reward(action, info)
 
+        terminated = info["is_success"]
+
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
@@ -88,7 +91,29 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
             left_j0_q, right_j0_q, left_j1_q, right_j1_q, left_j2_q, right_j2_q
         ])
 
+        self.prev_box_height = get_box_position(self.unwrapped.model,
+                                                self.unwrapped.data)[2]
+
         return self.env.reset()
+
+    def _box_above_height_threshold(self, height_threshold=0.5):
+        """
+        Check if the box is above the height threshold.
+        """
+        box_zpos = get_box_position(self.unwrapped.model,
+                                    self.unwrapped.data)[2]
+        xsize, ysize, zsize = self.unwrapped.model.geom("box").size
+        return box_zpos > (height_threshold + 2 * zsize)
+
+    def _box_below_vel_threshold(self, vel_threshold=0.1):
+        """
+        Check if the box is below the velocity threshold.
+        """
+        box_vel = get_box_vel(self.unwrapped.model, self.unwrapped.data)
+        box_angvel = get_box_angvel(self.unwrapped.model, self.unwrapped.data)
+
+        twist = np.hstack([box_vel, box_angvel])
+        return np.linalg.norm(twist) < vel_threshold
 
     def calculate_reward(self, action, info):
         """
@@ -98,8 +123,8 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
 
         ##### PRIMARY TASK REWARD #####
         info["is_success"] = False
-        if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
-            terminated = True
+        if self._box_above_height_threshold(
+        ) and self._box_below_vel_threshold():
             info["is_success"] = True
             primary_reward = 10
         else:
@@ -118,19 +143,25 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         # 1. Approach reward
         if "chest_proximity" in self.reward_selection:
             # todo: scale this to sum to roughly 1 over the course of the episode.
-            potential = self._calc_chest_proximity_potential()
-            shaped_reward += potential
+            proximity_potential = self._calc_chest_proximity_potential(
+                phi_weight=1)
+            shaped_reward += proximity_potential
             # print(f"chest proximity potential: {potential}\n\n")
 
         # 2. Lift Reward
+        if "dont_drop" in self.reward_selection:
+            lift_potential = self._calc_lifting_potential(phi_weight=5)
+            shaped_reward += lift_potential
 
         # 3. Joint Centering reward
         if "joint_centering" in self.reward_selection:
-            centering_weight = 1
-            shaped_reward += centering_weight * self._calc_joint_centering_potential(
-            )
-        # chest_xpos = get_chest_position(self.unwrapped.model,
-        #                                 self.unwrapped.data)
+            centering_potential = self._calc_joint_centering_potential(
+                phi_weight=1)
+            shaped_reward += centering_potential
+
+        print(
+            f"Shaped reward: {shaped_reward}\n\tProximity: {proximity_potential}\n\tLift: {lift_potential}\n"
+        )
 
         # # scaling_factor = 1 / self.max_zerror**2
         # # reward -= scaling_factor * box_zerror**2
@@ -222,7 +253,7 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         reward = primary_reward + shaped_reward
         return reward
 
-    def _calc_chest_proximity_potential(self, gamma=0.99):
+    def _calc_chest_proximity_potential(self, gamma=0.99, phi_weight=1):
         '''
         Thought here is that when reaching for something, my arm is in charge of moving my hand to the object
         My fingers are in charge of getting into a good pose to grasp the object.
@@ -252,15 +283,16 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         chest_xpos = get_chest_position(self.unwrapped.model,
                                         self.unwrapped.data)
 
-        box_xerror = phi(chest_xpos, box_xpos)
+        box_xerror = phi_weight * phi(chest_xpos, box_xpos)
 
-        prev_box_xerror = phi(self.prev_chest_xpos, self.prev_box_xpos)
+        prev_box_xerror = phi_weight * phi(self.prev_chest_xpos,
+                                           self.prev_box_xpos)
 
         potential = gamma * (-box_xerror) - (-prev_box_xerror)
 
         #print previous to current error
         #check if prev_box_xerror and box_xerror are same variable
-        # print(f"diff: {box_xerror - prev_box_xerror}")
+        print(f"prox diff: {box_xerror - prev_box_xerror}")
 
         # box error and prev_box_error are always the same
 
@@ -270,7 +302,7 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
 
         return potential
 
-    def _calc_joint_centering_potential(self, gamma=0.99):
+    def _calc_joint_centering_potential(self, gamma=0.99, phi_weight=1):
         left_j0_q = get_joint_angles(self.unwrapped.model, self.unwrapped.data,
                                      'left', 0)
         right_j0_q = get_joint_angles(self.unwrapped.model,
@@ -291,10 +323,26 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
             left_j0_q, right_j0_q, left_j1_q, right_j1_q, left_j2_q, right_j2_q
         ])
 
-        potential = gamma * (-phi(q)) - (-phi(self.prev_q))
+        potential = gamma * (-phi_weight * phi(q)) - (-phi_weight *
+                                                      phi(self.prev_q))
 
         self.prev_q = q
 
+        return potential
+
+    def _calc_lifting_potential(self, gamma=0.99, phi_weight=1):
+
+        def phi(x):
+            return x
+
+        box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
+        box_height = box_xpos[2]
+
+        potential = gamma * (phi_weight * phi(box_height)) - (
+            phi_weight * phi(self.prev_box_height))
+
+        print(f"Height diff {box_height - self.prev_box_height}")
+        self.prev_box_height = box_height
         return potential
 
     def _count_nonzero_percentage(self):
