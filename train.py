@@ -50,7 +50,7 @@ def train(args):
 
         run_folder = f"{run.name}-{run.id}"
 
-        wandb.run.log_code("./baloo_gym/wrappers/")
+        wandb.run.log_code("./src/baloo_gym/wrappers/")
 
         callbacks.append(
             WandbCallback(
