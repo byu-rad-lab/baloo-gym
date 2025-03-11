@@ -134,7 +134,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "baloo-mujoco-sim", editable = "../baloo-mujoco-sim" },
-    { name = "domain-randomization", editable = "baloo_gym/domain_randomization" },
+    { name = "domain-randomization", editable = "src/baloo_gym/domain_randomization" },
     { name = "glfw", specifier = "==2.7.0" },
     { name = "imageio", specifier = "==2.35.1" },
     { name = "moviepy", specifier = "==1.0.3" },
@@ -835,7 +835,7 @@ wheels = [
 [[package]]
 name = "domain-randomization"
 version = "0.1.0"
-source = { editable = "baloo_gym/domain_randomization" }
+source = { editable = "src/baloo_gym/domain_randomization" }
 dependencies = [
     { name = "ipykernel" },
     { name = "matplotlib" },

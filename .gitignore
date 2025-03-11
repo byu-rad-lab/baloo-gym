@@ -73,3 +73,5 @@ new_experiments/
 *.txt
 
 pbrs_example/
+
+*.egg-info/
