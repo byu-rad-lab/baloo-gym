@@ -1,21 +1,10 @@
 import gymnasium as gym
 from baloo_mujoco_sim.utils.baloo_mj_api import (
-    get_box_position,
-    get_box_vel,
-    get_box_quat,
-    get_link_position,
-    get_chest_position,
-    set_mocap_pose,
-    get_box_angvel,
-    set_mocap_size,
-    get_tactile_image,
-    get_contact_forces_on_body,
-    detect_box_touch,
-    get_joint_angles,
-    detect_box_on_ground,
-    get_all_contact_wrenches,
-    check_arms_touching_ground,
-)
+    get_box_position, get_box_vel, get_box_quat, get_link_position,
+    get_chest_position, set_mocap_pose, get_box_angvel, set_mocap_size,
+    get_tactile_image, get_contact_forces_on_body, detect_box_touch,
+    get_joint_angles, detect_box_on_ground, get_all_contact_wrenches,
+    check_arms_touching_ground)
 import mujoco
 import numpy as np
 import scipy.spatial
@@ -94,6 +83,8 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         self.prev_box_height = get_box_position(self.unwrapped.model,
                                                 self.unwrapped.data)[2]
 
+        self.prev_avg_dist = self._calc_average_link_distance()
+
         return self.env.reset()
 
     def _box_above_height_threshold(self, height_threshold=0.5):
@@ -119,14 +110,15 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         """
         Calculates the reward to return. Used with Carlo Alessi at SSSA
         """
-        # todo: add weight rendering again. Accidetally deleted.
-
         ##### PRIMARY TASK REWARD #####
         info["is_success"] = False
         if self._box_above_height_threshold(
         ) and self._box_below_vel_threshold():
             info["is_success"] = True
             primary_reward = 10
+
+            #change color of box to blue
+            self.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
         else:
             primary_reward = 0
 
@@ -159,6 +151,52 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
                 phi_weight=.05)
             shaped_reward += centering_potential
 
+        if "link_distance" in self.reward_selection:
+            link_distance_potential = self._calc_link_distance_potential(
+                phi_weight=1)
+            shaped_reward += link_distance_potential
+
+        reward = primary_reward + shaped_reward
+        return reward
+
+    def _calc_link_distance_potential(self, gamma=0.99, phi_weight=1):
+
+        def phi(x):
+            return x
+
+        avg_dist = self._calc_average_link_distance()
+
+        potential = gamma * (-phi_weight * phi(avg_dist)) - (
+            -phi_weight * phi(self.prev_avg_dist))
+
+        self.prev_avg_dist = avg_dist
+
+        return potential
+
+    def _calc_average_link_distance(self):
+        # get xpos of each link and get distance to box for each one
+        left_link0_xpos = get_link_position(self.unwrapped.model,
+                                            self.unwrapped.data, 'left', 0)
+        left_link1_xpos = get_link_position(self.unwrapped.model,
+                                            self.unwrapped.data, 'left', 1)
+        right_link0_xpos = get_link_position(self.unwrapped.model,
+                                             self.unwrapped.data, 'right', 0)
+        right_link1_xpos = get_link_position(self.unwrapped.model,
+                                             self.unwrapped.data, 'right', 1)
+
+        box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
+
+        # get distance to box for each one
+        left_link0_dist = np.linalg.norm(left_link0_xpos - box_xpos)
+        left_link1_dist = np.linalg.norm(left_link1_xpos - box_xpos)
+        right_link0_dist = np.linalg.norm(right_link0_xpos - box_xpos)
+        right_link1_dist = np.linalg.norm(right_link1_xpos - box_xpos)
+
+        # get the average distance
+        avg_dist = (left_link0_dist + left_link1_dist + right_link0_dist +
+                    right_link1_dist) / 4
+        
+        return avg_dist
         # print(
         #     f"Shaped reward: {shaped_reward}\n\tProximity: {proximity_potential}\n\tLift: {lift_potential}\n\tCentering: {centering_potential}"
         # )
@@ -249,9 +287,6 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         # # elif box_zerror > self.box_zerror_prev + numerical_threshold:
         # #     reward -= .1
         # self.previous_action = action
-
-        reward = primary_reward + shaped_reward
-        return reward
 
     def _calc_chest_proximity_potential(self, gamma=0.99, phi_weight=1):
         '''

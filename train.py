@@ -146,7 +146,7 @@ def train(args):
         n_steps=4096,
         use_sde=True,
         policy_kwargs=policy_kwargs,
-        sde_sample_freq=1 / config["ctrl_timestep"],
+        sde_sample_freq=5 / config["ctrl_timestep"],
         batch_size=128,
         learning_rate=linear_schedule(5e-4, 1e-6),
         ent_coef=.00,

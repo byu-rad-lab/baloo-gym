@@ -1358,7 +1358,7 @@ class StateObservationObjectOnly:
     box_size_lb = [.2, .2, .5]
     elevator_pos_filt_cmd_lb = [-1.5]
 
-    elevator_pos_ub = [0]
+    elevator_pos_ub = [1e-4]
     left_pos_ub = [np.pi] * 6
     right_pos_ub = [np.pi] * 6
     box_pose_ub = [3, 3, 2, 1, 1, 1, 1]
