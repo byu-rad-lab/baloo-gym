@@ -156,12 +156,12 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         # 3. Joint Centering reward
         if "joint_centering" in self.reward_selection:
             centering_potential = self._calc_joint_centering_potential(
-                phi_weight=1)
+                phi_weight=.05)
             shaped_reward += centering_potential
 
-        print(
-            f"Shaped reward: {shaped_reward}\n\tProximity: {proximity_potential}\n\tLift: {lift_potential}\n"
-        )
+        # print(
+        #     f"Shaped reward: {shaped_reward}\n\tProximity: {proximity_potential}\n\tLift: {lift_potential}\n\tCentering: {centering_potential}"
+        # )
 
         # # scaling_factor = 1 / self.max_zerror**2
         # # reward -= scaling_factor * box_zerror**2
@@ -292,7 +292,7 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
 
         #print previous to current error
         #check if prev_box_xerror and box_xerror are same variable
-        print(f"prox diff: {box_xerror - prev_box_xerror}")
+        # print(f"prox diff: {box_xerror - prev_box_xerror}")
 
         # box error and prev_box_error are always the same
 
@@ -341,7 +341,7 @@ class PotentialBasedRewardWrapper(gym.Wrapper):
         potential = gamma * (phi_weight * phi(box_height)) - (
             phi_weight * phi(self.prev_box_height))
 
-        print(f"Height diff {box_height - self.prev_box_height}")
+        # print(f"Height diff {box_height - self.prev_box_height}")
         self.prev_box_height = box_height
         return potential
 
