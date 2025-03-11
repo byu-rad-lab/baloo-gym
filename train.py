@@ -138,7 +138,7 @@ def train(args):
         net_arch=[256, 128, 64],
         use_expln=True,
         squash_output=True,
-        log_std_init=-2.0,
+        log_std_init=-2.5,
     )
     model = PPO(
         "MlpPolicy",
