@@ -7,6 +7,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_chest_position,
     set_mocap_pose,
     set_mocap_size,
+    get_box_angvel,
     get_tactile_image,
     get_contact_forces_on_body,
     detect_box_touch,
@@ -49,13 +50,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
         # call baloo_base step function
         observation, reward, terminated, truncated, info = self.env.step(
             action)
-        reward = self.calculate_reward(action)
 
-        info["is_success"] = False
-        if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
-            terminated = True
-            info["is_success"] = True
-            # reward += 50
+        reward = self.calculate_reward(action, info)
 
         return observation, reward, terminated, truncated, info
 
@@ -89,7 +85,49 @@ class ThreePartRewardWrapper(gym.Wrapper):
     def _distance_to_sphere(self, point, center, radius):
         return np.linalg.norm(point - center) - radius
 
-    def calculate_reward(self, action):
+    def _box_above_height_threshold(self, height_threshold=0.5) -> bool:
+        """
+        Check if the box is above the height threshold.
+        """
+        box_zpos = get_box_position(self.unwrapped.model,
+                                    self.unwrapped.data)[2]
+        xsize, ysize, zsize = self.unwrapped.model.geom("box").size
+        return box_zpos > (height_threshold + 2 * zsize)
+
+    def _box_below_vel_threshold(self, vel_threshold=1) -> bool:
+        """
+        Check if the box is below the velocity threshold.
+        """
+        box_vel = get_box_vel(self.unwrapped.model, self.unwrapped.data)
+        box_angvel = get_box_angvel(self.unwrapped.model, self.unwrapped.data)
+
+        twist = np.hstack([box_vel, box_angvel])
+        return np.linalg.norm(twist) < vel_threshold
+
+    def _calc_height_threshold_reward(self,
+                                      box_zpos,
+                                      height_threshold=0.5,
+                                      weight=10):
+        """
+        Calculate the reward based on the height threshold.
+        """
+        xsize, ysize, zsize = self.unwrapped.model.geom("box").size
+
+        if box_zpos > (height_threshold + 2 * zsize):
+            return 1
+        else:
+            #box is below height threshold
+            distance_from_threshold = np.abs(box_zpos -
+                                             (height_threshold + 2 * zsize))
+            return np.exp(-weight * distance_from_threshold)
+
+    def _calc_velocity_reward(self, box_vel, box_angvel, weight=1):
+        twist = np.hstack([box_vel, box_angvel])
+        mag = np.linalg.norm(twist)
+
+        return np.exp(-weight * mag)
+
+    def calculate_reward(self, action, info):
         """
         Calculates the reward to return. Used with Carlo Alessi at SSSA
         """
@@ -98,22 +136,29 @@ class ThreePartRewardWrapper(gym.Wrapper):
         chest_xpos = get_chest_position(self.unwrapped.model,
                                         self.unwrapped.data)
 
-        ##### PRIMARY REWARD #####
+        ##### PRIMARY TASK REWARD #####
         reward = 0
 
-        # scaling_factor = 1 / self.max_zerror**2
-        # reward -= scaling_factor * box_zerror**2
-        # self.unwrapped.model.geom('box').rgba = [
-        #     box_zerror / self.initial_box_zerror,
-        #     1 - box_zerror / self.initial_box_zerror, 0, .5
-        # ]
+        H = self._box_above_height_threshold()
+        V = self._box_below_vel_threshold()
 
-        # #goal bonuses
-        # threshold = 0.05
-        # if box_zerror < threshold:
-        #     #green
-        #     reward += 1
-        #     self.unwrapped.model.geom('box').rgba = [1, 1, 1, .5]
+        info["is_success"] = False
+        if H and V:
+            info["is_success"] = True
+            reward += 100
+
+            #change color of box to blue
+            self.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
+        else:
+            #shaped reward
+            height = self._calc_height_threshold_reward(box_xpos[2])
+            velocity = self._calc_velocity_reward(
+                get_box_vel(self.unwrapped.model, self.unwrapped.data),
+                get_box_angvel(self.unwrapped.model, self.unwrapped.data))
+
+            reward += (1 - H) * height + H * velocity
+
+        ##### SECONDARY HOW REWARDS #####
 
         if "dont_drop" in self.reward_selection:
             if not detect_box_on_ground(self.unwrapped.model,
@@ -134,9 +179,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
                     1, redness, redness, 1
                 ]
 
-        ##### SECONDARY REWARDS #####
+        if "touch_ground" in self.reward_selection:
+            #penalize any part of arms touching the ground.
+            if check_arms_touching_ground(self.unwrapped.model,
+                                          self.unwrapped.data):
+                reward -= .1
+
         if "chest_proximity" in self.reward_selection:
-            reward += 10 * self._calc_chest_proximity_reward(box_xpos)
+            reward += 1 * self._calc_chest_proximity_reward(box_xpos)
 
         if "joint_centering" in self.reward_selection:
             centering_weight = 0.05
@@ -181,19 +231,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
         if "rms_robot_dist" in self.reward_selection:
             reward -= self._get_rms_robot_dist(box_xpos, chest_xpos)
 
-        if "touch_ground" in self.reward_selection:
-            #penalize any part of arms touching the ground.
-            if check_arms_touching_ground(self.unwrapped.model,
-                                          self.unwrapped.data):
-                reward -= .1
-
-        # #reward moving towards desired position, penalize moving away
-        # if box_zerror < self.box_zerror_prev - numerical_threshold:
-        #     #yellow
-        #     self.unwrapped.model.geom('box').rgba = [1, 1, 0, .5]
-        #     reward += .5
-        # elif box_zerror > self.box_zerror_prev + numerical_threshold:
-        #     reward -= .1
         self.previous_action = action
         return reward
 

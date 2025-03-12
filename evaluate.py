@@ -46,7 +46,7 @@ def load_or_download_model(args, local_experiment_folder):
                 shutil.move(old_path, new_path)
                 print(f"Downloaded best model to {new_path}")
                 run_path = new_path
-                shutil.rmtree(old_path.split("/")[0])
+                # shutil.rmtree(old_path.split("/")[0])
                 break
 
         if run_path is None:
