@@ -159,6 +159,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
             reward += (1 - H) * height + H * velocity
 
         ##### SECONDARY HOW REWARDS #####
+        if "touch_ground" in self.reward_selection:
+            #penalize any part of arms touching the ground.
+            if check_arms_touching_ground(self.unwrapped.model,
+                                          self.unwrapped.data):
+                reward -= .1
+
+        if "chest_proximity" in self.reward_selection:
+            reward += 1 * self._calc_chest_proximity_reward(box_xpos)
 
         if "dont_drop" in self.reward_selection:
             if not detect_box_on_ground(self.unwrapped.model,
@@ -178,15 +186,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 self.unwrapped.model.geom('box').rgba = [
                     1, redness, redness, 1
                 ]
-
-        if "touch_ground" in self.reward_selection:
-            #penalize any part of arms touching the ground.
-            if check_arms_touching_ground(self.unwrapped.model,
-                                          self.unwrapped.data):
-                reward -= .1
-
-        if "chest_proximity" in self.reward_selection:
-            reward += 1 * self._calc_chest_proximity_reward(box_xpos)
 
         if "joint_centering" in self.reward_selection:
             centering_weight = 0.05
