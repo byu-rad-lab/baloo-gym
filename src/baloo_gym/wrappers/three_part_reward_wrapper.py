@@ -165,6 +165,18 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                           self.unwrapped.data):
                 reward -= .1
 
+        if "upward_forces" in self.reward_selection:
+            contacts = get_contact_forces_on_body(self.unwrapped.model,
+                                                  self.unwrapped.data, "box")
+            #calculate net force, ncon x 3
+            net_force = np.sum(contacts, axis=0)
+            print(f"net force: {net_force}")
+            upward_force = net_force[2]
+            reward += 0.01 * upward_force
+
+            # print(f"num contacts: {num_contacts}")
+            # reward += 0.01 * num_contacts
+
         if "chest_proximity" in self.reward_selection:
             reward += 1 * self._calc_chest_proximity_reward(box_xpos)
 
