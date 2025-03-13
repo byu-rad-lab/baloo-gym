@@ -25,7 +25,7 @@ def train(args):
         "total_timesteps": args.total_timesteps,
         "ctrl_timestep": .05,
         "env_name": args.env_name,
-        "time_limit_sec": 30,
+        "time_limit_sec": 60,
         "curriculum_selection": args.curriculum_selection,
         'reward_selection': args.reward_selection,
         "randomize_initial_height": args.randomize_initial_height,

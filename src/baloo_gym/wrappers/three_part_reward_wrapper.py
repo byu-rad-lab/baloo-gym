@@ -206,6 +206,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 #calculate net force, ncon x 3
                 net_force = np.sum(contacts, axis=0)
                 unit_net_force = net_force / np.linalg.norm(net_force)
+                # print(f"magnitude of net force: {np.linalg.norm(net_force)}")
                 z_vec = np.array([0, 0, 1])
                 similarity = self._cosine_similarity(unit_net_force, z_vec)
                 reward += 0.1 * similarity
