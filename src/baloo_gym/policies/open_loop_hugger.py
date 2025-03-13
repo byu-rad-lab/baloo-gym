@@ -118,4 +118,4 @@ class OpenLoopHuggerPolicy:
             self.actions[0] = 0
             self.prev_actions = self.actions
 
-        return self.actions, None
+        return self.actions.copy(), None
