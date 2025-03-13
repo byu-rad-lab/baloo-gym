@@ -66,40 +66,62 @@ parser.add_argument('--num_rollouts',
 args = parser.parse_args()
 
 #load the config from the wandb synced run.
+if args.runid is None:
+    folder_name = "open_loop_hugger"
+    config = {
+        "total_timesteps": 1000000,
+        "ctrl_timestep": .05,
+        "env_name": "baloo_v9",
+        "time_limit_sec": 120,
+        "curriculum_selection": [],
+        'reward_selection':
+        ['chest_proximity', 'upward_force', 'touch_ground'],
+        "randomize_initial_height": False,
+        "randomize_object_size": True,
+        "randomize_object_mass": True,
+    }
 
-run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
-folder_name = f"{run.name}-{run.id}"
-config = {
-    "total_timesteps": run.config["total_timesteps"],
-    "ctrl_timestep": run.config["ctrl_timestep"],
-    "env_name": run.config["env_name"],
-    "time_limit_sec": run.config["time_limit_sec"],
-    "curriculum_selection": run.config["curriculum_selection"],
-    'reward_selection': run.config['reward_selection'],
-    "randomize_initial_height": False,
-    "randomize_object_size": True,
-    "randomize_object_mass": True,
-}
+    model = OpenLoopHuggerPolicy(N=50)
 
-model_path = load_or_download_model(args, f"./new_experiments")
-model = PPO.load(model_path)
+    env = build_env(config, baseline=True, render_mode="rgb_array")
+else:
+    run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
+    folder_name = f"{run.name}-{run.id}"
+    config = {
+        "total_timesteps": run.config["total_timesteps"],
+        "ctrl_timestep": run.config["ctrl_timestep"],
+        "env_name": run.config["env_name"],
+        "time_limit_sec": run.config["time_limit_sec"],
+        "curriculum_selection": run.config["curriculum_selection"],
+        'reward_selection': run.config['reward_selection'],
+        "randomize_initial_height": False,
+        "randomize_object_size": True,
+        "randomize_object_mass": True,
+    }
 
-env = build_env(config, baseline=False, render_mode="rgb_array")
+    model_path = load_or_download_model(args, f"./new_experiments")
+    model = PPO.load(model_path)
+
+    env = build_env(config, baseline=False, render_mode="rgb_array")
 
 successes = []
 
 for j in range(args.num_rollouts):
-    frames, rewards, actions, observations, infos, dists = record_rollout(
-        env, model, deterministic=True)
+    if args.runid is None:
+        frames, rewards, actions, observations, infos = record_rollout(
+            env, model, deterministic=True, return_dist=False)
+    else:
+        frames, rewards, actions, observations, infos, dists = record_rollout(
+            env, model, deterministic=True)
 
     if "is_success" in infos[-1]:
         successes.append(infos[-1]["is_success"])
 
-    print(len(frames), len(rewards), len(actions), len(observations))
-
     #plot rewards, actions, and observations over time, make video with moviepy
     import matplotlib.pyplot as plt
     import numpy as np
+
+    print(len(frames), len(rewards), len(actions), len(observations))
 
     # run_path = os.path.dirname(args.model_file)
     run_path = f"./evaluation_results/{folder_name}/rollout_{j}"
@@ -112,6 +134,7 @@ for j in range(args.num_rollouts):
     fig = plt.figure()
 
     plt.plot(rewards)
+    plt.grid()
     plt.xlabel("Timesteps")
     plt.ylabel("Rewards")
     plt.savefig(run_path + f"/rewards.png", dpi=300)
@@ -125,6 +148,7 @@ for j in range(args.num_rollouts):
     for i in range(env.action_space.shape[0]):
         axs[i].plot(np.array(actions)[:, i])
         axs[i].set_ylabel(f"a{i}")
+        axs[i].grid()
 
     axs[-1].set_xlabel("Timesteps")
     plt.savefig(run_path + f"/actions.png", dpi=300, bbox_inches='tight')
@@ -138,6 +162,7 @@ for j in range(args.num_rollouts):
     for i in range(env.action_space.shape[0]):
         axs[i].hist(np.array(actions)[:, i], bins=100)
         axs[i].set_ylabel(f"a{i}")
+        axs[i].grid()
 
     axs[-1].set_xlabel("Action Value")
     plt.savefig(run_path + f"/actions_hist.png", dpi=300, bbox_inches='tight')
@@ -149,37 +174,41 @@ for j in range(args.num_rollouts):
     for i in range(env.observation_space.shape[0]):
         axs[i].plot(np.array(observations)[:, i])
         axs[i].set_ylabel(f"o{i}")
+        axs[i].grid()
 
     axs[-1].set_xlabel("Timesteps")
     plt.savefig(run_path + f"/observations.png", dpi=300, bbox_inches='tight')
 
     #plot the action distribution for each action, 13 x 2
-    means = [dists[i][0] for i in range(len(dists))]
-    stds = [dists[i][1] for i in range(len(dists))]
+    if args.runid is not None:
+        means = [dists[i][0] for i in range(len(dists))]
+        stds = [dists[i][1] for i in range(len(dists))]
 
-    means = np.array(means)
-    stds = np.array(stds)
+        means = np.array(means)
+        stds = np.array(stds)
 
-    fig, axs = plt.subplots(env.action_space.shape[0], 1, figsize=(10, 30))
+        fig, axs = plt.subplots(env.action_space.shape[0], 1, figsize=(10, 30))
 
-    for i in range(env.action_space.shape[0]):
-        axs[i].plot(means[:, i], label="mean")
-        axs[i].plot(np.array(actions)[:, i], 'r--', label="action")
-        axs[i].plot(np.ones(len(means)) * env.action_space.low[i], 'k--')
-        axs[i].plot(np.ones(len(means)) * env.action_space.high[i], 'k--')
-        axs[i].fill_between(
-            np.arange(len(means)),
-            means[:, i] - 3 * stds[:, i],
-            means[:, i] + 3 * stds[:, i],
-            alpha=0.5,
-            label="3 std",
-        )
-        axs[i].legend()
-        axs[i].set_ylabel(f"a{i}")
-        axs[i].grid()
+        for i in range(env.action_space.shape[0]):
+            axs[i].plot(means[:, i], label="mean")
+            axs[i].plot(np.array(actions)[:, i], 'r--', label="action")
+            axs[i].plot(np.ones(len(means)) * env.action_space.low[i], 'k--')
+            axs[i].plot(np.ones(len(means)) * env.action_space.high[i], 'k--')
+            axs[i].fill_between(
+                np.arange(len(means)),
+                means[:, i] - 3 * stds[:, i],
+                means[:, i] + 3 * stds[:, i],
+                alpha=0.5,
+                label="3 std",
+            )
+            axs[i].legend()
+            axs[i].set_ylabel(f"a{i}")
+            axs[i].grid()
 
-    axs[-1].set_xlabel("Timesteps")
-    plt.savefig(run_path + f"/action_dist.png", dpi=300, bbox_inches='tight')
-    plt.close('all')
+        axs[-1].set_xlabel("Timesteps")
+        plt.savefig(run_path + f"/action_dist.png",
+                    dpi=300,
+                    bbox_inches='tight')
+        plt.close('all')
 
 print(f"Success rate: {np.mean(successes)}")

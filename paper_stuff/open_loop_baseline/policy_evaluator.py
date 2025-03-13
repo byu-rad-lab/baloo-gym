@@ -23,10 +23,10 @@ def run_simulation(combination):
         "total_timesteps": 1000000,
         "ctrl_timestep": .05,
         "env_name": "baloo_v9",
-        "time_limit_sec": 30,
+        "time_limit_sec": 120,
         "curriculum_selection": [],
         'reward_selection':
-        ["dont_drop", "chest_proximity", "high_contact_forces"],
+        ['chest_proximity', 'upward_force', 'touch_ground'],
         "randomize_initial_height": False,
         "randomize_object_size": False,
         "randomize_object_mass": False,

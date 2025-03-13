@@ -53,11 +53,16 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         reward = self.calculate_reward(action, info)
 
+        terminated = info.get("is_success", False)
+
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
         """Reset function that calls the parent reset function and then calculates the reward."""
         # call baloo_base reset function
+
+        ret = self.env.reset(seed=seed, options=options)
+
         self.desired_box_visual_initialized = False
         self.sphere_visual_initialized = False
         self.convex_hull_visual_initialized = False
@@ -66,7 +71,11 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.box_lifted_already = False
         self.object_off_floor_consecutive_steps = 0
 
-        return self.env.reset()
+        self.box_initial_zpos = get_box_position(self.unwrapped.model,
+                                                 self.unwrapped.data)[2]
+        self.counter = 0
+
+        return ret
 
     def _decay_sphere_radius(self):
         start = 0.5
@@ -91,12 +100,16 @@ class ThreePartRewardWrapper(gym.Wrapper):
         """
         box_zpos = get_box_position(self.unwrapped.model,
                                     self.unwrapped.data)[2]
-        xsize, ysize, zsize = self.unwrapped.model.geom("box").size
-        return box_zpos > (height_threshold + 2 * zsize)
 
-    def _box_below_vel_threshold(self, vel_threshold=1) -> bool:
+        return box_zpos > (self.box_initial_zpos + height_threshold)
+
+    def _box_below_vel_threshold(self, vel_threshold=.01) -> bool:
         """
         Check if the box is below the velocity threshold.
+
+        .03 is the maximum upwards velocity of the elevator
+        So if the box is grasped well, it should be moving at 
+        or below this velocity.
         """
         box_vel = get_box_vel(self.unwrapped.model, self.unwrapped.data)
         box_angvel = get_box_angvel(self.unwrapped.model, self.unwrapped.data)
@@ -107,23 +120,29 @@ class ThreePartRewardWrapper(gym.Wrapper):
     def _calc_height_threshold_reward(self,
                                       box_zpos,
                                       height_threshold=0.5,
-                                      weight=10):
+                                      weight=2):
         """
         Calculate the reward based on the height threshold.
         """
-        xsize, ysize, zsize = self.unwrapped.model.geom("box").size
 
-        if box_zpos > (height_threshold + 2 * zsize):
+        box_zpos = get_box_position(self.unwrapped.model,
+                                    self.unwrapped.data)[2]
+        if box_zpos > (self.box_initial_zpos + height_threshold):
             return 1
         else:
-            #box is below height threshold
-            distance_from_threshold = np.abs(box_zpos -
-                                             (height_threshold + 2 * zsize))
+            #box is below height threshold, normalize to 0-1
+            distance_from_threshold = (self.box_initial_zpos + height_threshold
+                                       - box_zpos) / height_threshold
+
+            # print("distance from threshold: ", distance_from_threshold)
             return np.exp(-weight * distance_from_threshold)
 
-    def _calc_velocity_reward(self, box_vel, box_angvel, weight=1):
+    def _calc_velocity_reward(self, box_vel, box_angvel, weight=100):
         twist = np.hstack([box_vel, box_angvel])
         mag = np.linalg.norm(twist)
+
+        # print("twist: ", twist)
+        # print("twist norm: ", mag)
 
         return np.exp(-weight * mag)
 
@@ -137,18 +156,29 @@ class ThreePartRewardWrapper(gym.Wrapper):
                                         self.unwrapped.data)
 
         ##### PRIMARY TASK REWARD #####
+        self.counter += 1
         reward = 0
 
         H = self._box_above_height_threshold()
         V = self._box_below_vel_threshold()
 
+        #color stuff
+        if not detect_box_on_ground(self.unwrapped.model, self.unwrapped.data):
+            #yellow
+            self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
+        else:
+            #redness as an indicator of mass. dark red = heavy, light red = light
+            redness = 1 - self.unwrapped.model.body('box').mass.item() / 20
+            self.unwrapped.model.geom('box').rgba = [1, redness, redness, 1]
+
+        if H:
+            #green
+            self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
+
         info["is_success"] = False
         if H and V:
             info["is_success"] = True
-            reward += 100
-
-            #change color of box to blue
-            self.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
+            # reward += 10
         else:
             #shaped reward
             height = self._calc_height_threshold_reward(box_xpos[2])
@@ -156,7 +186,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 get_box_vel(self.unwrapped.model, self.unwrapped.data),
                 get_box_angvel(self.unwrapped.model, self.unwrapped.data))
 
-            reward += (1 - H) * height + H * velocity
+            # print("H: ", H)
+            reward += height + H * velocity
 
         ##### SECONDARY HOW REWARDS #####
         if "touch_ground" in self.reward_selection:
