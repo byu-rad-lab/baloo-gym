@@ -210,9 +210,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 # print(f"magnitude of net force: {np.linalg.norm(net_force)}")
                 z_vec = np.array([0, 0, 1])
                 similarity = self._cosine_similarity(unit_net_force, z_vec)
-                if similarity > 0:
-                    #dont penalize if forces are pointed down or sideways.
-                    reward += 0.1 * np.log(ncon + 1) * similarity
+                reward += 0.1 * similarity
 
         if "chest_proximity" in self.reward_selection:
             reward += 10 * self._calc_chest_proximity_reward(box_xpos)
@@ -323,7 +321,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         return reward
 
     def _phi(self, x):
-        a = 1  #tune to some small signal from anywhere in state space.
+        a = 4  #tune to some small signal from anywhere in state space.
         # return np.exp(-a * x**2) # too smooth near 0? larger objects don't approach as much
         return np.exp(-a * x)
 
@@ -357,7 +355,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             right_link1_percent, chest_percent
         ])
 
-        return np.linalg.norm(percents)
+        return np.mean(percents)
 
     def _get_rms_robot_dist(self, box_xpos, chest_xpos):
         left_link0_xpos = get_link_position(self.unwrapped.model,
