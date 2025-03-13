@@ -17,7 +17,13 @@ uv sync
 ``` bash
 source .venv/bin/activate
 ```
-6. You can now start training.
+6. Navigate back to baloo-mujoco-sim root folder and run
+```bash
+./install.sh
+```
+This will install the C++ plugins for the mujoco simulator in the correct place for the virtual environment to find. 
+
+7. You can now start training.
 
 
 ### GPU Configuration ###
