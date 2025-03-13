@@ -178,7 +178,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         info["is_success"] = False
         if H and V:
             info["is_success"] = True
-            # reward += 10
+            reward += 10
         else:
             #shaped reward
             height = self._calc_height_threshold_reward(box_xpos[2])
