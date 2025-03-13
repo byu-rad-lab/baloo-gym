@@ -23,8 +23,14 @@ source .venv/bin/activate
 ```
 This will install the C++ plugins for the mujoco simulator in the correct place for the virtual environment to find. 
 
-7. You can now start training.
-
+7. Install this package in editable mode from the root directory (for all the import stuff to work):
+```bash
+uv pip install -e .
+```
+8. Train with something like
+```bash
+uv run train.py --SEE OPTIONS IN THE CODE
+```
 
 ### GPU Configuration ###
 The virtual environment dependencies have been tested with this configuration:
