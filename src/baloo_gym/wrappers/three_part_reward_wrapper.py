@@ -203,16 +203,19 @@ class ThreePartRewardWrapper(gym.Wrapper):
             assert contacts.shape[1] == 3, "contact forces should be 3d"
 
             if contacts.shape[0] > 0:
+                ncon = contacts.shape[0]
                 #calculate net force, ncon x 3
                 net_force = np.sum(contacts, axis=0)
                 unit_net_force = net_force / np.linalg.norm(net_force)
                 # print(f"magnitude of net force: {np.linalg.norm(net_force)}")
                 z_vec = np.array([0, 0, 1])
                 similarity = self._cosine_similarity(unit_net_force, z_vec)
-                reward += 0.1 * similarity
+                if similarity > 0:
+                    #dont penalize if forces are pointed down or sideways.
+                    reward += 0.1 * np.log(ncon + 1) * similarity
 
         if "chest_proximity" in self.reward_selection:
-            reward += 1 * self._calc_chest_proximity_reward(box_xpos)
+            reward += 10 * self._calc_chest_proximity_reward(box_xpos)
 
         if "dont_drop" in self.reward_selection:
             if not detect_box_on_ground(self.unwrapped.model,
@@ -320,7 +323,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         return reward
 
     def _phi(self, x):
-        a = 4  #tune to some small signal from anywhere in state space.
+        a = 1  #tune to some small signal from anywhere in state space.
         # return np.exp(-a * x**2) # too smooth near 0? larger objects don't approach as much
         return np.exp(-a * x)
 
@@ -349,7 +352,12 @@ class ThreePartRewardWrapper(gym.Wrapper):
         total = (left_link0_percent + left_link1_percent +
                  right_link0_percent + right_link1_percent + chest_percent) / 5
 
-        return total
+        percents = np.array([
+            left_link0_percent, left_link1_percent, right_link0_percent,
+            right_link1_percent, chest_percent
+        ])
+
+        return np.linalg.norm(percents)
 
     def _get_rms_robot_dist(self, box_xpos, chest_xpos):
         left_link0_xpos = get_link_position(self.unwrapped.model,
