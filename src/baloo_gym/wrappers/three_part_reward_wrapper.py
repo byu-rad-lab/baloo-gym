@@ -55,6 +55,13 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         terminated = info.get("is_success", False)
 
+        #if box fell down, truncate episode
+        box_zpos = get_box_position(self.unwrapped.model,
+                                    self.unwrapped.data)[2]
+
+        if box_zpos < self.box_initial_zpos:
+            truncated = True
+
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
@@ -178,7 +185,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         info["is_success"] = False
         if H and V:
             info["is_success"] = True
-            reward += 10
+            reward += 100
         else:
             #shaped reward
             height = self._calc_height_threshold_reward(box_xpos[2])
@@ -194,7 +201,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             #penalize any part of arms touching the ground.
             if check_arms_touching_ground(self.unwrapped.model,
                                           self.unwrapped.data):
-                reward -= .1
+                reward -= .01
 
         if "upward_forces" in self.reward_selection:
             contacts = get_contact_forces_on_body(self.unwrapped.model,
@@ -210,10 +217,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 # print(f"magnitude of net force: {np.linalg.norm(net_force)}")
                 z_vec = np.array([0, 0, 1])
                 similarity = self._cosine_similarity(unit_net_force, z_vec)
-                reward += 0.1 * similarity
+                reward += 0.01 * similarity
 
         if "chest_proximity" in self.reward_selection:
-            reward += 10 * self._calc_chest_proximity_reward(box_xpos)
+            reward += 1 * self._calc_chest_proximity_reward(box_xpos)
 
         if "dont_drop" in self.reward_selection:
             if not detect_box_on_ground(self.unwrapped.model,
@@ -269,7 +276,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         if "tactile_nonzero" in self.reward_selection:
             taxel_reward = self._count_nonzero_percentage()
-            reward += 10 * taxel_reward
+            reward += 1 * taxel_reward
 
         if "arm_convex_hull" in self.reward_selection:
             reward -= self._get_convex_hull_distance(box_xpos)
@@ -326,36 +333,33 @@ class ThreePartRewardWrapper(gym.Wrapper):
         return np.exp(-a * x)
 
     def _count_nonzero_percentage(self):
-        left_link0_taxels = get_tactile_image(self.unwrapped.model,
-                                              self.unwrapped.data, "left", 0)
-        left_link1_taxels = get_tactile_image(self.unwrapped.model,
-                                              self.unwrapped.data, "left", 1)
-        right_link0_taxels = get_tactile_image(self.unwrapped.model,
-                                               self.unwrapped.data, "right", 0)
-        right_link1_taxels = get_tactile_image(self.unwrapped.model,
-                                               self.unwrapped.data, "right", 1)
+        # left_link0_taxels = get_tactile_image(self.unwrapped.model,
+        #                                       self.unwrapped.data, "left", 0)
+        # left_link1_taxels = get_tactile_image(self.unwrapped.model,
+        #                                       self.unwrapped.data, "left", 1)
+        # right_link0_taxels = get_tactile_image(self.unwrapped.model,
+        #                                        self.unwrapped.data, "right", 0)
+        # right_link1_taxels = get_tactile_image(self.unwrapped.model,
+        #                                        self.unwrapped.data, "right", 1)
         chest_taxels = get_tactile_image(self.unwrapped.model,
                                          self.unwrapped.data, "chest", -1)
 
-        left_link0_percent = np.count_nonzero(
-            left_link0_taxels) / left_link0_taxels.size
-        left_link1_percent = np.count_nonzero(
-            left_link1_taxels) / left_link1_taxels.size
-        right_link0_percent = np.count_nonzero(
-            right_link0_taxels) / right_link0_taxels.size
-        right_link1_percent = np.count_nonzero(
-            right_link1_taxels) / right_link1_taxels.size
+        # left_link0_percent = np.count_nonzero(
+        #     left_link0_taxels) / left_link0_taxels.size
+        # left_link1_percent = np.count_nonzero(
+        #     left_link1_taxels) / left_link1_taxels.size
+        # right_link0_percent = np.count_nonzero(
+        #     right_link0_taxels) / right_link0_taxels.size
+        # right_link1_percent = np.count_nonzero(
+        #     right_link1_taxels) / right_link1_taxels.size
         chest_percent = np.count_nonzero(chest_taxels) / chest_taxels.size
 
-        total = (left_link0_percent + left_link1_percent +
-                 right_link0_percent + right_link1_percent + chest_percent) / 5
+        # percents = np.array([
+        #     left_link0_percent, left_link1_percent, right_link0_percent,
+        #     right_link1_percent, chest_percent
+        # ])
 
-        percents = np.array([
-            left_link0_percent, left_link1_percent, right_link0_percent,
-            right_link1_percent, chest_percent
-        ])
-
-        return np.mean(percents)
+        return chest_percent
 
     def _get_rms_robot_dist(self, box_xpos, chest_xpos):
         left_link0_xpos = get_link_position(self.unwrapped.model,
