@@ -235,7 +235,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 ]
 
         if "joint_centering" in self.reward_selection:
-            centering_weight = 0.05
+            centering_weight = 0.1
             reward -= centering_weight * self.get_joint_centering_reward()
 
         if "action_smoothness" in self.reward_selection:

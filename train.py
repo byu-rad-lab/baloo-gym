@@ -135,18 +135,18 @@ def train(args):
         return func
 
     policy_kwargs = dict(
-        net_arch=[256, 128, 64],
-        # use_expln=True,
+        net_arch=[128, 64],
+        use_expln=True,
         # squash_output=True,
-        log_std_init=0,
+        log_std_init=-3,
     )
     model = PPO(
         "MlpPolicy",
         vec_env,
         n_steps=4096,
-        # use_sde=True,
+        use_sde=True,
         policy_kwargs=policy_kwargs,
-        # sde_sample_freq=5 / config["ctrl_timestep"],
+        sde_sample_freq=2 / config["ctrl_timestep"],
         batch_size=128,
         learning_rate=linear_schedule(5e-4, 1e-6),
         ent_coef=.00,
