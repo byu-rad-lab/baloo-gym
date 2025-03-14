@@ -74,14 +74,13 @@ if args.runid is None:
         "env_name": "baloo_v9",
         "time_limit_sec": 120,
         "curriculum_selection": [],
-        'reward_selection':
-        ['chest_proximity', 'upward_force', 'touch_ground'],
+        'reward_selection': ['chest_proximity', 'touch_ground'],
         "randomize_initial_height": False,
         "randomize_object_size": True,
         "randomize_object_mass": True,
     }
 
-    model = OpenLoopHuggerPolicy(N=50)
+
 
     env = build_env(config, baseline=True, render_mode="rgb_array")
 else:
@@ -108,6 +107,7 @@ successes = []
 
 for j in range(args.num_rollouts):
     if args.runid is None:
+        model = OpenLoopHuggerPolicy(N=50)
         frames, rewards, actions, observations, infos = record_rollout(
             env, model, deterministic=True, return_dist=False)
     else:
