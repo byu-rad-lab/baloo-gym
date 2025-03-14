@@ -177,7 +177,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         V = self._box_below_vel_threshold()
 
         chest_box_zerror = chest_xpos[2] - box_xpos[2]
-        print(f"chest box zerror: {chest_box_zerror}")
+        # print(f"chest box zerror: {chest_box_zerror}")
         approach_threshold = 35e-2
 
         if self.reward_stage == "approach":
@@ -199,7 +199,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
             if "tactile_nonzero" in self.reward_selection:
                 taxel_reward = self._count_nonzero_percentage()
-                print(f"taxel reward: {taxel_reward}")
+                # print(f"taxel reward: {taxel_reward}")
                 reward += 10 * taxel_reward
 
             height = self._calc_height_threshold_reward(box_xpos[2])
