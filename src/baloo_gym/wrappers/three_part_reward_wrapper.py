@@ -45,6 +45,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.object_off_floor_consecutive_steps = 0
         self.prev_box_proximity = np.zeros(3)
         self.reward_stage = "approach"
+        self.approach_reward = 0
+        self.lift_reward = 0
+        self.success_reward = 0
 
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
@@ -82,7 +85,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.box_initial_zpos = get_box_position(self.unwrapped.model,
                                                  self.unwrapped.data)[2]
         self.counter = 0
-        self.reward_stage = "approach"
+        self.approach_reward = 0
+        self.lift_reward = 0
+        self.success_reward = 0
 
         return ret
 
@@ -159,11 +164,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
         """
         Calculates the reward to return. Used with Carlo Alessi at SSSA
         """
-        reward = 0
-
-        box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
-        chest_xpos = get_chest_position(self.unwrapped.model,
-                                        self.unwrapped.data)
 
         #redo rewards to be simpler:
         # 1. approach phase until the chest is withi 10 cm of the center of box.
@@ -176,38 +176,51 @@ class ThreePartRewardWrapper(gym.Wrapper):
         H = self._box_above_height_threshold()
         V = self._box_below_vel_threshold()
 
+        ##### PRIMARY TASK REWARD #####
+        info["is_success"] = False
+        if H and V:
+            info["is_success"] = True
+            self.success_reward = 100
+
+        if H:
+            #green
+            self.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
+
+        box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
+        chest_xpos = get_chest_position(self.unwrapped.model,
+                                        self.unwrapped.data)
+
         chest_box_zerror = chest_xpos[2] - box_xpos[2]
         # print(f"chest box zerror: {chest_box_zerror}")
         approach_threshold = 35e-2
 
-        if self.reward_stage == "approach":
+        box_close_to_chest = chest_box_zerror < approach_threshold
+        if not box_close_to_chest:
             # chest is too far above box
             if "chest_proximity" in self.reward_selection:
-                reward += 1 * self._calc_chest_proximity_reward(box_xpos)
+                self.approach_reward = 1 * self._calc_chest_proximity_reward(
+                    box_xpos)
 
             #redness as an indicator of mass. dark red = heavy, light red = light
             redness = 1 - self.unwrapped.model.body('box').mass.item() / 20
             self.unwrapped.model.geom('box').rgba = [1, redness, redness, 1]
 
-            if chest_box_zerror < approach_threshold:
-                self.reward_stage = "grasp"
-
-        elif self.reward_stage == "grasp":
+        else:
             #chest is close or below box, so we can start grasping.
             #yellow
             self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
-
-            if "tactile_nonzero" in self.reward_selection:
-                taxel_reward = self._count_nonzero_percentage()
-                # print(f"taxel reward: {taxel_reward}")
-                reward += 10 * taxel_reward
 
             height = self._calc_height_threshold_reward(box_xpos[2])
             velocity = self._calc_velocity_reward(
                 get_box_vel(self.unwrapped.model, self.unwrapped.data),
                 get_box_angvel(self.unwrapped.model, self.unwrapped.data))
 
-            reward += 0.1 * (1 - H) * height + H * 0.1 * velocity
+            self.lift_reward = 0.1 * height + H * 0.1 * velocity
+
+            if "tactile_nonzero" in self.reward_selection:
+                taxel_reward = self._count_nonzero_percentage()
+                # print(f"taxel reward: {taxel_reward}")
+                self.lift_reward += 10 * taxel_reward
 
             #color stuff
             if not detect_box_on_ground(self.unwrapped.model,
@@ -215,16 +228,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 #green if off of ground
                 self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
 
-        ##### PRIMARY TASK REWARD #####
-        info["is_success"] = False
-        if H and V:
-            info["is_success"] = True
-            reward += 1
-
-        if H:
-            #green
-            self.unwrapped.model.geom('box').rgba = [0, 0, 1, 1]
         ##### SECONDARY HOW REWARDS #####
+        reward = 0
         if "touch_ground" in self.reward_selection:
             #penalize any part of arms touching the ground.
             if check_arms_touching_ground(self.unwrapped.model,
@@ -305,8 +310,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
         if "rms_robot_dist" in self.reward_selection:
             reward -= self._get_rms_robot_dist(box_xpos, chest_xpos)
 
-        self.previous_action = action
-        return reward
+        final_reward = self.approach_reward + self.lift_reward + self.success_reward + reward
+        return final_reward
 
     def _calc_chest_proximity_reward(self, box_xpos):
         '''
