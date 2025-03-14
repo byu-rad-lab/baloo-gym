@@ -137,7 +137,7 @@ def train(args):
     policy_kwargs = dict(
         net_arch=[128, 64],
         use_expln=True,
-        squash_output=True,
+        # squash_output=True,
         log_std_init=-3,
     )
     model = PPO(
