@@ -194,7 +194,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 get_box_angvel(self.unwrapped.model, self.unwrapped.data))
 
             # print("H: ", H)
-            reward += height + H * velocity
+            reward += 0.1 * height + H * 0.1 * velocity
 
         ##### SECONDARY HOW REWARDS #####
         if "touch_ground" in self.reward_selection:
