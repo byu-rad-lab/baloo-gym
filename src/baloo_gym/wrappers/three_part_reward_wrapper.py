@@ -219,7 +219,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         info["is_success"] = False
         if H and V:
             info["is_success"] = True
-            # reward += 1
+            reward += 1
 
         if H:
             #green
