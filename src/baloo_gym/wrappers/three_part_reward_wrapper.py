@@ -44,23 +44,43 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.object_off_floor_consecutive_steps = 0
         self.prev_box_proximity = np.zeros(3)
 
+    def _box_fell_over(self):
+        # if the angle between box z axis and the world z axis is more than 80 degrees, box probably fell over.
+        box_quat = get_box_quat(self.unwrapped.model, self.unwrapped.data)
+        box_quat = R.from_quat(np.roll(box_quat, -1))
+        box_z_axis = box_quat.apply([0, 0, 1])
+        world_z_axis = np.array([0, 0, 1])
+        angle = np.arccos(self._cosine_similarity(box_z_axis, world_z_axis))
+        angle = np.degrees(angle)
+        if angle > 80:
+            return True
+        return False
+
     def step(self, action):
         """Step function that calls the parent step function and then calculates the reward."""
         # call baloo_base step function
         observation, reward, terminated, truncated, info = self.env.step(
             action)
+
         reward = self.calculate_reward(action)
 
         info["is_success"] = False
         if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
             terminated = True
             info["is_success"] = True
-            # reward += 50
+            reward += 50
+
+        if self._box_fell_over():
+            info["is_success"] = False
+            reward -= 10
+            terminated = True
 
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
         """Reset function that calls the parent reset function and then calculates the reward."""
+
+        ret = self.env.reset(seed=seed, options=options)
         # call baloo_base reset function
         self.desired_box_visual_initialized = False
         self.sphere_visual_initialized = False
@@ -70,7 +90,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.box_lifted_already = False
         self.object_off_floor_consecutive_steps = 0
 
-        return self.env.reset()
+        return ret
 
     def _decay_sphere_radius(self):
         start = 0.5
@@ -100,21 +120,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         ##### PRIMARY REWARD #####
         reward = 0
-
-        # scaling_factor = 1 / self.max_zerror**2
-        # reward -= scaling_factor * box_zerror**2
-        # self.unwrapped.model.geom('box').rgba = [
-        #     box_zerror / self.initial_box_zerror,
-        #     1 - box_zerror / self.initial_box_zerror, 0, .5
-        # ]
-
-        # #goal bonuses
-        # threshold = 0.05
-        # if box_zerror < threshold:
-        #     #green
-        #     reward += 1
-        #     self.unwrapped.model.geom('box').rgba = [1, 1, 1, .5]
-
         if "dont_drop" in self.reward_selection:
             if not detect_box_on_ground(self.unwrapped.model,
                                         self.unwrapped.data):
@@ -185,7 +190,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             #penalize any part of arms touching the ground.
             if check_arms_touching_ground(self.unwrapped.model,
                                           self.unwrapped.data):
-                reward -= .5
+                reward -= .1
 
         # #reward moving towards desired position, penalize moving away
         # if box_zerror < self.box_zerror_prev - numerical_threshold:
