@@ -42,7 +42,7 @@ def train(args):
             sync_tensorboard=True,
             monitor_gym=True,
             save_code=True,
-            tags=["success"],
+            tags=["success", "sde_working"],
             dir="new_experiments",
             group="potential_based_reward"
             if args.potential_based_reward else None,
@@ -135,10 +135,10 @@ def train(args):
         return func
 
     policy_kwargs = dict(
-        net_arch=[128, 64],
+        net_arch=[256, 128, 64],
         use_expln=True,
         # squash_output=True,
-        log_std_init=-3,
+        # log_std_init=-3,
     )
     model = PPO(
         "MlpPolicy",
@@ -146,10 +146,10 @@ def train(args):
         n_steps=4096,
         use_sde=True,
         policy_kwargs=policy_kwargs,
-        sde_sample_freq=2 / config["ctrl_timestep"],
+        sde_sample_freq=10/ config["ctrl_timestep"],
         batch_size=128,
         learning_rate=linear_schedule(5e-4, 1e-6),
-        ent_coef=.005,
+        # ent_coef=.005,
         verbose=2,
         tensorboard_log=f"new_experiments/{run_folder}/tensorboard_logs",
         device="auto",
