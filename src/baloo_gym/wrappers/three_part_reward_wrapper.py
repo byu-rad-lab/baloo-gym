@@ -200,7 +200,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         # elif box_zerror > self.box_zerror_prev + numerical_threshold:
         #     reward -= .1
         self.previous_action = action
-        return reward
+        return reward / 1200  #hard coded for a whole episode length
 
     def _calc_chest_proximity_reward(self, box_xpos):
         '''

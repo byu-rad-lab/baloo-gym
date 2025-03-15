@@ -137,8 +137,8 @@ def train(args):
     policy_kwargs = dict(
         net_arch=[256, 128, 64],
         use_expln=True,
-        # squash_output=True,
-        log_std_init=-3,
+        squash_output=True,
+        log_std_init=-2,
     )
     model = PPO(
         "MlpPolicy",
@@ -147,9 +147,11 @@ def train(args):
         use_sde=True,
         policy_kwargs=policy_kwargs,
         sde_sample_freq=10 / config["ctrl_timestep"],
-        batch_size=128,
-        learning_rate=linear_schedule(5e-4, 1e-6),
-        ent_coef=.005,
+        batch_size=512,
+        learning_rate=linear_schedule(3e-4, 1e-5),
+        clip_range=0.1,
+        ent_coef=.001,
+        n_epochs=20,
         verbose=2,
         tensorboard_log=f"new_experiments/{run_folder}/tensorboard_logs",
         device="auto",
