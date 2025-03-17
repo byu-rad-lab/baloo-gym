@@ -62,18 +62,11 @@ class ThreePartRewardWrapper(gym.Wrapper):
         observation, reward, terminated, truncated, info = self.env.step(
             action)
 
-        reward = self.calculate_reward(action)
+        reward = self.calculate_reward(action, info)
 
-        info["is_success"] = False
-        if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
-            terminated = True
-            info["is_success"] = True
-            reward += 50
-
-        if self._box_fell_over():
-            info["is_success"] = False
-            reward -= 10
-            terminated = True
+        #terminate if box is off the ground for 5 steps or if it falls over.
+        terminated = info.get("is_success", False)
+        terminated = info.get("box_fell_over", terminated)
 
         return observation, reward, terminated, truncated, info
 
@@ -109,7 +102,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
     def _distance_to_sphere(self, point, center, radius):
         return np.linalg.norm(point - center) - radius
 
-    def calculate_reward(self, action):
+    def calculate_reward(self, action, info):
         """
         Calculates the reward to return. Used with Carlo Alessi at SSSA
         """
@@ -120,6 +113,17 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         ##### PRIMARY REWARD #####
         reward = 0
+
+        info["is_success"] = False
+        if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
+            info["is_success"] = True
+            reward += 50
+
+        if self._box_fell_over():
+            info["is_success"] = False
+            info["box_fell_over"] = True
+            reward -= 10
+
         if "dont_drop" in self.reward_selection:
             if not detect_box_on_ground(self.unwrapped.model,
                                         self.unwrapped.data):
