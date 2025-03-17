@@ -23,7 +23,7 @@ def run_simulation(combination):
         "total_timesteps": 1000000,
         "ctrl_timestep": .05,
         "env_name": "baloo_v9",
-        "time_limit_sec": 120,
+        "time_limit_sec": 60,
         "curriculum_selection": [],
         'reward_selection':
         ['chest_proximity', 'upward_force', 'touch_ground'],

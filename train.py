@@ -135,23 +135,22 @@ def train(args):
         return func
 
     policy_kwargs = dict(
-        net_arch=[256, 128, 64],
-        use_expln=True,
-        squash_output=True,
-        log_std_init=-2,
+        net_arch=[256, 256],
+        # use_expln=True,
+        # squash_output=True,
+        # log_std_init=-2,
     )
     model = PPO(
         "MlpPolicy",
         vec_env,
-        n_steps=4096,
-        use_sde=True,
+        n_steps=8192,
+        # use_sde=True,
         policy_kwargs=policy_kwargs,
-        sde_sample_freq=10 / config["ctrl_timestep"],
+        # sde_sample_freq=10 / config["ctrl_timestep"],
         batch_size=512,
-        learning_rate=linear_schedule(3e-4, 1e-5),
-        clip_range=0.1,
-        ent_coef=.001,
-        n_epochs=20,
+        # learning_rate=linear_schedule(5e-4, 1e-5)
+        learning_rate=3e-4,
+        # ent_coef=.001,
         verbose=2,
         tensorboard_log=f"new_experiments/{run_folder}/tensorboard_logs",
         device="auto",

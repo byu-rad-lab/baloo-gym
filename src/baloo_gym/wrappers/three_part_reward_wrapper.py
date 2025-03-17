@@ -122,7 +122,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         if self._box_fell_over():
             info["is_success"] = False
             info["box_fell_over"] = True
-            reward -= 10
+            reward -= 5
 
         if "dont_drop" in self.reward_selection:
             if not detect_box_on_ground(self.unwrapped.model,
