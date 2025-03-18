@@ -95,6 +95,9 @@ def record_rollout(env,
 
 def make_movie(frames: list, filename: str, fps=30):
     import moviepy.editor as mpy
+    import os
+    #make folder if it doesn't exist
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
 
     clip = mpy.ImageSequenceClip(frames, fps=fps)
     clip.write_videofile(filename)
@@ -129,12 +132,14 @@ def build_env(config: dict, baseline: bool, render_mode, **kwargs):
         importlib.import_module(f"baloo_gym.envs.{config['env_name']}"),
         name2class[config["env_name"]])
 
+    resolution = kwargs.get("resolution", 1)
+
     env = EnvClass(
         render_mode=render_mode,
         camera_name="fixedcam",
         ctrl_timestep=config["ctrl_timestep"],
-        render_width=160,
-        render_height=120,
+        render_width=160 * resolution,
+        render_height=120 * resolution,
         randomize_initial_height=config["randomize_initial_height"],
         randomize_object_size=config["randomize_object_size"],
         randomize_object_mass=config["randomize_object_mass"],

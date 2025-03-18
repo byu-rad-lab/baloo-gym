@@ -25,9 +25,8 @@ def run_simulation(combination):
         "env_name": "baloo_v9",
         "time_limit_sec": 60,
         "curriculum_selection": [],
-        'reward_selection':
-        ['chest_proximity', 'upward_force', 'touch_ground'],
-        "randomize_initial_height": False,
+        'reward_selection': ['dont_drop', 'chest_proximity', 'touch_ground'],
+        "randomize_initial_height": True,
         "randomize_object_size": False,
         "randomize_object_mass": False,
     }
@@ -72,10 +71,8 @@ def run_simulation(combination):
                 render=False,
                 return_dist=False)
 
-        if infos[-1]["is_success"]:
-            successes.append(1)
-        else:
-            successes.append(0)
+        if "is_success" in infos[-1]:
+            successes.append(infos[-1]["is_success"])
 
         frames = None
         rewards = None
@@ -141,7 +138,7 @@ def sample_lhs(seed):
                                  seed=seed)  # 4 dimensions (x, y, z, mass)
 
     # Generate 5 samples (one for each range)
-    num_samples = 100
+    num_samples = 200
     lhs_samples = sampler.random(n=num_samples)
 
     # Scale the LHS samples to the respective parameter ranges
@@ -215,6 +212,9 @@ if __name__ == "__main__":
     # print results to a file
     tag = args.runid if args.runid else "baseline"
     type = "grid" if args.grid else "random" if args.random else "lhs"
+
+    os.makedirs("data", exist_ok=True)
+
     with open(f"data/lifting_trials_{tag}_{type}.txt", "w") as f:
         for result in results:
             json.dump(result, f)
