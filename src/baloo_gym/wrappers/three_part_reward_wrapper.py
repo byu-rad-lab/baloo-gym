@@ -117,19 +117,19 @@ class ThreePartRewardWrapper(gym.Wrapper):
         info["is_success"] = False
         if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
             info["is_success"] = True
-            reward += 50
+            reward += 100
 
         if self._box_fell_over():
             info["is_success"] = False
             info["box_fell_over"] = True
-            reward -= 5
+            reward -= 1
 
         if "dont_drop" in self.reward_selection:
             if not detect_box_on_ground(self.unwrapped.model,
                                         self.unwrapped.data):
                 self.box_lifted_already = True
                 self.object_off_floor_consecutive_steps += 1
-                reward += .1 * self.object_off_floor_consecutive_steps
+                reward += .2 * self.object_off_floor_consecutive_steps
                 self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
             else:
                 #penalize if the box WAS off the ground, but is now on the ground.
@@ -145,7 +145,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         ##### SECONDARY REWARDS #####
         if "chest_proximity" in self.reward_selection:
-            reward += 10 * self._calc_chest_proximity_reward(box_xpos)
+            reward += 20 * self._calc_chest_proximity_reward(box_xpos)
 
         if "joint_centering" in self.reward_selection:
             centering_weight = 0.005
@@ -194,7 +194,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             #penalize any part of arms touching the ground.
             if check_arms_touching_ground(self.unwrapped.model,
                                           self.unwrapped.data):
-                reward -= .1
+                reward -= .005
 
         # #reward moving towards desired position, penalize moving away
         # if box_zerror < self.box_zerror_prev - numerical_threshold:
@@ -248,8 +248,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
     def _phi(self, x):
         a = 4  #tune to some small signal from anywhere in state space.
-        # return np.exp(-a * x**2) # too smooth near 0? larger objects don't approach as much
-        return np.exp(-a * x)
+        return np.exp(-a * x**2)
 
     def _count_nonzero_percentage(self):
         left_link0_taxels = get_tactile_image(self.unwrapped.model,

@@ -63,26 +63,41 @@ parser.add_argument('--num_rollouts',
                     default=1,
                     help="Number of rollouts to average over")
 
+parser.add_argument(
+    '--resolution',
+    type=int,
+    default=1,
+    help="Resolution multiplier of video (160x120) * resolution")
+
 args = parser.parse_args()
 
 #load the config from the wandb synced run.
 if args.runid is None:
     folder_name = "open_loop_hugger"
     config = {
-        "total_timesteps": 1000000,
-        "ctrl_timestep": .05,
-        "env_name": "baloo_v9",
-        "time_limit_sec": 120,
+        "total_timesteps":
+        1000000,
+        "ctrl_timestep":
+        .05,
+        "env_name":
+        "baloo_v9",
+        "time_limit_sec":
+        60,
         "curriculum_selection": [],
-        'reward_selection': ['chest_proximity', 'touch_ground'],
-        "randomize_initial_height": False,
-        "randomize_object_size": True,
-        "randomize_object_mass": True,
+        'reward_selection':
+        ['dont_drop', 'chest_proximity', 'touch_ground', 'tactile_nonzero'],
+        "randomize_initial_height":
+        False,
+        "randomize_object_size":
+        True,
+        "randomize_object_mass":
+        True,
     }
 
-
-
-    env = build_env(config, baseline=True, render_mode="rgb_array")
+    env = build_env(config,
+                    baseline=True,
+                    render_mode="rgb_array",
+                    resolution=args.resolution)
 else:
     run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
     folder_name = f"{run.name}-{run.id}"
@@ -101,7 +116,10 @@ else:
     model_path = load_or_download_model(args, f"./new_experiments")
     model = PPO.load(model_path)
 
-    env = build_env(config, baseline=False, render_mode="rgb_array")
+    env = build_env(config,
+                    baseline=False,
+                    render_mode="rgb_array",
+                    resolution=args.resolution)
 
 successes = []
 
