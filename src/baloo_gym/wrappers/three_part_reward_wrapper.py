@@ -181,8 +181,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
                     self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
 
         if "tactile_nonzero" in self.reward_selection:
-            taxel_reward = self._count_nonzero_percentage()
-            reward += 10 * taxel_reward
+            #if the chest is close enough, then reward for touching the box with the arms.
+            if np.linalg.norm(chest_xpos[:2] - box_xpos[:2]) < 0.5:
+                taxel_reward = self._count_nonzero_percentage()
+                reward += 10 * taxel_reward
 
         if "arm_convex_hull" in self.reward_selection:
             reward -= self._get_convex_hull_distance(box_xpos)
