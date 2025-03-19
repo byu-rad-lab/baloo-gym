@@ -113,28 +113,37 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         ##### PRIMARY REWARD #####
         reward = 0
+        info["reward_terms"] = {}
 
         info["is_success"] = False
         if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
             info["is_success"] = True
-            reward += 100
+            success_reward = 100
+            info["reward_terms"]["success"] = success_reward
+            reward += success_reward
 
         if self._box_fell_over():
             info["is_success"] = False
             info["box_fell_over"] = True
-            reward -= 1
+            box_fell_over_reward = -1
+            info["reward_terms"]["box_fell_over"] = box_fell_over_reward
+            reward -= box_fell_over_reward
 
         if "dont_drop" in self.reward_selection:
             if not detect_box_on_ground(self.unwrapped.model,
                                         self.unwrapped.data):
                 self.box_lifted_already = True
                 self.object_off_floor_consecutive_steps += 1
-                reward += .2 * self.object_off_floor_consecutive_steps
+                dont_drop_reward = .2 * self.object_off_floor_consecutive_steps
+                reward += dont_drop_reward
+                info["reward_terms"]["dont_drop"] = dont_drop_reward
                 self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
             else:
                 #penalize if the box WAS off the ground, but is now on the ground.
                 if self.object_off_floor_consecutive_steps > 0:
-                    reward -= .05 * self.object_off_floor_consecutive_steps
+                    dropped_reward = -.00 * self.object_off_floor_consecutive_steps
+                    info["reward_terms"]["dropped"] = dropped_reward
+                    reward += dropped_reward
 
                 self.object_off_floor_consecutive_steps = 0
                 #redness as an indicator of mass. dark red = heavy, light red = light
@@ -145,7 +154,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         ##### SECONDARY REWARDS #####
         if "chest_proximity" in self.reward_selection:
-            reward += 20 * self._calc_chest_proximity_reward(box_xpos)
+            chest_proximity_reward = 10 * self._calc_chest_proximity_reward(
+                box_xpos)
+            reward += chest_proximity_reward
+            info["reward_terms"]["chest_proximity"] = chest_proximity_reward
 
         if "joint_centering" in self.reward_selection:
             centering_weight = 0.005
@@ -183,11 +195,34 @@ class ThreePartRewardWrapper(gym.Wrapper):
         if "tactile_nonzero" in self.reward_selection:
             #if the chest is close enough, then reward for touching the box with the arms.
             if np.abs(chest_xpos[2] - box_xpos[2]) < 0.5:
+                taxel_reward = 100 * self._count_nonzero_percentage()
+                reward += taxel_reward
+                info["reward_terms"]["tactile_nonzero"] = taxel_reward
+
                 if self.object_off_floor_consecutive_steps == 0:
                     #change box to yellow to indicate tactile feedback. if box has not been lifted.
                     self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
-                taxel_reward = self._count_nonzero_percentage()
-                reward += 10 * taxel_reward
+
+        if "upward_force" in self.reward_selection:
+            #get the net force on the box in the world frame
+            box_contact_forces = get_contact_forces_on_body(
+                self.unwrapped.model, self.unwrapped.data, 'box')
+
+            net_force = np.sum(box_contact_forces, axis=0)
+            box_mass = self.unwrapped.model.body('box').mass.item()
+
+            if self.unwrapped.model.opt.gravity[2] != 0:
+                normalized_force = net_force / np.abs(
+                    (box_mass * self.unwrapped.model.opt.gravity[2]))
+            else:
+                raise RuntimeError(
+                    f"Upward force reward requires non-zero gravity. Gravity is set to {self.unwrapped.model.opt.gravity[2]}"
+                )
+
+            if normalized_force[2] > 0:
+                upward_force_reward = 0.05 * normalized_force[2]
+                reward += upward_force_reward
+                info["reward_terms"]["upward_force"] = upward_force_reward
 
         if "arm_convex_hull" in self.reward_selection:
             reward -= self._get_convex_hull_distance(box_xpos)
@@ -199,15 +234,11 @@ class ThreePartRewardWrapper(gym.Wrapper):
             #penalize any part of arms touching the ground.
             if check_arms_touching_ground(self.unwrapped.model,
                                           self.unwrapped.data):
-                reward -= .005
 
-        # #reward moving towards desired position, penalize moving away
-        # if box_zerror < self.box_zerror_prev - numerical_threshold:
-        #     #yellow
-        #     self.unwrapped.model.geom('box').rgba = [1, 1, 0, .5]
-        #     reward += .5
-        # elif box_zerror > self.box_zerror_prev + numerical_threshold:
-        #     reward -= .1
+                touch_ground_reward = -.01
+                info["reward_terms"]["touch_ground"] = touch_ground_reward
+                reward += touch_ground_reward
+
         self.previous_action = action
         return reward / 1200  #hard coded for a whole episode length
 
