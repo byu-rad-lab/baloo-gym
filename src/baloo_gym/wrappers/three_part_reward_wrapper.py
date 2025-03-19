@@ -220,7 +220,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 )
 
             if normalized_force[2] > 0:
-                upward_force_reward = 0.05 * normalized_force[2]
+                upward_force_reward = 1 * normalized_force[2]
                 reward += upward_force_reward
                 info["reward_terms"]["upward_force"] = upward_force_reward
 
