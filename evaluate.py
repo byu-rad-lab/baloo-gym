@@ -13,6 +13,28 @@ import os
 from baloo_mujoco_sim.utils.baloo_mj_api import (set_box_size,
                                                  set_box_position)
 import shutil
+import numpy as np
+
+np.set_printoptions(precision=3, suppress=True)
+
+
+def extract_reward_trajectories(infos):
+    reward_history = {
+        "dont_drop": [],
+        "dropped": [],
+        "chest_proximity": [],
+        "touch_ground": [],
+        "tactile_nonzero": [],
+        "upward_force": [],
+        "success": [],
+        "box_fell_over": [],
+    }
+
+    for info in infos:
+        for k in reward_history.keys():
+            reward_history[k].append(info["reward_terms"].get(k, 0))
+
+    return reward_history
 
 
 def load_or_download_model(args, local_experiment_folder):
@@ -84,8 +106,10 @@ if args.runid is None:
         "time_limit_sec":
         60,
         "curriculum_selection": [],
-        'reward_selection':
-        ['dont_drop', 'chest_proximity', 'touch_ground', 'tactile_nonzero'],
+        'reward_selection': [
+            'dont_drop', 'chest_proximity', 'touch_ground', 'tactile_nonzero',
+            'upward_force'
+        ],
         "randomize_initial_height":
         False,
         "randomize_object_size":
@@ -135,15 +159,33 @@ for j in range(args.num_rollouts):
     if "is_success" in infos[-1]:
         successes.append(infos[-1]["is_success"])
 
+    reward_history = extract_reward_trajectories(infos)
+
     #plot rewards, actions, and observations over time, make video with moviepy
-    import matplotlib.pyplot as plt
-    import numpy as np
 
     print(len(frames), len(rewards), len(actions), len(observations))
 
+    # plot all lines in reward_history as subplots
     # run_path = os.path.dirname(args.model_file)
     run_path = f"./evaluation_results/{folder_name}/rollout_{j}"
     os.makedirs(run_path, exist_ok=True)
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    fig, axs = plt.subplots(8, 1, figsize=(10, 40), sharex=True)
+
+    for i, k in enumerate(reward_history.keys()):
+        axs[i].plot(reward_history[k], label=k)
+        axs[i].legend()
+        axs[i].grid()
+        axs[i].set_ylabel("Rewards")
+
+    axs[-1].set_xlabel("Timesteps")
+    plt.savefig(
+        f"./evaluation_results/{folder_name}/rollout_{j}/reward_terms.png",
+        dpi=300,
+        bbox_inches='tight')
+    plt.close(fig)
 
     make_movie(frames,
                run_path + f"/evaluation_rollout.mp4",
