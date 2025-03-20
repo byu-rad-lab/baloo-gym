@@ -1,10 +1,13 @@
 import numpy as np
 from baloo_gym.utils.observation_spaces import StateObservationObjectOnly
+from stable_baselines3.common.policies import BasePolicy
 
 
-class OpenLoopHuggerPolicy:
+class OpenLoopHuggerPolicy(BasePolicy):
 
     def __init__(self, N):
+
+        super().__init__(observation_space=None, action_space=None)
         self.min_height = -.9
         self.step_along_trajectory = 0
         self.state = "APPROACH"
@@ -47,6 +50,9 @@ class OpenLoopHuggerPolicy:
             np.array([90, 0, 90, 300]), np.array([90, 0, 90, 0]), N)
 
         self.actions = np.zeros(25)
+
+    def _predict(self, observation, deterministic=False):
+        return None
 
     def predict(self, obs, deterministic=True):
         #get elevator height out of observation [0,1,2]

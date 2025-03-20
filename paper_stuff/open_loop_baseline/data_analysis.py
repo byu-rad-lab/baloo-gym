@@ -85,34 +85,35 @@ def plot_correlation(correlation, runid):
     fig.show()
 
 
-#get all the data files in this directory using glob
-data_files = glob.glob("data/*.txt")
+if __name__ == "__main__":
+    #get all the data files in this directory using glob
+    data_files = glob.glob("data/*.txt")
 
-for file_path in data_files:
-    # Initialize variables to store the total success rate and the number of trials
-    total_success_rate = 0
-    num_trials = 0
-    data = []
+    for file_path in data_files:
+        # Initialize variables to store the total success rate and the number of trials
+        total_success_rate = 0
+        num_trials = 0
+        data = []
 
-    # Read the JSON data from the file
-    with open(file_path, "r") as f:
-        for line in f:
-            trial_data = json.loads(line)
-            total_success_rate += trial_data["success_rate"]
-            num_trials += 1
-            data.append(trial_data)
+        # Read the JSON data from the file
+        with open(file_path, "r") as f:
+            for line in f:
+                trial_data = json.loads(line)
+                total_success_rate += trial_data["success_rate"]
+                num_trials += 1
+                data.append(trial_data)
 
-    # Calculate the average success rate
-    average_success_rate = total_success_rate / num_trials if num_trials > 0 else 0
+        # Calculate the average success rate
+        average_success_rate = total_success_rate / num_trials if num_trials > 0 else 0
 
-    # Print the average success rate
-    print(
-        f"{file_path}: Average success rate over {num_trials} trials: {average_success_rate}"
-    )
+        # Print the average success rate
+        print(
+            f"{file_path}: Average success rate over {num_trials} trials: {average_success_rate}"
+        )
 
-    #perform correlation analysis on over all trials against sizes and mass
-    data = pd.DataFrame(data)
+        #perform correlation analysis on over all trials against sizes and mass
+        data = pd.DataFrame(data)
 
-    correlation_matrix = data.corr()
+        correlation_matrix = data.corr()
 
-    # plot_correlation(correlation_matrix, os.path.basename(file_path))
+        plot_correlation(correlation_matrix, os.path.basename(file_path))

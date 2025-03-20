@@ -14,6 +14,8 @@ from stable_baselines3 import PPO
 import os
 import shutil
 from scipy.stats import qmc
+import random
+import ast
 
 #parallelize running simulation over each combination ith multiprocessing
 
@@ -39,6 +41,8 @@ def run_simulation(combination):
                     object_size=[x, y, z],
                     object_mass=m)
     successes = []
+    drops = []
+    episode_lengths = []
 
     # Get size and weight of object
     xsize, ysize, zsize = env.unwrapped.model.geom("box").size
@@ -71,8 +75,11 @@ def run_simulation(combination):
                 render=False,
                 return_dist=False)
 
-        if "is_success" in infos[-1]:
-            successes.append(infos[-1]["is_success"])
+        #episodes terminate by success or drop
+        successes.append(infos[-1].get("is_success", False))
+        drops.append(infos[-1].get("box_fell_over", False))
+
+        episode_lengths.append(len(rewards))
 
         frames = None
         rewards = None
@@ -82,6 +89,9 @@ def run_simulation(combination):
         gc.collect()
 
     trial_data["success_rate"] = sum(successes) / len(successes)
+    trial_data["drop_rate"] = sum(drops) / len(drops)
+    trial_data["avg_episode_length"] = np.mean(episode_lengths)
+    
     return trial_data
 
 
@@ -138,7 +148,7 @@ def sample_lhs(seed):
                                  seed=seed)  # 4 dimensions (x, y, z, mass)
 
     # Generate 5 samples (one for each range)
-    num_samples = 100
+    num_samples = 1000
     lhs_samples = sampler.random(n=num_samples)
 
     # Scale the LHS samples to the respective parameter ranges
@@ -165,6 +175,7 @@ if __name__ == "__main__":
     #ssed numpy random number generator
     seed = 42
     np.random.seed(seed)
+    random.seed(seed)
 
     #parse arguments
     parser = argparse.ArgumentParser()
@@ -200,11 +211,27 @@ if __name__ == "__main__":
         combinations = list(product(xsize, ysize, zsize, mass))
 
     elif args.lhs:
-        combinations = sample_lhs(seed=seed)
+        #read from lhs_samples.txt if it exists, otherwise create it
+        if os.path.exists("lhs_samples.txt"):
+            print("Loading LHS samples from lhs_samples.txt")
+            with open("lhs_samples.txt", "r") as f:
+                combinations = [
+                    ast.literal_eval(line.strip()) for line in f.readlines()
+                ]
+
+        else:
+            print("Generating LHS samples")
+            combinations = sample_lhs(seed=seed)
+            #write these to a file
+            with open("lhs_samples.txt", "w") as f:
+                for combination in combinations:
+                    f.write(f"{combination}\n")
+    else:
+        raise ValueError("Must specify --grid, --random, or --lhs")
 
     lock = Lock()
 
-    with Pool(processes=16) as pool:
+    with Pool(processes=12) as pool:
         results = list(
             tqdm(pool.imap(run_simulation, combinations),
                  total=len(combinations)))
