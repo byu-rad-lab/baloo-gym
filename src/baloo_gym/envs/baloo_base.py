@@ -231,7 +231,7 @@ class BalooBase(gym.Env, ABC):
             offset = np.sqrt((ysize / 2)**2 +
                              (xsize / 2)**2) + world2chest_front
 
-            distance_from_chest = np.random.uniform(1e-2, 50e-2)
+            distance_from_chest = np.random.uniform(0, 25e-2)
             y_box = offset + distance_from_chest
             x_box = np.random.uniform(-0.15, 0.15)
         else:
