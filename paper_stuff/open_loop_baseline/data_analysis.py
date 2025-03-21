@@ -4,6 +4,8 @@ import plotly.express as px
 import numpy as np
 import glob
 import os
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 def plot_data(data):
@@ -78,11 +80,22 @@ def plot_data(data):
 
 
 def plot_correlation(correlation, runid):
-    # Create a heatmap of the correlation matrix
-    fig = px.imshow(correlation,
-                    color_continuous_scale=px.colors.sequential.Bluered,
-                    title=f"Correlation Matrix for {runid}")
-    fig.show()
+    # Create a heatmap of the correlation matrix with annotations
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(
+        correlation,
+        annot=True,
+        fmt=".4f",
+        cmap="bwr",
+        cbar=True,
+        vmin=-1,
+        vmax=1,
+        square=True,
+        linewidths=0.5,
+        linecolor="black",
+    )
+    plt.title(f"Correlation Matrix for {runid}")
+    plt.show(block=False)
 
 
 if __name__ == "__main__":
@@ -117,3 +130,4 @@ if __name__ == "__main__":
         correlation_matrix = data.corr()
 
         plot_correlation(correlation_matrix, os.path.basename(file_path))
+    plt.show()

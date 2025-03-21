@@ -34,14 +34,14 @@ def sample_lhs(seed):
     xsize = np.linspace(0.2, 0.6, 5)
     ysize = np.linspace(0.2, 0.6, 5)
     zsize = np.linspace(0.5, 1.25, 5)
-    mass = np.linspace(5, 20, 5)
+    mass = np.linspace(.5, 10, 5)
 
     # Create the Latin Hypercube sampler
     sampler = qmc.LatinHypercube(d=4,
                                  seed=seed)  # 4 dimensions (x, y, z, mass)
 
     # Generate 5 samples (one for each range)
-    num_samples = 100
+    num_samples = 1000
     lhs_samples = sampler.random(n=num_samples)
 
     # Scale the LHS samples to the respective parameter ranges
@@ -92,6 +92,7 @@ class BalooBase(gym.Env, ABC):
         object_size=None,
         object_mass=None,
         randomize_object_quat=False,
+        randomize_object_pos=False,
     ):
         super().__init__()
 
@@ -115,6 +116,7 @@ class BalooBase(gym.Env, ABC):
         self.randomize_object_size = randomize_object_size
         self.randomize_object_mass = randomize_object_mass
         self.randomize_object_quat = randomize_object_quat
+        self.randomize_object_pos = randomize_object_pos
 
         self.object_size = object_size
         self.object_mass = object_mass
@@ -220,20 +222,43 @@ class BalooBase(gym.Env, ABC):
         self.model.vis.global_.offheight = self.render_height
         mujoco.mj_resetData(self.model, self.data)
 
-        if self.randomize_object_size:
-            #place box on the ground, according to new size.
+        #### SET SIZES, POSITIONS, AND ORIENTATIONS ####
+        if self.randomize_object_pos:
+            #set random x and y position for box, height is set by box size
+            world2chest_front = 30e-2
+
+            #ensure that the box (even rotated) is not underneath the chest
+            offset = np.sqrt((ysize / 2)**2 +
+                             (xsize / 2)**2) + world2chest_front
+
+            distance_from_chest = 0 * np.random.uniform(1e-2, 50e-2)
+            y_box = offset + distance_from_chest
+            x_box = np.random.uniform(-0.15, 0.15)
+        else:
             distance_from_chest = 45e-2
             y_box = ysize / 2 + distance_from_chest
+            x_box = 0
+
+        if self.randomize_object_size:
+            #place box on the ground, according to new size.
             z_box = zsize / 2
-            set_box_position(self.model, self.data, 0, y_box, z_box)
 
         else:
             if self.object_size is not None:
                 xsize, ysize, zsize = self.object_size
-                distance_from_chest = 45e-2
-                y_box = ysize / 2 + distance_from_chest
                 z_box = zsize / 2
-                set_box_position(self.model, self.data, 0, y_box, z_box)
+
+        set_box_position(self.model, self.data, x_box, y_box, z_box)
+
+        if self.randomize_object_quat:
+            #get random rotation about z axis
+            random_rotation = np.random.uniform(-np.pi / 4, np.pi / 4)
+            print(f"random rotation: {random_rotation}")
+            rz = R.from_euler('z', random_rotation, degrees=False)
+            quat = np.roll(rz.as_quat(), 1)
+            #set box orientation
+            set_box_quat(self.model, self.data, quat[0], quat[1], quat[2],
+                         quat[3])
 
         #send in either camera_id or camera_name
         self.mujoco_renderer = MujocoRenderer(self.model,
@@ -242,15 +267,6 @@ class BalooBase(gym.Env, ABC):
                                               height=self.render_height,
                                               camera_name=self.camera_name,
                                               max_geom=100000)
-
-        if self.randomize_object_quat:
-            #get random rotation about z axis
-            random_rotation = np.random.uniform(0, 2 * np.pi)
-            rz = R.from_euler('z', random_rotation, degrees=False)
-            quat = np.roll(rz.as_quat(), 1)
-            #set box orientation
-            set_box_quat(self.model, self.data, quat[0], quat[1], quat[2],
-                         quat[3])
 
         self._get_to_equilibrium()
 
