@@ -253,7 +253,7 @@ class BalooBase(gym.Env, ABC):
         if self.randomize_object_quat:
             #get random rotation about z axis
             random_rotation = np.random.uniform(-np.pi / 4, np.pi / 4)
-            print(f"random rotation: {random_rotation}")
+            # print(f"random rotation: {random_rotation}")
             rz = R.from_euler('z', random_rotation, degrees=False)
             quat = np.roll(rz.as_quat(), 1)
             #set box orientation
