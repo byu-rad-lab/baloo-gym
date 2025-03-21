@@ -32,6 +32,7 @@ def train(args):
         "randomize_object_size": args.randomize_object_size,
         "randomize_object_mass": args.randomize_object_mass,
         "randomize_object_quat": args.randomize_object_quat,
+        "randomize_object_pos": args.randomize_object_pos,
     }
 
     callbacks = []
@@ -134,9 +135,7 @@ def train(args):
 
         return func
 
-    policy_kwargs = dict(
-        net_arch=[512, 512],
-    )
+    policy_kwargs = dict(net_arch=[512, 512], )
     model = PPO(
         "MlpPolicy",
         vec_env,
@@ -257,6 +256,12 @@ def main():
         '--randomize_object_quat',
         action='store_true',
         help='Randomize object quaternion',
+    )
+
+    parser.add_argument(
+        '--randomize_object_pos',
+        action='store_true',
+        help='Randomize object initial position',
     )
 
     parser.add_argument(
