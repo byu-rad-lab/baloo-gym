@@ -225,13 +225,13 @@ class BalooBase(gym.Env, ABC):
         #### SET SIZES, POSITIONS, AND ORIENTATIONS ####
         if self.randomize_object_pos:
             #set random x and y position for box, height is set by box size
-            world2chest_front = 30e-2
+            world2chest_front = 35e-2
 
             #ensure that the box (even rotated) is not underneath the chest
             offset = np.sqrt((ysize / 2)**2 +
                              (xsize / 2)**2) + world2chest_front
 
-            distance_from_chest = 0 * np.random.uniform(1e-2, 50e-2)
+            distance_from_chest = np.random.uniform(1e-2, 50e-2)
             y_box = offset + distance_from_chest
             x_box = np.random.uniform(-0.15, 0.15)
         else:
