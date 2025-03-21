@@ -25,6 +25,7 @@ dependencies = [
     "baloo-mujoco-sim",
     "optuna<5.0.0,>=4.1.0",
     "plotly<6.0.0,>=5.24.1",
+    "seaborn>=0.13.2",
 ]
 
 [tool.uv.sources]
