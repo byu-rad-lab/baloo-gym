@@ -81,9 +81,11 @@ def plot_data(data):
 
 def plot_correlation(correlation, runid):
     # Create a heatmap of the correlation matrix with annotations
+    mask = np.tril(np.ones_like(correlation, dtype=bool))
     plt.figure(figsize=(10, 8))
     sns.heatmap(
         correlation,
+        mask=mask,
         annot=True,
         fmt=".4f",
         cmap="bwr",
@@ -94,7 +96,7 @@ def plot_correlation(correlation, runid):
         linewidths=0.5,
         linecolor="black",
     )
-    plt.title(f"Correlation Matrix for {runid}")
+    plt.title(f"Spearman Correlation Matrix for {runid}")
     plt.show(block=False)
 
 
@@ -104,7 +106,9 @@ if __name__ == "__main__":
 
     for file_path in data_files:
         # Initialize variables to store the total success rate and the number of trials
-        total_success_rate = 0
+        successes = 0
+        tips = 0
+        slips = 0
         num_trials = 0
         data = []
 
@@ -112,22 +116,33 @@ if __name__ == "__main__":
         with open(file_path, "r") as f:
             for line in f:
                 trial_data = json.loads(line)
-                total_success_rate += trial_data["success_rate"]
+                successes += trial_data["success_rate"]
+                tips += trial_data["tip_rate"]
+                slips += trial_data["slip_rate"]
                 num_trials += 1
                 data.append(trial_data)
 
         # Calculate the average success rate
-        average_success_rate = total_success_rate / num_trials if num_trials > 0 else 0
+        average_success_rate = successes / num_trials if num_trials > 0 else 0
+        average_tip_rate = tips / num_trials if num_trials > 0 else 0
+        average_slip_rate = slips / num_trials if num_trials > 0 else 0
 
-        # Print the average success rate
+        # Print rates
+        print(f"File: {file_path}")
+        print(f"Average Success Rate: {average_success_rate}")
+        print(f"Average Tip Rate: {average_tip_rate}")
+        print(f"Average Slip Rate: {average_slip_rate}")
         print(
-            f"{file_path}: Average success rate over {num_trials} trials: {average_success_rate}"
+            f"Sanity Check: {average_tip_rate + average_slip_rate + average_success_rate}\n"
         )
 
         #perform correlation analysis on over all trials against sizes and mass
         data = pd.DataFrame(data)
 
-        correlation_matrix = data.corr()
+        correlation_matrix = data.corr("spearman")
+        #spearman b/c it doesn't assume linear relationships, only monotonic ones
+        #1 means Perfect monotonic increasing relationship (as one variable increases, the other always increases).
 
         plot_correlation(correlation_matrix, os.path.basename(file_path))
+
     plt.show()

@@ -16,24 +16,35 @@ import shutil
 from scipy.stats import qmc
 import random
 import ast
+from pathlib import Path
 
 #parallelize running simulation over each combination ith multiprocessing
 
 
 def run_simulation(combination):
     config = {
-        "total_timesteps": 1000000,
-        "ctrl_timestep": .05,
-        "env_name": "baloo_v9",
-        "time_limit_sec": 60,
+        "total_timesteps":
+        1000000,
+        "ctrl_timestep":
+        .05,
+        "env_name":
+        "baloo_v9",
+        "time_limit_sec":
+        60,
         "curriculum_selection": [],
-        'reward_selection': ['dont_drop', 'chest_proximity', 'touch_ground'],
-        "randomize_initial_height": True,
-        "randomize_object_size": False,
-        "randomize_object_mass": False,
+        'reward_selection': [
+            'dont_drop', 'chest_proximity', 'touch_ground', 'tactile_nonzero',
+            'upward_force'
+        ],
+        "randomize_initial_height":
+        True,
+        "randomize_object_size":
+        False,
+        "randomize_object_mass":
+        False,
     }
     x, y, z, m = combination
-    print(f"Running trial with object size: {x, y, z} and mass: {m}")
+    # print(f"Running trial with object size: {x, y, z} and mass: {m}")
 
     env = build_env(config,
                     baseline=False if args.runid else True,
@@ -41,7 +52,8 @@ def run_simulation(combination):
                     object_size=[x, y, z],
                     object_mass=m)
     successes = []
-    drops = []
+    tips = []
+    slips = []
     episode_lengths = []
 
     # Get size and weight of object
@@ -75,9 +87,17 @@ def run_simulation(combination):
                 render=False,
                 return_dist=False)
 
-        #episodes terminate by success or drop
-        successes.append(infos[-1].get("is_success", False))
-        drops.append(infos[-1].get("box_fell_over", False))
+        #episodes terminate by success or tip, success = 1 - (tip + slip). Each option is mutually exclusive.
+        print(infos[-1])
+        success = infos[-1].get("is_success", False)
+        tip = infos[-1].get("box_fell_over", False)
+        slip = True - (success or tip)
+
+        print(f"Success: {success}, Tip: {tip}, Slip: {slip}")
+
+        successes.append(success)
+        tips.append(tip)
+        slips.append(slip)
 
         episode_lengths.append(len(rewards))
 
@@ -89,66 +109,85 @@ def run_simulation(combination):
         gc.collect()
 
     trial_data["success_rate"] = sum(successes) / len(successes)
-    trial_data["drop_rate"] = sum(drops) / len(drops)
+    trial_data["tip_rate"] = sum(tips) / len(tips)
+    trial_data["slip_rate"] = sum(slips) / len(slips)
     trial_data["avg_episode_length"] = np.mean(episode_lengths)
-    
+
     return trial_data
 
 
 def load_or_download_model(args, local_experiment_folder):
-    model_path = None
+    #this needs to download everythign in the new_experiments folder from wandb
+    run_path = None
     try:
         #try loading model from local experiments folder
         #find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
         for f in os.listdir(local_experiment_folder):
             if args.runid in f:
-                model_path = f"{local_experiment_folder}/{f}/best_model/best_model.zip"
-                print(f"Loading model from {model_path}")
+                run_path = f"{local_experiment_folder}/{f}/"
+                print(f"Found run locally in {run_path}")
                 break
 
-        if model_path is None:
+        if run_path is None:
             raise FileNotFoundError(
-                f"{args.runid} not found in experiments folder.")
+                f"{args.runid} not found in {local_experiment_folder}.")
     except:
         #try downloading model from wandb
         print(
-            f"{args.runid} not found in experiments folder. Trying download from wandb instead..."
+            f"{args.runid} not found in {local_experiment_folder}. Trying download from wandb instead..."
         )
-        run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
-        for file in run.files():
-            if "best_model" in file.name:
-                file.download(replace=True)
-                print(f"Found best model.")
-                old_path = file.name
-                new_path = os.path.join(local_experiment_folder,
-                                        os.sep.join(file.name.split("/")[1:]))
-                os.makedirs(os.path.dirname(new_path), exist_ok=True)
-                shutil.move(old_path, new_path)
-                print(f"Downloaded best model to {new_path}")
-                model_path = new_path
-                shutil.rmtree(old_path.split("/")[0])
-                break
 
-        if model_path is None:
+        try:
+            run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
+            print(f"Found run on wandb: curtiscjohnson/ppo_baloo/{args.runid}")
+        except Exception as e:
+            print(f"Error downloading from wandb: {e}")
             raise FileNotFoundError(
-                f"{args.runid} not found in experiments folder or on wandb.")
+                f"{args.runid} not found in {local_experiment_folder} or on wandb."
+            )
 
+        print(f"Downloading run files to {local_experiment_folder}...")
+        for file in tqdm(run.files()):
+            #download everything in the new_experiments folder
+            if file.name.startswith("new_experiments/"):
+                file.download(root=os.path.dirname(local_experiment_folder),
+                              replace=True)
+                run_name = Path(file.name).parts[1]
+
+        run_path = os.path.join(local_experiment_folder, run_name)
+
+    #find model_name in the run_path recursively
+    model_path = None
+    for root, dirs, files in os.walk(run_path):
+        for file in files:
+            if file.endswith(".zip") and (args.model_name in file):
+                model_path = os.path.join(root, file)
+                break
+        if model_path:
+            break
+
+    if model_path is None:
+        raise FileNotFoundError(
+            f"Model not found in {run_path}. Please specify the model name.")
+
+    print(f"Loading model from {model_path}")
     return model_path
 
 
-def sample_lhs(seed):
+def sample_lhs(seed, N):
     # Define the parameter ranges (5 points each)
+    #needs to match what's in baloo_base.py
     xsize = np.linspace(0.2, 0.6, 5)
     ysize = np.linspace(0.2, 0.6, 5)
     zsize = np.linspace(0.5, 1.25, 5)
-    mass = np.linspace(5, 20, 5)
+    mass = np.linspace(.5, 10, 5)
 
     # Create the Latin Hypercube sampler
     sampler = qmc.LatinHypercube(d=4,
                                  seed=seed)  # 4 dimensions (x, y, z, mass)
 
     # Generate 5 samples (one for each range)
-    num_samples = 1000
+    num_samples = N
     lhs_samples = sampler.random(n=num_samples)
 
     # Scale the LHS samples to the respective parameter ranges
@@ -181,6 +220,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_trials", type=int, default=1)
     parser.add_argument('--runid', type=str, help="Wandb run id")
+    parser.add_argument('--model_name', type=str)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--grid', action='store_true')
     group.add_argument('--random', action='store_true')
@@ -211,19 +251,20 @@ if __name__ == "__main__":
         combinations = list(product(xsize, ysize, zsize, mass))
 
     elif args.lhs:
+        N = 1000
         #read from lhs_samples.txt if it exists, otherwise create it
-        if os.path.exists("lhs_samples.txt"):
-            print("Loading LHS samples from lhs_samples.txt")
-            with open("lhs_samples.txt", "r") as f:
+        if os.path.exists(f"{N}_lhs_samples.txt"):
+            print(f"Loading LHS samples from {N}_lhs_samples.txt")
+            with open(f"{N}_lhs_samples.txt", "r") as f:
                 combinations = [
                     ast.literal_eval(line.strip()) for line in f.readlines()
                 ]
 
         else:
             print("Generating LHS samples")
-            combinations = sample_lhs(seed=seed)
+            combinations = sample_lhs(seed=seed, N=N)
             #write these to a file
-            with open("lhs_samples.txt", "w") as f:
+            with open(f"{len(combinations)}_lhs_samples.txt", "w") as f:
                 for combination in combinations:
                     f.write(f"{combination}\n")
     else:
@@ -231,7 +272,7 @@ if __name__ == "__main__":
 
     lock = Lock()
 
-    with Pool(processes=12) as pool:
+    with Pool(processes=16) as pool:
         results = list(
             tqdm(pool.imap(run_simulation, combinations),
                  total=len(combinations)))
@@ -239,117 +280,13 @@ if __name__ == "__main__":
     # print results to a file
     tag = args.runid if args.runid else "baseline"
     type = "grid" if args.grid else "random" if args.random else "lhs"
+    length = len(combinations)
+    model = Path(args.model_name).stem if args.model_name else "hugger"
 
     os.makedirs("data", exist_ok=True)
 
-    with open(f"data/lifting_trials_{tag}_{type}.txt", "w") as f:
+    with open(f"data/lifting_trials_{tag}_{type}_{length}_{model}.txt",
+              "w") as f:
         for result in results:
             json.dump(result, f)
             f.write("\n")
-
-# X, Y, Z, M = np.meshgrid(xsize, ysize, zsize, mass)
-
-# X = X.flatten()
-# Y = Y.flatten()
-# Z = Z.flatten()
-# M = M.flatten()
-
-# #iterate over all combinations
-# for x, y, z, m in tqdm(zip(X, Y, Z, M)):
-#     print(f"Running trial with object size: {x, y, z} and mass: {m}")
-#     env = build_env(config,
-#                     baseline=True,
-#                     render_mode="rgb_array",
-#                     object_size=[x, y, z],
-#                     object_mass=m)
-#     successes = []
-
-#     #get size and weight of object
-#     xsize, ysize, zsize = env.unwrapped.model.geom("box").size
-#     mass = env.unwrapped.model.body("box").mass
-
-#     trial_data = {
-#         "xsize": xsize,
-#         "ysize": ysize,
-#         "zsize": zsize,
-#         "mass": mass.item(),
-#     }
-
-#     for _ in range(10):
-#         model = OpenLoopHuggerPolicy(N=50)
-#         frames, rewards, actions, observations, infos = record_rollout(
-#             env, model, render=False)
-#         if infos[-1]["is_success"]:
-#             successes.append(1)
-#         else:
-#             successes.append(0)
-
-#         frames = None
-#         rewards = None
-#         actions = None
-#         observations = None
-#         infos = None
-#         gc.collect()
-
-#     trial_data["success_rate"] = np.mean(successes)
-
-#     print(trial_data)
-
-#     env.close()
-
-#     #save data to file
-#     with open("lifting_trials.json", "a") as f:
-#         json.dump(trial_data, f)
-#         f.write("\n")
-#         f.close()
-
-#     env = None
-#     gc.collect()
-
-# # N = int(config["time_limit_sec"] / config["ctrl_timestep"])
-
-# maybe group objects into weight classes, then height v aspect ratio (xsize/ysize) can be 3 3d plots.
-
-# make_movie(frames, "test.mp4", fps=1 / config["ctrl_timestep"])
-
-# plt.plot(rewards)
-# plt.xlabel("Timesteps")
-# plt.ylabel("Rewards")
-# plt.savefig("rewards.png", dpi=300)
-
-# fig, axs = plt.subplots(
-#     env.action_space.shape[0],
-#     1,
-#     sharex=True,
-#     figsize=(10, 30),
-# )
-# for i in range(env.action_space.shape[0]):
-#     axs[i].plot(np.array(actions)[:, i])
-#     axs[i].set_ylabel(f"a{i}")
-
-# axs[-1].set_xlabel("Timesteps")
-# plt.savefig("actions.png", dpi=300, bbox_inches='tight')
-
-# # make histogram of actions
-# fig, axs = plt.subplots(
-#     env.action_space.shape[0],
-#     1,
-#     figsize=(10, 30),
-# )
-# for i in range(env.action_space.shape[0]):
-#     axs[i].hist(np.array(actions)[:, i], bins=100)
-#     axs[i].set_ylabel(f"a{i}")
-
-# axs[-1].set_xlabel("Action Value")
-# plt.savefig("actions_hist.png", dpi=300, bbox_inches='tight')
-
-# fig, axs = plt.subplots(env.observation_space.shape[0],
-#                         1,
-#                         sharex=True,
-#                         figsize=(10, 40))
-# for i in range(env.observation_space.shape[0]):
-#     axs[i].plot(np.array(observations)[:, i])
-#     axs[i].set_ylabel(f"o{i}")
-
-# axs[-1].set_xlabel("Timesteps")
-# plt.savefig("observations.png", dpi=300, bbox_inches='tight')
