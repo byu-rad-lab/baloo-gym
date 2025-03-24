@@ -3,8 +3,8 @@ import numpy as np
 from scipy.stats import binom
 
 # Parameters for two binomial distributions
-n1, p1 = 100, 0.98
-n2, p2 = 100, 0.89
+n1, p1 = 1000, 0.98
+n2, p2 = 1000, 0.89
 
 # Range of k values (possible number of successes)
 k = np.arange(0, 101)

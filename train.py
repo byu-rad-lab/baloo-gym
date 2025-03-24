@@ -92,7 +92,6 @@ def train(args):
         n_eval_episodes=10,
         eval_freq=save_freq,
         log_path=f"new_experiments/{run_folder}/eval_logs",
-        best_model_save_path=f"new_experiments/{run_folder}/best_model",
         deterministic=True,
         verbose=1,
     )
@@ -135,7 +134,7 @@ def train(args):
 
         return func
 
-    policy_kwargs = dict(net_arch=[512, 512], )
+    policy_kwargs = dict(net_arch=[512, 512] )
     model = PPO(
         "MlpPolicy",
         vec_env,

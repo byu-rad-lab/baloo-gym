@@ -116,6 +116,10 @@ if args.runid is None:
         True,
         "randomize_object_mass":
         True,
+        "randomize_object_quat":
+        True,
+        "randomize_object_pos":
+        True,
     }
 
     env = build_env(config,
