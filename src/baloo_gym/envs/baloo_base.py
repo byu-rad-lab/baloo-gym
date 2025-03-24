@@ -185,7 +185,7 @@ class BalooBase(gym.Env, ABC):
 
             self.mjspec = mujoco.MjSpec()
             self.mjspec.from_string(xml_string)
-            print(f"Loading {os.path.basename(self.xml_path)} model.")
+            # print(f"Loading {os.path.basename(self.xml_path)} model.")
             self.model = self.mjspec.compile()
             self.data = mujoco.MjData(self.model)
 
@@ -251,14 +251,19 @@ class BalooBase(gym.Env, ABC):
         set_box_position(self.model, self.data, x_box, y_box, z_box)
 
         if self.randomize_object_quat:
+            #TODO: running into double coverage issues here?
             #get random rotation about z axis
             random_rotation = np.random.uniform(-np.pi / 4, np.pi / 4)
             # print(f"random rotation: {random_rotation}")
             rz = R.from_euler('z', random_rotation, degrees=False)
             quat = np.roll(rz.as_quat(), 1)
             #set box orientation
-            set_box_quat(self.model, self.data, quat[0], quat[1], quat[2],
-                         quat[3])
+            set_box_quat(self.model,
+                         self.data,
+                         qw=quat[0],
+                         qx=quat[1],
+                         qy=quat[2],
+                         qz=quat[3])
 
         #send in either camera_id or camera_name
         self.mujoco_renderer = MujocoRenderer(self.model,

@@ -88,12 +88,12 @@ def run_simulation(combination):
                 return_dist=False)
 
         #episodes terminate by success or tip, success = 1 - (tip + slip). Each option is mutually exclusive.
-        print(infos[-1])
+        # print(infos[-1])
         success = infos[-1].get("is_success", False)
         tip = infos[-1].get("box_fell_over", False)
         slip = True - (success or tip)
 
-        print(f"Success: {success}, Tip: {tip}, Slip: {slip}")
+        # print(f"Success: {success}, Tip: {tip}, Slip: {slip}")
 
         successes.append(success)
         tips.append(tip)
@@ -272,9 +272,9 @@ if __name__ == "__main__":
 
     lock = Lock()
 
-    with Pool(processes=16) as pool:
+    with Pool(processes=os.cpu_count() // 2) as pool:
         results = list(
-            tqdm(pool.imap(run_simulation, combinations),
+            tqdm(pool.imap_unordered(run_simulation, combinations),
                  total=len(combinations)))
 
     # print results to a file
