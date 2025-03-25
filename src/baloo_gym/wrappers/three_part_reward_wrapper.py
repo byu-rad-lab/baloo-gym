@@ -118,14 +118,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
         info["is_success"] = False
         if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
             info["is_success"] = True
-            success_reward = 100
+            success_reward = 50
             info["reward_terms"]["success"] = success_reward
             reward += success_reward
 
         if self._box_fell_over():
             info["is_success"] = False
             info["box_fell_over"] = True
-            box_fell_over_reward = -1
+            box_fell_over_reward = -10
             info["reward_terms"]["box_fell_over"] = box_fell_over_reward
             reward -= box_fell_over_reward
 
@@ -141,7 +141,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             else:
                 #penalize if the box WAS off the ground, but is now on the ground.
                 if self.object_off_floor_consecutive_steps > 0:
-                    dropped_reward = -.00 * self.object_off_floor_consecutive_steps
+                    dropped_reward = -.05 * self.object_off_floor_consecutive_steps
                     info["reward_terms"]["dropped"] = dropped_reward
                     reward += dropped_reward
 
@@ -162,6 +162,16 @@ class ThreePartRewardWrapper(gym.Wrapper):
         if "joint_centering" in self.reward_selection:
             centering_weight = 0.005
             reward -= centering_weight * self.get_joint_centering_reward()
+
+        if "minimize_torques" in self.reward_selection:
+            #penalize torques to minimize energy use. pressure torques are encoded in the actions[1:]. 1 corresponds to maximum torque.
+            joint_torques = action[1:]
+
+            norm = np.linalg.norm(joint_torques)
+            min_torque_reward = -0.0005 * norm
+
+            info["reward_terms"]["minimize_torques"] = min_torque_reward
+            reward += min_torque_reward
 
         if "action_smoothness" in self.reward_selection:
             # action_diff = 1 is max change corresponding to -1 to 1 actions.

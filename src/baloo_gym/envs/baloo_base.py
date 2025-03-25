@@ -161,12 +161,12 @@ class BalooBase(gym.Env, ABC):
                                     [150] * 4)
 
         if self.randomize_initial_height:
-            initial_height_cmd = np.random.randint(-800, 0)
+            initial_height_cmd = np.random.randint(-900, 0)
             set_elevator_cmd(self.model, self.data, initial_height_cmd)
 
         mujoco.mj_step(self.model,
                        self.data,
-                       nstep=int(15 / self.model.opt.timestep))
+                       nstep=int(30 / self.model.opt.timestep))
 
         self.data.time = 0
 
@@ -231,11 +231,11 @@ class BalooBase(gym.Env, ABC):
             offset = np.sqrt((ysize / 2)**2 +
                              (xsize / 2)**2) + world2chest_front
 
-            distance_from_chest = np.random.uniform(0, 25e-2)
+            distance_from_chest = np.random.uniform(0, 15e-2)
             y_box = offset + distance_from_chest
             x_box = np.random.uniform(-0.15, 0.15)
         else:
-            distance_from_chest = 45e-2
+            distance_from_chest = 40e-2
             y_box = ysize / 2 + distance_from_chest
             x_box = 0
 
@@ -251,9 +251,8 @@ class BalooBase(gym.Env, ABC):
         set_box_position(self.model, self.data, x_box, y_box, z_box)
 
         if self.randomize_object_quat:
-            #TODO: running into double coverage issues here?
             #get random rotation about z axis
-            random_rotation = np.random.uniform(-np.pi / 4, np.pi / 4)
+            random_rotation = np.random.uniform(-np.pi / 6, np.pi / 6)
             # print(f"random rotation: {random_rotation}")
             rz = R.from_euler('z', random_rotation, degrees=False)
             quat = np.roll(rz.as_quat(), 1)
