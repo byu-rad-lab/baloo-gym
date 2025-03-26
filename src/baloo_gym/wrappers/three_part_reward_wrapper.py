@@ -144,7 +144,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
             #difference between baseline actions and the actions this policy chose
             action_diff = np.linalg.norm(action - baseline_actions)
-            action_prior_reward = -0.1 * action_diff
+            action_prior_reward = 0.1 * np.exp(-0.1 * action_diff**2)
+
             info["reward_terms"]["copy_baseline"] = action_prior_reward
             reward += action_prior_reward
 
