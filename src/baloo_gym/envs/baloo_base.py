@@ -164,9 +164,14 @@ class BalooBase(gym.Env, ABC):
             initial_height_cmd = np.random.randint(-900, 0)
             set_elevator_cmd(self.model, self.data, initial_height_cmd)
 
+            #this is expensive. Future work: find a better way to get to equilibrium fast.
+            mujoco.mj_step(self.model,
+                        self.data,
+                        nstep=int(30 / self.model.opt.timestep))
+            
         mujoco.mj_step(self.model,
-                       self.data,
-                       nstep=int(30 / self.model.opt.timestep))
+            self.data,
+            nstep=int(2 / self.model.opt.timestep))
 
         self.data.time = 0
 
@@ -231,8 +236,7 @@ class BalooBase(gym.Env, ABC):
             offset = np.sqrt((ysize / 2)**2 +
                              (xsize / 2)**2) + world2chest_front
 
-            distance_from_chest = np.random.uniform(0, 15e-2)
-            y_box = offset + distance_from_chest
+            y_box = offset 
             x_box = np.random.uniform(-0.15, 0.15)
         else:
             distance_from_chest = 40e-2

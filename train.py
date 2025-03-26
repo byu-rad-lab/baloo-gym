@@ -69,6 +69,7 @@ def train(args):
             "baseline": False,
             "render_mode": "rgb_array",
             "potential_based_reward": args.potential_based_reward,
+            "resolution": 0.5,
         },
         n_envs=args.num_envs,
         vec_env_cls=SubprocVecEnv,
@@ -134,7 +135,7 @@ def train(args):
 
         return func
 
-    policy_kwargs = dict(net_arch=[512, 512] )
+    policy_kwargs = dict(net_arch=[512, 512])
     model = PPO(
         "MlpPolicy",
         vec_env,
