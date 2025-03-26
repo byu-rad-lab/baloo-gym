@@ -24,6 +24,7 @@ def extract_reward_trajectories(infos):
         "dropped": [],
         "chest_proximity": [],
         "touch_ground": [],
+        'copy_baseline': [],
         "tactile_nonzero": [],
         "minimize_torques": [],
         "upward_force": [],
@@ -109,6 +110,7 @@ if args.runid is None:
         "curriculum_selection": [],
         'reward_selection': [
             'dont_drop',
+            'copy_baseline',
             'chest_proximity',
             'touch_ground',
             'tactile_nonzero',
@@ -181,7 +183,7 @@ for j in range(args.num_rollouts):
 
     import matplotlib.pyplot as plt
     import numpy as np
-    fig, axs = plt.subplots(9, 1, figsize=(10, 40), sharex=True)
+    fig, axs = plt.subplots(10, 1, figsize=(10, 40), sharex=True)
 
     for i, k in enumerate(reward_history.keys()):
         axs[i].plot(reward_history[k], label=k)

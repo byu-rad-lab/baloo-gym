@@ -22,6 +22,9 @@ from scipy.spatial.transform import Rotation as R
 from scipy.spatial import ConvexHull
 import scipy
 
+from baloo_gym.policies.open_loop_hugger import OpenLoopHuggerPolicy
+from baloo_gym.utils import action_spaces
+
 
 class ThreePartRewardWrapper(gym.Wrapper):
     """
@@ -43,6 +46,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.initial_box_zerror = 0
         self.object_off_floor_consecutive_steps = 0
         self.prev_box_proximity = np.zeros(3)
+        self.baseline_policy = OpenLoopHuggerPolicy(N=50)
+        self.previous_obs = None
 
     def _box_fell_over(self):
         # if the angle between box z axis and the world z axis is more than 80 degrees, box probably fell over.
@@ -68,12 +73,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
         terminated = info.get("is_success", False)
         terminated = info.get("box_fell_over", terminated)
 
+        self.previous_obs = observation.copy()
+
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
         """Reset function that calls the parent reset function and then calculates the reward."""
 
-        ret = self.env.reset(seed=seed, options=options)
+        obs, info = self.env.reset(seed=seed, options=options)
         # call baloo_base reset function
         self.desired_box_visual_initialized = False
         self.sphere_visual_initialized = False
@@ -82,8 +89,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.previous_action = np.zeros(self.unwrapped.action_space.shape)
         self.box_lifted_already = False
         self.object_off_floor_consecutive_steps = 0
+        self.previous_obs = obs.copy()
+        self.baseline_policy.restart()
 
-        return ret
+        return obs, info
 
     def _decay_sphere_radius(self):
         start = 0.5
@@ -128,6 +137,16 @@ class ThreePartRewardWrapper(gym.Wrapper):
             box_fell_over_reward = -10
             info["reward_terms"]["box_fell_over"] = box_fell_over_reward
             reward -= box_fell_over_reward
+
+        if "copy_baseline" in self.reward_selection:
+            #copy the reward from the baseline.
+            baseline_actions, _ = self.baseline_policy.predict(self.previous_obs)
+
+            #difference between baseline actions and the actions this policy chose
+            action_diff = np.linalg.norm(action - baseline_actions)
+            action_prior_reward = -0.1 * action_diff
+            info["reward_terms"]["copy_baseline"] = action_prior_reward
+            reward += action_prior_reward
 
         if "dont_drop" in self.reward_selection:
             if not detect_box_on_ground(self.unwrapped.model,
@@ -202,37 +221,58 @@ class ThreePartRewardWrapper(gym.Wrapper):
                     #make box yellow to indicate high forces.
                     self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
 
-        if "tactile_nonzero" in self.reward_selection:
-            #if the chest is close enough, then reward for touching the box with the arms.
-            if np.abs(chest_xpos[2] - box_xpos[2]) < 0.5:
+        #if the chest is close enough, then start rewards for touching box
+        if np.abs(chest_xpos[2] - box_xpos[2]) < 0.5:
+            if self.object_off_floor_consecutive_steps == 0:
+                #change box to yellow to indicate tactile feedback. if box has not been lifted.
+                self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
+
+            if "tactile_nonzero" in self.reward_selection:
                 taxel_reward = 100 * self._count_nonzero_percentage()
                 reward += taxel_reward
                 info["reward_terms"]["tactile_nonzero"] = taxel_reward
 
-                if self.object_off_floor_consecutive_steps == 0:
-                    #change box to yellow to indicate tactile feedback. if box has not been lifted.
-                    self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
+            if "upward_force" in self.reward_selection:
+                #get the net force on the box in the world frame
+                box_contact_forces = get_contact_forces_on_body(
+                    self.unwrapped.model, self.unwrapped.data, 'box')
 
-        if "upward_force" in self.reward_selection:
-            #get the net force on the box in the world frame
-            box_contact_forces = get_contact_forces_on_body(
-                self.unwrapped.model, self.unwrapped.data, 'box')
+                net_force = np.sum(box_contact_forces, axis=0)
+                box_mass = self.unwrapped.model.body('box').mass.item()
 
-            net_force = np.sum(box_contact_forces, axis=0)
-            box_mass = self.unwrapped.model.body('box').mass.item()
+                if self.unwrapped.model.opt.gravity[2] != 0:
+                    normalized_force = net_force / np.abs(
+                        (box_mass * self.unwrapped.model.opt.gravity[2]))
+                else:
+                    raise RuntimeError(
+                        f"Upward force reward requires non-zero gravity. Gravity is set to {self.unwrapped.model.opt.gravity[2]}"
+                    )
 
-            if self.unwrapped.model.opt.gravity[2] != 0:
-                normalized_force = net_force / np.abs(
-                    (box_mass * self.unwrapped.model.opt.gravity[2]))
-            else:
-                raise RuntimeError(
-                    f"Upward force reward requires non-zero gravity. Gravity is set to {self.unwrapped.model.opt.gravity[2]}"
-                )
+                if normalized_force[2] > 0:
+                    upward_force_reward = 1 * normalized_force[2]
+                    reward += upward_force_reward
+                    info["reward_terms"]["upward_force"] = upward_force_reward
 
-            if normalized_force[2] > 0:
-                upward_force_reward = 1 * normalized_force[2]
-                reward += upward_force_reward
-                info["reward_terms"]["upward_force"] = upward_force_reward
+            if "inward_force" in self.reward_selection:
+                #get the net force on the box in the world frame
+                box_contact_forces = get_contact_forces_on_body(
+                    self.unwrapped.model, self.unwrapped.data, 'box')
+
+                net_force = np.sum(box_contact_forces, axis=0)
+                box_mass = self.unwrapped.model.body('box').mass.item()
+
+                if self.unwrapped.model.opt.gravity[2] != 0:
+                    normalized_force = net_force / np.abs(
+                        (box_mass * self.unwrapped.model.opt.gravity[2]))
+                else:
+                    raise RuntimeError(
+                        f"Upward force reward requires non-zero gravity. Gravity is set to {self.unwrapped.model.opt.gravity[2]}"
+                    )
+
+                if normalized_force[1] < 0:
+                    inward_force_reward = 1 * normalized_force[1]
+                    reward += inward_force_reward
+                    info["reward_terms"]["inward_force"] = inward_force_reward
 
         if "arm_convex_hull" in self.reward_selection:
             reward -= self._get_convex_hull_distance(box_xpos)
@@ -249,23 +289,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 info["reward_terms"]["touch_ground"] = touch_ground_reward
                 reward += touch_ground_reward
 
-        self.previous_action = action
+        self.previous_action = action.copy()
         return reward / 1200  #hard coded for a whole episode length
 
     def _calc_chest_proximity_reward(self, box_xpos):
-        '''
-        Thought here is that when reaching for something, my arm is in charge of moving my hand to the object
-        My fingers are in charge of getting into a good pose to grasp the object.
-
-        Up till now, I've been using all three, so the finger try to approach the object which gets 
-        the arms into bad configurations. 
-
-        The absolute distance has a time pressure component.
-        Since agent wants error to go away, it will try to get object as close to chest as fast as possible
-
-        So then, if I reward changes in position, then nothing is the matter
-        '''
-
         # this assumes that the robot has already "aligned" the object in the x and y directions (if it were mobile).
         chest_xpos = get_chest_position(self.unwrapped.model,
                                         self.unwrapped.data)
@@ -277,7 +304,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         error = np.array([x_error, y_error, z_error])
 
-        box_xerror = np.linalg.norm(error)
+        box_xerror = np.linalg.norm(error, ord=1)
 
         # reward = 1 * z_error**2
         # reward = np.exp(-a*box_xerror**2) - np.exp(-a*np.linalg.norm(self.prev_box_proximity)**2)
@@ -289,7 +316,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         # print(f"chest proximity error: {box_xerror}")
 
-        self.prev_box_proximity = error
+        self.prev_box_proximity = error.copy()
         return reward
 
     def _phi(self, x):
@@ -318,8 +345,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
             right_link1_taxels) / right_link1_taxels.size
         chest_percent = np.count_nonzero(chest_taxels) / chest_taxels.size
 
-        total = (left_link0_percent + left_link1_percent +
-                 right_link0_percent + right_link1_percent + chest_percent) / 5
+        # total = (left_link0_percent + left_link1_percent +
+        #          right_link0_percent + right_link1_percent + chest_percent) / 5
+
+        total = chest_percent
 
         return total
 
