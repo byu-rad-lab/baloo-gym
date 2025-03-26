@@ -291,7 +291,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 reward += touch_ground_reward
 
         self.previous_action = action.copy()
-        return reward / 1200  #hard coded for a whole episode length
+        return reward  #hard coded for a whole episode length
 
     def _calc_chest_proximity_reward(self, box_xpos):
         # this assumes that the robot has already "aligned" the object in the x and y directions (if it were mobile).
