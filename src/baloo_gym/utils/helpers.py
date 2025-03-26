@@ -9,7 +9,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
 )
 
 from stable_baselines3.common.env_checker import check_env
-from baloo_gym.wrappers import OpenLoopBaselineWrapper, ThreePartRewardWrapper, PotentialBasedRewardWrapper
+from baloo_gym.wrappers import ThreePartRewardWrapper, PotentialBasedRewardWrapper
 from stable_baselines3.common.policies import obs_as_tensor
 
 from gymnasium.wrappers import TimeLimit
@@ -166,8 +166,6 @@ def build_env(config: dict, baseline: bool, render_mode, **kwargs):
     # env = CurriculumEnv(env, config["curriculum_selection"])
 
     if baseline:
-        #overwrite to be compatible with open-loop baseline policy.
-        env = OpenLoopBaselineWrapper(env)
         print("Using open-loop baseline policy.")
 
     #needs monitor after time limit since that emits the done signals.

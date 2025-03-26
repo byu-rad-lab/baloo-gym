@@ -49,14 +49,14 @@ class NormalizedAction:
 class NormalizedDifferentialPressure:
     shape = (13, )
 
-    def __init__(self, current_command):
-        self.elevator_height_cmd = current_command[0]
-        self.left_j0_delta_pressure = current_command[1:3]
-        self.left_j1_delta_pressure = current_command[3:5]
-        self.left_j2_delta_pressure = current_command[5:7]
-        self.right_j0_delta_pressure = current_command[7:9]
-        self.right_j1_delta_pressure = current_command[9:11]
-        self.right_j2_delta_pressure = current_command[11:13]
+    def __init__(self, current_action):
+        self.elevator_height_cmd = current_action[0]
+        self.left_j0_delta_pressure = current_action[1:3]
+        self.left_j1_delta_pressure = current_action[3:5]
+        self.left_j2_delta_pressure = current_action[5:7]
+        self.right_j0_delta_pressure = current_action[7:9]
+        self.right_j1_delta_pressure = current_action[9:11]
+        self.right_j2_delta_pressure = current_action[11:13]
 
         self.average_pressure = 150
         self.cmd_lower_bound = np.asarray([-900] + [-150] * 12)
