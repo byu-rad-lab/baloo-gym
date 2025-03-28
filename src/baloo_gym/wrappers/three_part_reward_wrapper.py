@@ -124,6 +124,19 @@ class ThreePartRewardWrapper(gym.Wrapper):
         reward = 0
         info["reward_terms"] = {}
 
+        if not detect_box_on_ground(self.unwrapped.model,
+                                        self.unwrapped.data):
+                self.box_lifted_already = True
+                self.object_off_floor_consecutive_steps += 1
+                self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
+        else:
+            self.object_off_floor_consecutive_steps = 0
+            #redness as an indicator of mass. dark red = heavy, light red = light
+            redness = 1 - self.unwrapped.model.body('box').mass.item() / 20
+            self.unwrapped.model.geom('box').rgba = [
+                1, redness, redness, 1
+            ]
+
         info["is_success"] = False
         if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
             info["is_success"] = True
@@ -144,33 +157,24 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
             #difference between baseline actions and the actions this policy chose
             action_diff = np.linalg.norm(action - baseline_actions)
-            action_prior_reward = 1 * np.exp(-0.1 * action_diff**2)
+            action_prior_reward = 0.1 * np.exp(-0.1 * action_diff**2)
 
             info["reward_terms"]["copy_baseline"] = action_prior_reward
             reward += action_prior_reward
 
         if "dont_drop" in self.reward_selection:
-            if not detect_box_on_ground(self.unwrapped.model,
-                                        self.unwrapped.data):
-                self.box_lifted_already = True
-                self.object_off_floor_consecutive_steps += 1
                 dont_drop_reward = .2 * self.object_off_floor_consecutive_steps
                 reward += dont_drop_reward
                 info["reward_terms"]["dont_drop"] = dont_drop_reward
-                self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
-            else:
+
                 #penalize if the box WAS off the ground, but is now on the ground.
-                if self.object_off_floor_consecutive_steps > 0:
+                if self.object_off_floor_consecutive_steps == 0 and self.box_lifted_already:
                     dropped_reward = -.05 * self.object_off_floor_consecutive_steps
                     info["reward_terms"]["dropped"] = dropped_reward
                     reward += dropped_reward
+                    self.box_lifted_already = False
 
-                self.object_off_floor_consecutive_steps = 0
-                #redness as an indicator of mass. dark red = heavy, light red = light
-                redness = 1 - self.unwrapped.model.body('box').mass.item() / 20
-                self.unwrapped.model.geom('box').rgba = [
-                    1, redness, redness, 1
-                ]
+
 
         ##### SECONDARY REWARDS #####
         if "chest_proximity" in self.reward_selection:

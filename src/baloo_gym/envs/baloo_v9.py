@@ -99,10 +99,6 @@ class BalooV9(BalooBase):
         sensor_data["right_j1_p_filt_cmd"] = self.p_filt_cmd[16:20]
         sensor_data["right_j2_p_filt_cmd"] = self.p_filt_cmd[20:24]
 
-        elev_filt_vel_cmd, elev_filt_pos_cmd = get_elevator_activation(
-            self.unwrapped.model, self.unwrapped.data)
-        sensor_data["elevator_pos_filt_cmd"] = elev_filt_pos_cmd
-
         chest_xpos = get_chest_position(self.unwrapped.model,
                                         self.unwrapped.data)
 
@@ -110,9 +106,9 @@ class BalooV9(BalooBase):
 
         sensor_data["chest2box"] = box_xpos - chest_xpos
 
-        # box_size = self.unwrapped.model.geom("box").size
-        # sensor_data["box_size"] = 2 * np.array(
-        #     box_size)  #2* because mujoco reports half sizes
+        box_size = self.unwrapped.model.geom("box").size
+        sensor_data["box_size"] = 2 * np.array(
+            box_size)  #2* because mujoco reports half sizes
 
         rawObs = StateObservationObjectOnly(**sensor_data)
 

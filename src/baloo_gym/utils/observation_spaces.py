@@ -1356,7 +1356,7 @@ class StateObservationObjectOnly:
     right_j1_p_filt_cmd_lb = [0] * 4
     right_j2_p_filt_cmd_lb = [0] * 4
     chest2box_lb = [-3, -3, -2]  # object_xpos - chest_xpos
-    elevator_pos_filt_cmd_lb = [-1.5]
+    box_size_lb = [0.2, 0.2, 0.5]
 
     elevator_pos_ub = [1e-3]
     left_pos_ub = [np.pi] * 6
@@ -1379,7 +1379,7 @@ class StateObservationObjectOnly:
     right_j1_p_filt_cmd_ub = [300] * 4
     right_j2_p_filt_cmd_ub = [300] * 4
     chest2box_ub = [3, 3, 0.5]
-    elevator_pos_filt_cmd_ub = [0]
+    box_size_ub = [0.6, 0.6, 1.25]
 
     obs_lower_bound = np.asarray(elevator_pos_lb + left_pos_lb + right_pos_lb +
                                  box_pose_lb + elevator_vel_lb + left_vel_lb +
@@ -1392,7 +1392,7 @@ class StateObservationObjectOnly:
                                  right_j0_p_filt_cmd_lb +
                                  right_j1_p_filt_cmd_lb +
                                  right_j2_p_filt_cmd_lb + chest2box_lb +
-                                 elevator_pos_filt_cmd_lb)
+                                 box_size_lb)
 
     obs_upper_bound = np.asarray(elevator_pos_ub + left_pos_ub + right_pos_ub +
                                  box_pose_ub + elevator_vel_ub + left_vel_ub +
@@ -1405,7 +1405,7 @@ class StateObservationObjectOnly:
                                  right_j0_p_filt_cmd_ub +
                                  right_j1_p_filt_cmd_ub +
                                  right_j2_p_filt_cmd_ub + chest2box_ub +
-                                 elevator_pos_filt_cmd_ub)
+                                 box_size_ub)
 
     shape = (len(obs_lower_bound), )
 
@@ -1432,7 +1432,7 @@ class StateObservationObjectOnly:
         right_j1_p_filt_cmd,
         right_j2_p_filt_cmd,
         chest2box,
-        elevator_pos_filt_cmd,
+        box_size,
     ):
         self.elevator_pos = elevator_pos
         self.left_pos = left_pos
@@ -1455,7 +1455,7 @@ class StateObservationObjectOnly:
         self.right_j1_p_filt_cmd = right_j1_p_filt_cmd
         self.right_j2_p_filt_cmd = right_j2_p_filt_cmd
         self.chest2box = chest2box
-        self.elevator_pos_filt_cmd = elevator_pos_filt_cmd
+        self.box_size = box_size
 
     def to_array(self):
         return np.hstack([
@@ -1480,7 +1480,7 @@ class StateObservationObjectOnly:
             self.right_j1_p_filt_cmd,
             self.right_j2_p_filt_cmd,
             self.chest2box,
-            self.elevator_pos_filt_cmd,
+            self.box_size,
         ])
 
     def __repr__(self):
@@ -1524,5 +1524,5 @@ class StateObservationObjectOnly:
             right_j1_p_filt_cmd=observation_array[79:83],
             right_j2_p_filt_cmd=observation_array[83:87],
             chest2box=observation_array[87:90],
-            elevator_pos_filt_cmd=observation_array[90],
+            box_size=observation_array[90:93],
         )

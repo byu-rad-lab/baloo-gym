@@ -173,7 +173,6 @@ def train(args):
 
     if args.wandb:
         #log best model to wandb too
-        wandb.save(f"new_experiments/{run_folder}/best_model/best_model.zip")
         wandb.save(f"new_experiments/{run_folder}/checkpoints/*.zip")
         run.finish()
 
