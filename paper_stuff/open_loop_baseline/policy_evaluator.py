@@ -37,11 +37,15 @@ def run_simulation(combination):
             'upward_force'
         ],
         "randomize_initial_height":
-        True,
+        False,
         "randomize_object_size":
         False,
         "randomize_object_mass":
         False,
+        "randomize_object_quat":
+        True,
+        "randomize_object_pos":
+        True,
     }
     x, y, z, m = combination
     # print(f"Running trial with object size: {x, y, z} and mass: {m}")
@@ -220,7 +224,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_trials", type=int, default=1)
     parser.add_argument('--runid', type=str, help="Wandb run id")
-    parser.add_argument('--model_name', type=str)
+    parser.add_argument('--model_name', type=str, required=True)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--grid', action='store_true')
     group.add_argument('--random', action='store_true')
