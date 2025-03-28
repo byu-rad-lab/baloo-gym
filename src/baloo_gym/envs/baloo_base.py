@@ -228,19 +228,17 @@ class BalooBase(gym.Env, ABC):
         mujoco.mj_resetData(self.model, self.data)
 
         #### SET SIZES, POSITIONS, AND ORIENTATIONS ####
+        #set random x and y position for box, height is set by box size
+        world2chest_front = 35e-2
+
+        #ensure that the box (even rotated) is not underneath the chest
+        offset = np.sqrt((ysize / 2)**2 +
+                            (xsize / 2)**2) + world2chest_front
+        y_box = offset
+
         if self.randomize_object_pos:
-            #set random x and y position for box, height is set by box size
-            world2chest_front = 35e-2
-
-            #ensure that the box (even rotated) is not underneath the chest
-            offset = np.sqrt((ysize / 2)**2 +
-                             (xsize / 2)**2) + world2chest_front
-
-            y_box = offset 
-            x_box = np.random.uniform(-0.15, 0.15)
+            x_box = np.random.uniform(-0.1, 0.1)
         else:
-            distance_from_chest = 40e-2
-            y_box = ysize / 2 + distance_from_chest
             x_box = 0
 
         if self.randomize_object_size:
@@ -256,7 +254,7 @@ class BalooBase(gym.Env, ABC):
 
         if self.randomize_object_quat:
             #get random rotation about z axis
-            random_rotation = np.random.uniform(-np.pi / 6, np.pi / 6)
+            random_rotation = np.random.uniform(-np.pi / 3, np.pi / 3)
             # print(f"random rotation: {random_rotation}")
             rz = R.from_euler('z', random_rotation, degrees=False)
             quat = np.roll(rz.as_quat(), 1)

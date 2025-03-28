@@ -87,11 +87,10 @@ class OpenLoopHuggerPolicy(BasePolicy):
             #or assume its the height since that's the only thing we need here.
             elevator_height = obs
 
-
         if self.state == "APPROACH":
             #command elevator to -.85
             if self.step_along_trajectory < self.N:
-                actions[0] = -875
+                actions[0] = -900
 
                 actions[1] = self.left_lift_j0_delta_traj[
                     self.step_along_trajectory][0]
@@ -120,13 +119,13 @@ class OpenLoopHuggerPolicy(BasePolicy):
                 self.step_along_trajectory += 1
 
             #if elevator and pressures are both close, move to GRASP
-            if np.isclose(elevator_height, -.875,
+            if np.isclose(elevator_height, -.900,
                           atol=.1) and self.step_along_trajectory == self.N:
                 self.state = "GRASP"
                 self.step_along_trajectory = 0
 
         elif self.state == "GRASP":
-            actions[0] = -875
+            actions[0] = -900
 
             actions[1] = self.left_grab_j0_delta_traj[
                 self.step_along_trajectory][0]
