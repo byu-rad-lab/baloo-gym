@@ -18,6 +18,10 @@ import numpy as np
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecVideoRecorder
 from stable_baselines3.common.monitor import Monitor
+import wandb
+from tqdm import tqdm
+import os
+from pathlib import Path
 
 
 def get_sensor_data(model, data):
@@ -200,3 +204,60 @@ def parallelize_env(args, config, run_folder, save_freq):
     )
 
     return vec_env
+
+def load_or_download_model(args, local_experiment_folder):
+    #this needs to download everythign in the new_experiments folder from wandb
+    run_path = None
+    try:
+        #try loading model from local experiments folder
+        #find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
+        for f in os.listdir(local_experiment_folder):
+            if args.runid in f:
+                run_path = f"{local_experiment_folder}/{f}/"
+                print(f"Found run locally in {run_path}")
+                break
+
+        if run_path is None:
+            raise FileNotFoundError(
+                f"{args.runid} not found in {local_experiment_folder}.")
+    except:
+        #try downloading model from wandb
+        print(
+            f"{args.runid} not found in {local_experiment_folder}. Trying download from wandb instead..."
+        )
+
+        try:
+            run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
+            print(f"Found run on wandb: curtiscjohnson/ppo_baloo/{args.runid}")
+        except Exception as e:
+            print(f"Error downloading from wandb: {e}")
+            raise FileNotFoundError(
+                f"{args.runid} not found in {local_experiment_folder} or on wandb."
+            )
+
+        print(f"Downloading run files to {local_experiment_folder}...")
+        for file in tqdm(run.files()):
+            #download everything in the new_experiments folder
+            if file.name.startswith("new_experiments/"):
+                file.download(root=os.path.dirname(local_experiment_folder),
+                              replace=True)
+                run_name = Path(file.name).parts[1]
+
+        run_path = os.path.join(local_experiment_folder, run_name)
+
+    #find model_name in the run_path recursively
+    model_path = None
+    for root, dirs, files in os.walk(run_path):
+        for file in files:
+            if file.endswith(".zip") and (args.model_name in file):
+                model_path = os.path.join(root, file)
+                break
+        if model_path:
+            break
+
+    if model_path is None:
+        raise FileNotFoundError(
+            f"Model not found in {run_path}. Please specify the model name.")
+
+    print(f"Loading model from {model_path}")
+    return model_path

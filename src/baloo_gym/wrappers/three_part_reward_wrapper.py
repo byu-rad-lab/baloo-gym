@@ -140,14 +140,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
         info["is_success"] = False
         if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
             info["is_success"] = True
-            success_reward = 50
+            success_reward = 10
             info["reward_terms"]["success"] = success_reward
             reward += success_reward
 
         if self._box_fell_over():
             info["is_success"] = False
             info["box_fell_over"] = True
-            box_fell_over_reward = -10
+            box_fell_over_reward = -2
             info["reward_terms"]["box_fell_over"] = box_fell_over_reward
             reward -= box_fell_over_reward
 
@@ -160,6 +160,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             action_prior_reward = 0.1 * np.exp(-0.1 * action_diff**2)
 
             info["reward_terms"]["copy_baseline"] = action_prior_reward
+            print("Action reward from baseline policy: ", action_prior_reward)
             reward += action_prior_reward
 
         if "dont_drop" in self.reward_selection:

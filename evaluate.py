@@ -14,6 +14,7 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (set_box_size,
                                                  set_box_position)
 import shutil
 import numpy as np
+from baloo_gym.utils.helpers import load_or_download_model
 
 np.set_printoptions(precision=3, suppress=True)
 
@@ -39,47 +40,6 @@ def extract_reward_trajectories(infos):
     return reward_history
 
 
-def load_or_download_model(args, local_experiment_folder):
-    run_path = None
-    try:
-        #try loading model from local experiments folder
-        #find folder containing runid in /home/curtis/baloo/baloo-gym/new_experiments
-        for f in os.listdir(local_experiment_folder):
-            if args.runid in f:
-                run_path = f"{local_experiment_folder}/{f}/best_model/best_model.zip"
-                print(f"Loading model from {run_path}")
-                break
-
-        if run_path is None:
-            raise FileNotFoundError(
-                f"{args.runid} not found in experiments folder.")
-    except:
-        #try downloading model from wandb
-        print(
-            f"{args.runid} not found in experiments folder. Trying download from wandb instead..."
-        )
-        run = wandb.Api().run(f"curtiscjohnson/ppo_baloo/{args.runid}")
-        for file in run.files():
-            if "best_model" in file.name:
-                file.download(replace=True)
-                print(f"Found best model.")
-                old_path = file.name
-                new_path = os.path.join(local_experiment_folder,
-                                        os.sep.join(file.name.split("/")[1:]))
-                os.makedirs(os.path.dirname(new_path), exist_ok=True)
-                shutil.move(old_path, new_path)
-                print(f"Downloaded best model to {new_path}")
-                run_path = new_path
-                # shutil.rmtree(old_path.split("/")[0])
-                break
-
-        if run_path is None:
-            raise FileNotFoundError(
-                f"{args.runid} not found in experiments folder or on wandb.")
-
-    return run_path
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--runid', type=str, help="Wandb run id")
 parser.add_argument('--num_rollouts',
@@ -92,6 +52,8 @@ parser.add_argument(
     type=int,
     default=1,
     help="Resolution multiplier of video (160x120) * resolution")
+
+parser.add_argument('--model_name', type=str, required=True)
 
 args = parser.parse_args()
 
