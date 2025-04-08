@@ -276,7 +276,7 @@ if __name__ == "__main__":
 
     lock = Lock()
 
-    with Pool(processes=os.cpu_count() // 2) as pool:
+    with Pool(processes=os.cpu_count()) as pool:
         results = list(
             tqdm(pool.imap_unordered(run_simulation, combinations),
                  total=len(combinations)))

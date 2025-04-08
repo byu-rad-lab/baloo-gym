@@ -68,16 +68,16 @@ if args.runid is None:
         "env_name":
         "baloo_v9",
         "time_limit_sec":
-        60,
+        120,
         "curriculum_selection": [],
         'reward_selection': [
             'dont_drop',
             'copy_baseline',
-            'chest_proximity',
+            # 'chest_proximity',
             'touch_ground',
-            'tactile_nonzero',
-            'upward_force',
-            'minimize_torques',
+            # 'tactile_nonzero',
+            # 'upward_force',
+            # 'minimize_torques',
         ],
         "randomize_initial_height":
         False,
@@ -139,8 +139,8 @@ for j in range(args.num_rollouts):
     print(len(frames), len(rewards), len(actions), len(observations))
 
     # plot all lines in reward_history as subplots
-    # run_path = os.path.dirname(args.model_file)
-    run_path = f"./evaluation_results/{folder_name}/rollout_{j}"
+    tmp_name = args.model_name.split(".")[0]
+    run_path = f"./evaluation_results/{folder_name}-{tmp_name}/rollout_{j}"
     os.makedirs(run_path, exist_ok=True)
 
     import matplotlib.pyplot as plt
@@ -154,10 +154,7 @@ for j in range(args.num_rollouts):
         axs[i].set_ylabel("Rewards")
 
     axs[-1].set_xlabel("Timesteps")
-    plt.savefig(
-        f"./evaluation_results/{folder_name}/rollout_{j}/reward_terms.png",
-        dpi=300,
-        bbox_inches='tight')
+    plt.savefig(run_path + f"/reward_terms.png", dpi=300, bbox_inches='tight')
     plt.close(fig)
 
     make_movie(frames,

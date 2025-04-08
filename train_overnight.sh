@@ -9,11 +9,9 @@ for (( i=1; i<=NUM_RUNS; i++ ))
 do
   echo "Starting iteration $i"
 
-  source $VENV_PATH/bin/activate
-
   cd /home/curtis/baloo/baloo-gym
 
-  python3 $PYTHON_SCRIPT --total_timesteps 2000000 --env_name baloo_v4 --num_envs 16 --wandb
+  uv run train.py --num_envs 20 --randomize_object_size --randomize_object_mass --randomize_object_pos --randomize_object_quat --total_timesteps 20000000 --reward_selection copy_baseline --seed $i --wandb
 
   echo "Completed iteration $i"
 done

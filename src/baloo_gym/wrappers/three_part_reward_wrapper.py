@@ -14,6 +14,8 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     detect_box_on_ground,
     get_all_contact_wrenches,
     check_arms_touching_ground,
+    check_arm_arm_collision,
+    check_arm_base_collision,
 )
 import mujoco
 import numpy as np
@@ -140,14 +142,14 @@ class ThreePartRewardWrapper(gym.Wrapper):
         info["is_success"] = False
         if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
             info["is_success"] = True
-            success_reward = 10
+            success_reward = 0
             info["reward_terms"]["success"] = success_reward
             reward += success_reward
 
         if self._box_fell_over():
             info["is_success"] = False
             info["box_fell_over"] = True
-            box_fell_over_reward = -2
+            box_fell_over_reward = -1
             info["reward_terms"]["box_fell_over"] = box_fell_over_reward
             reward -= box_fell_over_reward
 
@@ -157,20 +159,24 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
             #difference between baseline actions and the actions this policy chose
             action_diff = np.linalg.norm(action - baseline_actions)
-            action_prior_reward = 0.1 * np.exp(-0.1 * action_diff**2)
+            action_prior_reward = 0.1 * np.exp(-0.5 * action_diff**2)
 
             info["reward_terms"]["copy_baseline"] = action_prior_reward
-            print("Action reward from baseline policy: ", action_prior_reward)
+            # print("Action reward from baseline policy: ", action_prior_reward)
             reward += action_prior_reward
 
         if "dont_drop" in self.reward_selection:
-                dont_drop_reward = .2 * self.object_off_floor_consecutive_steps
+                if self.object_off_floor_consecutive_steps > 0:
+                    dont_drop_reward = 0.1
+                else:
+                    dont_drop_reward = 0
+
                 reward += dont_drop_reward
                 info["reward_terms"]["dont_drop"] = dont_drop_reward
 
                 #penalize if the box WAS off the ground, but is now on the ground.
                 if self.object_off_floor_consecutive_steps == 0 and self.box_lifted_already:
-                    dropped_reward = -.05 * self.object_off_floor_consecutive_steps
+                    dropped_reward = 0
                     info["reward_terms"]["dropped"] = dropped_reward
                     reward += dropped_reward
                     self.box_lifted_already = False
@@ -288,10 +294,17 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         if "touch_ground" in self.reward_selection:
             #penalize any part of arms touching the ground.
-            if check_arms_touching_ground(self.unwrapped.model,
-                                          self.unwrapped.data):
+            touching_ground = check_arms_touching_ground(self.unwrapped.model,
+                                          self.unwrapped.data)
+            touch_base = check_arm_base_collision(self.unwrapped.model,
+                                          self.unwrapped.data)
+            
+            touching_arms = check_arm_arm_collision(self.unwrapped.model,
+                                          self.unwrapped.data)
+            
+            if touching_ground or touch_base or touching_arms:
 
-                touch_ground_reward = -.01
+                touch_ground_reward = -.05
                 info["reward_terms"]["touch_ground"] = touch_ground_reward
                 reward += touch_ground_reward
 

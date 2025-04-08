@@ -140,7 +140,7 @@ def train(args):
         "MlpPolicy",
         vec_env,
         n_steps=8192,
-        gamma=0.999,
+        gamma=0.998,
         policy_kwargs=policy_kwargs,
         batch_size=512,
         learning_rate=linear_schedule(5e-4, 1e-5),
