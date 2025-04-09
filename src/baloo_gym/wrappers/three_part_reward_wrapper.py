@@ -164,10 +164,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
             info["reward_terms"]["copy_baseline"] = action_prior_reward
             # print("Action reward from baseline policy: ", action_prior_reward)
             reward += action_prior_reward
-
         if "dont_drop" in self.reward_selection:
                 if self.object_off_floor_consecutive_steps > 0:
-                    dont_drop_reward = 0.1
+                    dont_drop_reward = 0.05
                 else:
                     dont_drop_reward = 0
 
