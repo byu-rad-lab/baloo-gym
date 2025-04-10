@@ -71,11 +71,11 @@ if args.runid is None:
         120,
         "curriculum_selection": [],
         'reward_selection': [
-            'dont_drop',
+            # 'dont_drop',
             'copy_baseline',
             # 'chest_proximity',
             'touch_ground',
-            # 'tactile_nonzero',
+            'tactile_nonzero',
             # 'upward_force',
             # 'minimize_torques',
         ],

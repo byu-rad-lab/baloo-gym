@@ -50,6 +50,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.prev_box_proximity = np.zeros(3)
         self.baseline_policy = OpenLoopHuggerPolicy(N=50)
         self.previous_obs = None
+        self.collision_counter = 0
 
     def _box_fell_over(self):
         # if the angle between box z axis and the world z axis is more than 80 degrees, box probably fell over.
@@ -93,6 +94,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.object_off_floor_consecutive_steps = 0
         self.previous_obs = obs.copy()
         self.baseline_policy.restart()
+        self.collision_counter = 0
 
         return obs, info
 
@@ -126,61 +128,61 @@ class ThreePartRewardWrapper(gym.Wrapper):
         reward = 0
         info["reward_terms"] = {}
 
-        if not detect_box_on_ground(self.unwrapped.model,
-                                        self.unwrapped.data):
-                self.box_lifted_already = True
-                self.object_off_floor_consecutive_steps += 1
-                self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
+        if not detect_box_on_ground(self.unwrapped.model, self.unwrapped.data):
+            self.box_lifted_already = True
+            self.object_off_floor_consecutive_steps += 1
+            self.unwrapped.model.geom('box').rgba = [0, 1, 0, 1]
         else:
             self.object_off_floor_consecutive_steps = 0
             #redness as an indicator of mass. dark red = heavy, light red = light
             redness = 1 - self.unwrapped.model.body('box').mass.item() / 20
-            self.unwrapped.model.geom('box').rgba = [
-                1, redness, redness, 1
-            ]
+            self.unwrapped.model.geom('box').rgba = [1, redness, redness, 1]
 
         info["is_success"] = False
         if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
             info["is_success"] = True
-            success_reward = 0
+            success_reward = 10
             info["reward_terms"]["success"] = success_reward
             reward += success_reward
 
         if self._box_fell_over():
             info["is_success"] = False
             info["box_fell_over"] = True
-            box_fell_over_reward = -1
+            box_fell_over_reward = -2
             info["reward_terms"]["box_fell_over"] = box_fell_over_reward
             reward -= box_fell_over_reward
 
         if "copy_baseline" in self.reward_selection:
             #copy the reward from the baseline.
-            baseline_actions, _ = self.baseline_policy.predict(self.previous_obs)
+            baseline_actions, _ = self.baseline_policy.predict(
+                self.previous_obs)
 
             #difference between baseline actions and the actions this policy chose
             action_diff = np.linalg.norm(action - baseline_actions)
-            action_prior_reward = 0.1 * np.exp(-0.5 * action_diff**2)
+            action_prior_reward = 0.2 * np.exp(-0.5 * action_diff**2)
 
             info["reward_terms"]["copy_baseline"] = action_prior_reward
             # print("Action reward from baseline policy: ", action_prior_reward)
             reward += action_prior_reward
+
         if "dont_drop" in self.reward_selection:
-                if self.object_off_floor_consecutive_steps > 0:
-                    dont_drop_reward = 0.05
-                else:
-                    dont_drop_reward = 0
+            dont_drop_reward = .001 * self.object_off_floor_consecutive_steps
+            reward += dont_drop_reward
+            info["reward_terms"]["dont_drop"] = dont_drop_reward
 
-                reward += dont_drop_reward
-                info["reward_terms"]["dont_drop"] = dont_drop_reward
+            #penalize if the box WAS off the ground, but is now on the ground.
+            if self.object_off_floor_consecutive_steps == 0 and self.box_lifted_already:
+                dropped_reward = -.001 * self.object_off_floor_consecutive_steps
+                info["reward_terms"]["dropped"] = dropped_reward
+                reward += dropped_reward
+                self.box_lifted_already = False
 
-                #penalize if the box WAS off the ground, but is now on the ground.
-                if self.object_off_floor_consecutive_steps == 0 and self.box_lifted_already:
-                    dropped_reward = 0
-                    info["reward_terms"]["dropped"] = dropped_reward
-                    reward += dropped_reward
-                    self.box_lifted_already = False
-
-
+            #penalize if the box WAS off the ground, but is now on the ground.
+            if self.object_off_floor_consecutive_steps == 0 and self.box_lifted_already:
+                dropped_reward = 0
+                info["reward_terms"]["dropped"] = dropped_reward
+                reward += dropped_reward
+                self.box_lifted_already = False
 
         ##### SECONDARY REWARDS #####
         if "chest_proximity" in self.reward_selection:
@@ -239,7 +241,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                 self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
 
             if "tactile_nonzero" in self.reward_selection:
-                taxel_reward = 100 * self._count_nonzero_percentage()
+                taxel_reward = 20 * self._count_nonzero_percentage()
                 reward += taxel_reward
                 info["reward_terms"]["tactile_nonzero"] = taxel_reward
 
@@ -293,19 +295,22 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         if "touch_ground" in self.reward_selection:
             #penalize any part of arms touching the ground.
-            touching_ground = check_arms_touching_ground(self.unwrapped.model,
-                                          self.unwrapped.data)
+            touching_ground = check_arms_touching_ground(
+                self.unwrapped.model, self.unwrapped.data)
             touch_base = check_arm_base_collision(self.unwrapped.model,
-                                          self.unwrapped.data)
-            
-            touching_arms = check_arm_arm_collision(self.unwrapped.model,
-                                          self.unwrapped.data)
-            
-            if touching_ground or touch_base or touching_arms:
+                                                  self.unwrapped.data)
 
-                touch_ground_reward = -.05
+            touching_arms = check_arm_arm_collision(self.unwrapped.model,
+                                                    self.unwrapped.data)
+
+            if touching_ground or touch_base or touching_arms:
+                self.collision_counter += 1
+
+                touch_ground_reward = -.0001 * self.collision_counter
                 info["reward_terms"]["touch_ground"] = touch_ground_reward
                 reward += touch_ground_reward
+            else:
+                self.collision_counter = 0
 
         self.previous_action = action.copy()
         return reward  #hard coded for a whole episode length
@@ -363,10 +368,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
             right_link1_taxels) / right_link1_taxels.size
         chest_percent = np.count_nonzero(chest_taxels) / chest_taxels.size
 
-        # total = (left_link0_percent + left_link1_percent +
-        #          right_link0_percent + right_link1_percent + chest_percent) / 5
-
-        total = chest_percent
+        total = (left_link0_percent + left_link1_percent +
+                 right_link0_percent + right_link1_percent + chest_percent) / 5
 
         return total
 
