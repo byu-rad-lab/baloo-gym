@@ -235,10 +235,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
                     self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
 
         #if the chest is close enough, then start rewards for touching box
-        if np.abs(chest_xpos[2] - box_xpos[2]) < 0.5:
-            if self.object_off_floor_consecutive_steps == 0:
-                #change box to yellow to indicate tactile feedback. if box has not been lifted.
-                self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
+        if self.object_off_floor_consecutive_steps > 0:
+            # if self.object_off_floor_consecutive_steps == 0:
+            #     #change box to yellow to indicate tactile feedback. if box has not been lifted.
+            #     self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
 
             if "tactile_nonzero" in self.reward_selection:
                 taxel_reward = 20 * self._count_nonzero_percentage()
