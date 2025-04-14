@@ -44,24 +44,24 @@ class OpenLoopHuggerPolicy(BasePolicy):
 
         self.right_lift_j0_delta_traj = np.linspace(
             np.array([0, 0]),
-            np.array([0, 100]),
+            np.array([-20, 80]),
             N,
         )
 
         self.right_grab_j0_delta_traj = np.linspace(
-            np.array([0, 100]),
+            np.array([-20, 80]),
             np.array([150, -50]),
             N,
         )
 
         self.right_lift_j1_delta_traj = np.linspace(
             np.array([0, 0]),
-            np.array([45, 45]),
+            np.array([50, 50]),
             N,
         )
 
         self.right_grab_j1_delta_traj = np.linspace(
-            np.array([45, 45]),
+            np.array([50, 50]),
             np.array([45, -105]),
             N,
         )
