@@ -51,6 +51,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.baseline_policy = OpenLoopHuggerPolicy(N=50)
         self.previous_obs = None
         self.collision_counter = 0
+        self.initial_height = None
+
 
     def _box_fell_over(self):
         # if the angle between box z axis and the world z axis is more than 80 degrees, box probably fell over.
@@ -95,6 +97,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.previous_obs = obs.copy()
         self.baseline_policy.restart()
         self.collision_counter = 0
+        self.initial_height = get_box_position(
+            self.unwrapped.model, self.unwrapped.data)[2]
 
         return obs, info
 
@@ -139,7 +143,9 @@ class ThreePartRewardWrapper(gym.Wrapper):
             self.unwrapped.model.geom('box').rgba = [1, redness, redness, 1]
 
         info["is_success"] = False
-        if self.object_off_floor_consecutive_steps >= 5 / self.unwrapped.control_timestep:
+
+        box_height = box_xpos[2]
+        if box_height > self.initial_height + 0.5:
             info["is_success"] = True
             success_reward = 10
             info["reward_terms"]["success"] = success_reward

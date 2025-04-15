@@ -68,7 +68,7 @@ if args.runid is None:
         "env_name":
         "baloo_v9",
         "time_limit_sec":
-        120,
+        60,
         "curriculum_selection": [],
         'reward_selection': [
             # 'dont_drop',
@@ -103,6 +103,7 @@ else:
         "ctrl_timestep": run.config["ctrl_timestep"],
         "env_name": run.config["env_name"],
         "time_limit_sec": run.config["time_limit_sec"],
+        # "time_limit_sec": 120,
         "curriculum_selection": run.config["curriculum_selection"],
         'reward_selection': run.config['reward_selection'],
         "randomize_initial_height": False,
@@ -147,10 +148,27 @@ for j in range(args.num_rollouts):
     import numpy as np
     fig, axs = plt.subplots(10, 1, figsize=(10, 40), sharex=True)
 
+    #calculate the total discounted return over the episode
+    rewards = np.array(rewards)
+    discounted_sum = 0
+    try:
+        gamma = config["gamma"]
+    except:
+        gamma = 0.99
+        print("Using default gamma of 0.99")
+
+    for i in range(len(rewards)):
+        discounted_sum += (gamma**i) * rewards[i]
+
+    print(
+        f"Discounted episode return: {discounted_sum} over {len(rewards)} timesteps"
+    )
+
     for i, k in enumerate(reward_history.keys()):
         axs[i].plot(reward_history[k], label=k)
         axs[i].legend()
-        axs[i].grid()
+        axs[i].minorticks_on()  # Enable minor ticks
+        axs[i].grid(which='both')  # Enable both major and minor grids
         axs[i].set_ylabel("Rewards")
 
     axs[-1].set_xlabel("Timesteps")
@@ -164,7 +182,8 @@ for j in range(args.num_rollouts):
     fig = plt.figure()
 
     plt.plot(rewards)
-    plt.grid()
+    plt.minorticks_on()  # Enable minor ticks
+    plt.grid(which='both')  # Enable both major and minor grids
     plt.xlabel("Timesteps")
     plt.ylabel("Rewards")
     plt.savefig(run_path + f"/rewards.png", dpi=300)
@@ -178,7 +197,8 @@ for j in range(args.num_rollouts):
     for i in range(env.action_space.shape[0]):
         axs[i].plot(np.array(actions)[:, i])
         axs[i].set_ylabel(f"a{i}")
-        axs[i].grid()
+        axs[i].minorticks_on()  # Enable minor ticks
+        axs[i].grid(which='both')  # Enable both major and minor grids
 
     axs[-1].set_xlabel("Timesteps")
     plt.savefig(run_path + f"/actions.png", dpi=300, bbox_inches='tight')
@@ -192,7 +212,8 @@ for j in range(args.num_rollouts):
     for i in range(env.action_space.shape[0]):
         axs[i].hist(np.array(actions)[:, i], bins=100)
         axs[i].set_ylabel(f"a{i}")
-        axs[i].grid()
+        axs[i].minorticks_on()  # Enable minor ticks
+        axs[i].grid(which='both')  # Enable both major and minor grids
 
     axs[-1].set_xlabel("Action Value")
     plt.savefig(run_path + f"/actions_hist.png", dpi=300, bbox_inches='tight')
@@ -204,7 +225,8 @@ for j in range(args.num_rollouts):
     for i in range(env.observation_space.shape[0]):
         axs[i].plot(np.array(observations)[:, i])
         axs[i].set_ylabel(f"o{i}")
-        axs[i].grid()
+        axs[i].minorticks_on()  # Enable minor ticks
+        axs[i].grid(which='both')  # Enable both major and minor grids
 
     axs[-1].set_xlabel("Timesteps")
     plt.savefig(run_path + f"/observations.png", dpi=300, bbox_inches='tight')
@@ -233,7 +255,8 @@ for j in range(args.num_rollouts):
             )
             axs[i].legend()
             axs[i].set_ylabel(f"a{i}")
-            axs[i].grid()
+            axs[i].minorticks_on()  # Enable minor ticks
+            axs[i].grid(which='both')  # Enable both major and minor grids
 
         axs[-1].set_xlabel("Timesteps")
         plt.savefig(run_path + f"/action_dist.png",
