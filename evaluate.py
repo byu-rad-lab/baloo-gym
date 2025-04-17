@@ -152,7 +152,7 @@ for j in range(args.num_rollouts):
     rewards = np.array(rewards)
     discounted_sum = 0
     try:
-        gamma = config["gamma"]
+        gamma = run.config["gamma"]
     except:
         gamma = 0.99
         print("Using default gamma of 0.99")
