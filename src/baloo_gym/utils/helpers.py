@@ -140,7 +140,7 @@ def build_env(config: dict, baseline: bool, render_mode, **kwargs):
 
     env = EnvClass(
         render_mode=render_mode,
-        camera_name="fixedcam",
+        camera_name="frontcam",
         ctrl_timestep=config["ctrl_timestep"],
         render_width=int(160 * resolution),
         render_height=int(120 * resolution),
@@ -204,6 +204,7 @@ def parallelize_env(args, config, run_folder, save_freq):
     )
 
     return vec_env
+
 
 def load_or_download_model(args, local_experiment_folder):
     #this needs to download everythign in the new_experiments folder from wandb
