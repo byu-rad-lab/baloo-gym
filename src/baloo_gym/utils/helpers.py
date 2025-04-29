@@ -8,6 +8,8 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     get_joint_vel,
 )
 
+import cProfile
+
 from stable_baselines3.common.env_checker import check_env
 from baloo_gym.wrappers import ThreePartRewardWrapper, PotentialBasedRewardWrapper
 from stable_baselines3.common.policies import obs_as_tensor
@@ -22,6 +24,7 @@ import wandb
 from tqdm import tqdm
 import os
 from pathlib import Path
+import time
 
 
 def get_sensor_data(model, data):
@@ -75,6 +78,9 @@ def record_rollout(env,
     observations = []
     infos = []
     action_dist = []
+    time_taken = 0
+
+    profiler = cProfile.Profile()
 
     while not done:
         action, _states = policy.predict(obs, deterministic=deterministic)
@@ -84,13 +90,19 @@ def record_rollout(env,
         actions.append(action)
         if render:
             frames.append(env.render())
+
+        profiler.enable()
         obs, reward, terminated, truncated, info = env.step(action)
+        profiler.disable()
+
+
         done = terminated or truncated
         rewards.append(reward)
         infos.append(info)
 
     env.close()
 
+    profiler.dump_stats(f"env_step.prof")
     if return_dist:
         return frames, rewards, actions, observations, infos, action_dist
     else:
