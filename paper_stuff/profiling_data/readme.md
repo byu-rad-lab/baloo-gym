@@ -5,3 +5,7 @@ Based on the results, the barebones mujoco profiler which comes shipped with muj
 Remember that the env.step() runs are .05 seconds, and the mujoco step runs at .005 seconds, so each call to mj_step is actually called for 10 steps of simulation. From the mujoco profiler results, we'd expect 10 calls to take roughly 1180 us, which is very close to what we see in the cProfile results (1150 us). This means that the additional things like plugins and such are not causing much of slowdown. 
 
 The extra stuff that slows down env.step() by 600us is the extra computation in reward computation all in python. Still though, the env.step() function is very fast. It has a realtime factor of .05 s/1749 us = 28.6, which is very good.
+
+Also note that the [env_step.prof](env_step.prof) file is the profiling over a whole episode, which includes approaching the object, grasping, and lifting it. This means that there are several contact points which do slow down mujoco, but the slowdown basically imperceptible. Mujoco is nicely tuned then.
+
+Note that adding tactile sensing geoms does slow mujoco down considerably. There are thousands of extra geoms and possible contacts to consider in that case. 
