@@ -36,3 +36,36 @@ Details for thread 0
        narrowphase :   11.7  (  9.94 %)
      make          :    3.2  (  2.69 %)
      project       :    0.0  (  0.03 %)
+
+SINGLE THREADED PROFILE RESULTS
+###################################
+
+Rolling out 10000 steps, at dt = 0.005...
+
+ Simulation time      : 0.76 s
+ Steps per second     : 13109
+ Realtime factor      : 65.55 x
+ Time per step        : 76.3 µs
+
+ Contacts per step    : 4.00
+ Constraints per step : 24.00
+ Degrees of freedom   : 54
+
+ Internal profiler, µs per step
+              step :   76.2  (100.00 %)
+           forward :   71.7  ( 94.16 %)
+          position :   51.2  ( 67.17 %)
+          velocity :    2.6  (  3.35 %)
+         actuation :    0.5  (  0.68 %)
+        constraint :   15.5  ( 20.32 %)
+           advance :    4.3  (  5.59 %)
+             other :    2.2  (  2.89 %)
+
+   position total  :   51.2  ( 67.17 %)
+     kinematics    :   23.8  ( 31.23 %)
+     inertia       :    3.0  (  3.96 %)
+     collision     :   22.2  ( 29.09 %)
+       broadphase  :    5.4  (  7.08 %)
+       narrowphase :    7.6  ( 10.00 %)
+     make          :    2.0  (  2.58 %)
+     project       :    0.0  (  0.03 %)
