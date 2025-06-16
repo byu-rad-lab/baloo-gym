@@ -53,7 +53,6 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.collision_counter = 0
         self.initial_height = None
 
-
     def _box_fell_over(self):
         # if the angle between box z axis and the world z axis is more than 80 degrees, box probably fell over.
         box_quat = get_box_quat(self.unwrapped.model, self.unwrapped.data)
@@ -97,8 +96,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.previous_obs = obs.copy()
         self.baseline_policy.restart()
         self.collision_counter = 0
-        self.initial_height = get_box_position(
-            self.unwrapped.model, self.unwrapped.data)[2]
+        self.initial_height = get_box_position(self.unwrapped.model,
+                                               self.unwrapped.data)[2]
 
         return obs, info
 
@@ -127,6 +126,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
         box_xpos = get_box_position(self.unwrapped.model, self.unwrapped.data)
         chest_xpos = get_chest_position(self.unwrapped.model,
                                         self.unwrapped.data)
+        z_error = (chest_xpos[2] + .13) - box_xpos[2]
 
         ##### PRIMARY REWARD #####
         reward = 0
@@ -172,7 +172,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
             reward += action_prior_reward
 
         if "dont_drop" in self.reward_selection:
-            dont_drop_reward = .001 * self.object_off_floor_consecutive_steps
+            dont_drop_reward = .01 * self.object_off_floor_consecutive_steps
             reward += dont_drop_reward
             info["reward_terms"]["dont_drop"] = dont_drop_reward
 
@@ -192,7 +192,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         ##### SECONDARY REWARDS #####
         if "chest_proximity" in self.reward_selection:
-            chest_proximity_reward = 10 * self._calc_chest_proximity_reward(
+            chest_proximity_reward = .1 * self._calc_chest_proximity_reward(
                 box_xpos)
             reward += chest_proximity_reward
             info["reward_terms"]["chest_proximity"] = chest_proximity_reward
@@ -241,11 +241,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                     self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
 
         #if the chest is close enough, then start rewards for touching box
-        if self.object_off_floor_consecutive_steps > 0:
-            # if self.object_off_floor_consecutive_steps == 0:
-            #     #change box to yellow to indicate tactile feedback. if box has not been lifted.
-            #     self.unwrapped.model.geom('box').rgba = [1, 1, 0, 1]
-
+        if np.abs(z_error) < .5:
             if "tactile_nonzero" in self.reward_selection:
                 taxel_reward = 20 * self._count_nonzero_percentage()
                 reward += taxel_reward
@@ -268,7 +264,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
                     )
 
                 if normalized_force[2] > 0:
-                    upward_force_reward = 1 * normalized_force[2]
+                    upward_force_reward = .01 * normalized_force[2]
                     reward += upward_force_reward
                     info["reward_terms"]["upward_force"] = upward_force_reward
 
