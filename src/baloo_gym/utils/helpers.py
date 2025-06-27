@@ -112,10 +112,10 @@ def make_movie(frames: list, filename: str, fps=30):
     import moviepy.editor as mpy
     import os
     #make folder if it doesn't exist
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    os.makedirs("./videos/", exist_ok=True)
 
     clip = mpy.ImageSequenceClip(frames, fps=fps)
-    clip.write_videofile(filename)
+    clip.write_videofile(f"./videos/{filename}")
 
 
 def build_env(config: dict, baseline: bool, render_mode, **kwargs):

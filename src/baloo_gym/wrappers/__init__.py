@@ -3,6 +3,7 @@ from .open_loop_baseline_wrapper import OpenLoopBaselineWrapper
 from .curriculum_learning_wrapper import CurriculumEnv
 from .force_reward_wrapper import ForceRewardWrapper
 from .potential_based_reward_wrapper import PotentialBasedRewardWrapper
+from .object_perturbation_wrapper import ObjectPerturbationWrapper
 
 __all__ = [
     "TimeLimitTerminationWrapper",
@@ -13,4 +14,5 @@ __all__ = [
     "TimeLimitTerminationWrapper",
     "ForceRewardWrapper",
     "PotentialBasedRewardWrapper",
+    "ObjectPerturbationWrapper",
 ]
