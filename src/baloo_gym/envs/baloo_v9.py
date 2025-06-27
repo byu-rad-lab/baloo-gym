@@ -35,19 +35,25 @@ class BalooV9(BalooBase):
         object_mass=None,
         randomize_object_quat=False,
         randomize_object_pos=False,
+        object_xpos=None,
+        object_zrotation=None,
     ):
-        super().__init__(render_mode=render_mode,
-                         camera_name=camera_name,
-                         ctrl_timestep=ctrl_timestep,
-                         render_width=render_width,
-                         render_height=render_height,
-                         randomize_initial_height=randomize_initial_height,
-                         randomize_object_size=randomize_object_size,
-                         randomize_object_mass=randomize_object_mass,
-                         object_size=object_size,
-                         object_mass=object_mass,
-                         randomize_object_quat=randomize_object_quat,
-                         randomize_object_pos=randomize_object_pos)
+        super().__init__(
+            render_mode=render_mode,
+            camera_name=camera_name,
+            ctrl_timestep=ctrl_timestep,
+            render_width=render_width,
+            render_height=render_height,
+            randomize_initial_height=randomize_initial_height,
+            randomize_object_size=randomize_object_size,
+            randomize_object_mass=randomize_object_mass,
+            object_size=object_size,
+            object_mass=object_mass,
+            randomize_object_quat=randomize_object_quat,
+            randomize_object_pos=randomize_object_pos,
+            object_xpos=object_xpos,
+            object_zrotation=object_zrotation,
+        )
 
         self.action_space = spaces.Box(
             -1,

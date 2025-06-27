@@ -67,7 +67,7 @@ def record_rollout(env,
                    policy,
                    render=True,
                    deterministic=True,
-                   return_dist=True):
+                   return_dist=True) -> tuple:
     obs, info = env.reset()
     # print(f"In rollout, obs shape: {obs.shape}")
     done = False
@@ -94,7 +94,6 @@ def record_rollout(env,
         profiler.enable()
         obs, reward, terminated, truncated, info = env.step(action)
         profiler.disable()
-
 
         done = terminated or truncated
         rewards.append(reward)
@@ -163,6 +162,8 @@ def build_env(config: dict, baseline: bool, render_mode, **kwargs):
         object_mass=kwargs.get("object_mass", None),
         randomize_object_quat=config.get("randomize_object_quat", False),
         randomize_object_pos=config.get("randomize_object_pos", False),
+        object_xpos=kwargs.get("object_xpos", None),
+        object_zrotation=kwargs.get("object_zrotation", None),
     )
 
     check_env(env)

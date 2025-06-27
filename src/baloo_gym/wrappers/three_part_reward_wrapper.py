@@ -52,6 +52,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
         self.previous_obs = None
         self.collision_counter = 0
         self.initial_height = None
+        self.imitation_decay_rate = 1 / 10000000
+        self.step_count = 0
 
     def _box_fell_over(self):
         # if the angle between box z axis and the world z axis is more than 80 degrees, box probably fell over.
@@ -78,6 +80,8 @@ class ThreePartRewardWrapper(gym.Wrapper):
         terminated = info.get("box_fell_over", terminated)
 
         self.previous_obs = observation.copy()
+
+        self.step_count += 1
 
         return observation, reward, terminated, truncated, info
 
@@ -158,6 +162,26 @@ class ThreePartRewardWrapper(gym.Wrapper):
             info["reward_terms"]["box_fell_over"] = box_fell_over_reward
             reward -= box_fell_over_reward
 
+        if "shaped_reward_comparison" in self.reward_selection:
+            # this is the shaped reward that we compare against. Will be combined with the success reward above.
+            r_approach = .1 * self._calc_chest_proximity_reward(box_xpos)
+
+            if np.abs(z_error) < .35:
+                box_contact_forces = get_contact_forces_on_body(
+                    self.unwrapped.model, self.unwrapped.data, 'box')
+                num_contacts = box_contact_forces.shape[0]
+                r_grasp = 0.1 * num_contacts
+            else:
+                r_grasp = 0
+
+            change_in_box_height = box_height - self.initial_height
+            if change_in_box_height > 0:
+                r_height = change_in_box_height * 1
+            else:
+                r_height = 0
+
+            reward += r_approach + r_grasp + r_height
+
         if "copy_baseline" in self.reward_selection:
             #copy the reward from the baseline.
             baseline_actions, _ = self.baseline_policy.predict(
@@ -165,7 +189,10 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
             #difference between baseline actions and the actions this policy chose
             action_diff = np.linalg.norm(action - baseline_actions)
-            action_prior_reward = 0.1 * np.exp(-0.5 * action_diff**2)
+            decaying_imitation_weight = 0.1 * max(
+                0, 1 - self.imitation_decay_rate * self.step_count)
+            action_prior_reward = decaying_imitation_weight * np.exp(
+                -0.5 * action_diff**2)
 
             info["reward_terms"]["copy_baseline"] = action_prior_reward
             # print("Action reward from baseline policy: ", action_prior_reward)

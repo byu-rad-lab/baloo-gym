@@ -11,7 +11,8 @@ do
 
   cd /home/curtis/baloo/baloo-gym
 
-  uv run train.py --num_envs 22 --randomize_object_size --randomize_object_mass --randomize_object_pos --randomize_object_quat --total_timesteps 40000000 --reward_selection copy_baseline --seed $i --wandb
+  # uv run train.py --num_envs 16 --randomize_object_size --randomize_object_mass --randomize_object_pos --randomize_object_quat --total_timesteps 40000000 --reward_selection copy_baseline --seed $i --wandb
+  uv run train.py --num_envs 16 --randomize_object_size --randomize_object_mass --randomize_object_pos --randomize_object_quat --total_timesteps 40000000 --reward_selection shaped_reward_comparison --seed $i --wandb
 
   echo "Completed iteration $i"
 done

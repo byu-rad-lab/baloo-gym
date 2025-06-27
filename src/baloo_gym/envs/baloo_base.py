@@ -1,5 +1,4 @@
 import gymnasium as gym
-from gymnasium import spaces
 from abc import ABC, abstractmethod
 import mujoco
 from baloo_gym.utils.mujoco_rendering import MujocoRenderer
@@ -12,21 +11,10 @@ from baloo_mujoco_sim.utils.baloo_mj_api import (
     set_box_mass,
     set_box_quat,
 )
-import os
 import numpy as np
 import random
-from itertools import product
 from scipy.stats import qmc
-from dataclasses import dataclass
 from scipy.spatial.transform import Rotation as R
-
-
-@dataclass
-class Object:
-    name: str
-    size: np.ndarray
-    mass: float
-    color: np.ndarray
 
 
 def sample_lhs(seed):
@@ -93,11 +81,13 @@ class BalooBase(gym.Env, ABC):
         object_mass=None,
         randomize_object_quat=False,
         randomize_object_pos=False,
+        object_xpos=None,
+        object_zrotation=None,
     ):
         super().__init__()
 
-        self.action_space = None
-        self.observation_space = None
+        # self.action_space = None
+        # self.observation_space = None
 
         self.camera_name = camera_name
         self.render_mode = render_mode
@@ -112,6 +102,22 @@ class BalooBase(gym.Env, ABC):
         self.object_combinations = sample_lhs(0)
 
         self.first_load = True
+
+        #make sure that the user is only specificying either randomization or a fixed value.
+        if randomize_object_size and (object_size is not None):
+            raise ValueError(
+                "Cannot specify both randomize_object_size and object_size.")
+        if randomize_object_mass and (object_mass is not None):
+            raise ValueError(
+                "Cannot specify both randomize_object_mass and object_mass.")
+        if randomize_object_pos and (object_xpos is not None):
+            raise ValueError(
+                "Cannot specify both randomize_object_pos and object_xpos.")
+        if randomize_object_quat and (object_zrotation is not None):
+            raise ValueError(
+                "Cannot specify both randomize_object_quat and object_zrotation."
+            )
+
         self.randomize_initial_height = randomize_initial_height
         self.randomize_object_size = randomize_object_size
         self.randomize_object_mass = randomize_object_mass
@@ -120,6 +126,9 @@ class BalooBase(gym.Env, ABC):
 
         self.object_size = object_size
         self.object_mass = object_mass
+        self.object_xpos = object_xpos
+        self.object_zrotation = object_zrotation
+
         self._reinitialize_states()
 
         self.simulation_timestep = self.model.opt.timestep
@@ -131,11 +140,11 @@ class BalooBase(gym.Env, ABC):
                                               self.simulation_timestep)
 
     @abstractmethod
-    def map_action_to_commands(self, action):
+    def map_action_to_commands(self, action) -> list:
         pass
 
     @abstractmethod
-    def get_observation_from_mujoco(self):
+    def get_observation_from_mujoco(self) -> np.ndarray:
         pass
 
     @abstractmethod
@@ -143,6 +152,7 @@ class BalooBase(gym.Env, ABC):
         pass
 
     def _reinitialize_states(self):
+
         self._initialize_model_from_xml()
 
     def _get_to_equilibrium(self):
@@ -166,12 +176,12 @@ class BalooBase(gym.Env, ABC):
 
             #this is expensive. Future work: find a better way to get to equilibrium fast.
             mujoco.mj_step(self.model,
-                        self.data,
-                        nstep=int(30 / self.model.opt.timestep))
-            
+                           self.data,
+                           nstep=int(30 / self.model.opt.timestep))
+
         mujoco.mj_step(self.model,
-            self.data,
-            nstep=int(2 / self.model.opt.timestep))
+                       self.data,
+                       nstep=int(2 / self.model.opt.timestep))
 
         self.data.time = 0
 
@@ -190,7 +200,6 @@ class BalooBase(gym.Env, ABC):
 
             self.mjspec = mujoco.MjSpec()
             self.mjspec.from_string(xml_string)
-            # print(f"Loading {os.path.basename(self.xml_path)} model.")
             self.model = self.mjspec.compile()
             self.data = mujoco.MjData(self.model)
 
@@ -232,19 +241,21 @@ class BalooBase(gym.Env, ABC):
         world2chest_front = 35e-2
 
         #ensure that the box (even rotated) is not underneath the chest
-        offset = np.sqrt((ysize / 2)**2 +
-                            (xsize / 2)**2) + world2chest_front
+        offset = np.sqrt((ysize / 2)**2 + (xsize / 2)**2) + world2chest_front
         y_box = offset
 
         if self.randomize_object_pos:
             x_box = np.random.uniform(-0.1, 0.1)
         else:
-            x_box = 0
+            if self.object_xpos is not None:
+                x_box = self.object_xpos
+            else:
+                #default position is 0
+                x_box = 0
 
         if self.randomize_object_size:
             #place box on the ground, according to new size.
             z_box = zsize / 2
-
         else:
             if self.object_size is not None:
                 xsize, ysize, zsize = self.object_size
@@ -255,7 +266,6 @@ class BalooBase(gym.Env, ABC):
         if self.randomize_object_quat:
             #get random rotation about z axis
             random_rotation = np.random.uniform(-np.pi / 3, np.pi / 3)
-            # print(f"random rotation: {random_rotation}")
             rz = R.from_euler('z', random_rotation, degrees=False)
             quat = np.roll(rz.as_quat(), 1)
             #set box orientation
@@ -265,6 +275,16 @@ class BalooBase(gym.Env, ABC):
                          qx=quat[1],
                          qy=quat[2],
                          qz=quat[3])
+        else:
+            if self.object_zrotation is not None:
+                rz = R.from_euler('z', self.object_zrotation, degrees=False)
+                quat = np.roll(rz.as_quat(), 1)
+                set_box_quat(self.model,
+                             self.data,
+                             qw=quat[0],
+                             qx=quat[1],
+                             qy=quat[2],
+                             qz=quat[3])
 
         #send in either camera_id or camera_name
         self.mujoco_renderer = MujocoRenderer(self.model,
@@ -290,7 +310,6 @@ class BalooBase(gym.Env, ABC):
             set_joint_pressure_commands(self.model, self.data, "right", i,
                                         commands[13 + (i * 4):17 + (i * 4)])
 
-        # step the model forward in time however many steps are needed to match the control timestep
         mujoco.mj_step(self.model,
                        self.data,
                        nstep=self.sim_steps_per_control_step)
@@ -305,8 +324,6 @@ class BalooBase(gym.Env, ABC):
         return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
-        # We need the following line to seed self.np_random
-        # print("resetting")
         super().reset(seed=seed)
 
         self._reinitialize_states()
