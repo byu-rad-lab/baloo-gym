@@ -1,5 +1,5 @@
 import gymnasium as gym
-from baloo_mujoco_sim.utils.baloo_mj_api import detect_box_on_ground, apply_wrench_to_body
+from baloo_mujoco_sim.utils.baloo_mj_api import detect_box_on_ground, apply_wrench_to_body, clear_wrenches
 import numpy as np
 import mujoco
 
@@ -38,78 +38,131 @@ class ObjectPerturbationWrapper(gym.Wrapper):
 
     def __init__(self, env):
         super().__init__(env)
-        self.perturbation_active: bool = False
         self.perturbation_duration: int = int(1 /
                                               self.unwrapped.control_timestep)
         self.perturbation_magnitude: float = 100.0
         self.step_counter: int = 0
         self.arrow_initialized: bool = False
-        self.force_direction = np.array([0, 0, 1])
-        self.marker_lock = threading.Lock()
+        self.force_direction = np.array([0, 0, -1])
+        self.perturbation_enabled = False
 
     def step(self, action):
         """
         Take a step in the environment and apply perturbations.
         """
-        # Apply perturbations on the object once it is off the ground
         force = np.zeros(3)
-        if not detect_box_on_ground(self.unwrapped.model, self.unwrapped.data):
-            if self.perturbation_active:
-                if self.step_counter == 0:
-                    self.force_direction = np.random.uniform(-1, 1, 3)
-                    self.force_direction /= np.linalg.norm(
-                        self.force_direction)  # Normalize the direction
-                    force = self.force_direction * self.perturbation_magnitude
+        cycle_length = 2 * self.perturbation_duration  #1s ON, 1s OFF
 
-            apply_wrench_to_body(self.unwrapped.model,
-                                 self.unwrapped.data,
-                                 "box",
-                                 force=force,
-                                 torque=np.zeros(3))
+        # Apply perturbations on the object once it is off the ground
+        if detect_box_on_ground(self.unwrapped.model, self.unwrapped.data):
+            #reset everything
+            self.step_counter = 0
+            self.force_direction = np.array([0, 0, -1])
+            self.perturbation_enabled = False
+
+        else:
+            #on or off every self.perturbation_duration steps
+            self.perturbation_enabled = (
+                self.step_counter % cycle_length) >= self.perturbation_duration
+
+            if self.perturbation_enabled:
+                # #check if we just enable the perturbation to update direction
+                # if self.step_counter % cycle_length == self.perturbation_duration:
+                #     self.force_direction = np.random.uniform(-1, 1, 3)
+                #     self.force_direction /= np.linalg.norm(
+                #         self.force_direction)
+                force = self.force_direction * self.perturbation_magnitude
+
             self.step_counter += 1
 
-        with self.marker_lock:
-            #set position of arrow
-            box_pos = self.unwrapped.data.body('box').xipos
-            self.unwrapped.mujoco_renderer.viewer._markers[
-                self.arrowid]['pos'] = box_pos
+        clear_wrenches(self.unwrapped.model, self.unwrapped.data)
+        apply_wrench_to_body(self.unwrapped.model,
+                             self.unwrapped.data,
+                             "box",
+                             force=force,
+                             torque=np.zeros(3))
 
-            #orient arrow along force application
-            v1 = np.array([0, 0, 1])
-            R = rotation_matrix_from_vector_to_vector(v1, self.force_direction)
-            self.unwrapped.mujoco_renderer.viewer._markers[
-                self.arrowid]['mat'] = R.flatten()
+        # self._update_force_arrow(self.perturbation_enabled)
 
-            #show arrow or not
-            self.unwrapped.mujoco_renderer.viewer._markers[
-                self.arrowid]['rgba'] = np.array(
-                    [1, 0, 0, self.perturbation_active])
+        # print(f"perturbation enabled: {self.perturbation_enabled}")
+        # print(f"applied force: {force}")
+        # print(self.unwrapped.data.qfrc_applied)
 
         obs, reward, terminated, truncated, info = self.env.step(action)
+        # clear_wrenches(self.unwrapped.model, self.unwrapped.data)
 
-        if self.step_counter == self.perturbation_duration:
-            #switch from active to not, or vice versa
-            self.perturbation_active = not self.perturbation_active
-            self.step_counter = 0
-
+        info['perturbation_enabled'] = self.perturbation_enabled
         return obs, reward, terminated, truncated, info
 
+    def _update_force_arrow(self, force_active):
+        box_pos = self.unwrapped.data.body('box').xipos
+        arrow_pos = box_pos + np.array([0, 0, 1], dtype=np.float64)
+
+        v1 = np.array([0, 0, 1], dtype=np.float64)
+        R = rotation_matrix_from_vector_to_vector(v1, self.force_direction)
+        R = R.astype(np.float64).flatten()
+
+        rgba = np.array([1.0, 0.0, 0.0, float(force_active)], dtype=np.float64)
+
+        viewer = self.unwrapped.mujoco_renderer.viewer
+        if viewer is None:
+            return  # Or handle error
+
+        viewer.add_marker(
+            type=mujoco.mjtGeom.mjGEOM_ARROW,
+            size=[0.05, 0.05, 0.5],
+            pos=arrow_pos,
+            mat=R,
+            rgba=rgba,
+        )
+
     def render(self):
-        if not self.arrow_initialized:
-            super().render()  #to initialize viewer.
-            self.arrow_initialized = True
+        ret = super().render()
 
-            #this will add the marker the next time the scene is rendered.
-            # everything in the marker list will be re-rendered each time.
-            # so to change postion, just change the position of the marker in the list.
-            #this is a bit hacky, since the renderer doesn't really expose this functionality.
-            self.arrowid = len(self.unwrapped.mujoco_renderer.viewer._markers)
-            self.unwrapped.mujoco_renderer.viewer.add_marker(
-                type=mujoco.mjtGeom.mjGEOM_ARROW,
-                size=[0.05, .05, 2.0],
-                pos=np.array([1, 0, 0]),
-                mat=np.eye(3).flatten(),
-                rgba=np.array([1, 0, 0, 0]),
-            )
+        # box_pos = self.unwrapped.data.body('box').xipos
+        # arrow_pos = box_pos + np.array([0, 0, 1], dtype=np.float64)
+        # R = rotation_matrix_from_vector_to_vector(np.array([0,0,1]), self.force_direction)
+        # R = R.flatten()
+        #
+        # rgba = np.array([1,0,0,float(self.perturbation_enabled)], dtype=np.float64)
 
-        return super().render()
+        self.unwrapped.mujoco_renderer.viewer.add_marker(
+            type=mujoco.mjtGeom.mjGEOM_ARROW,
+            size=np.array([0.05, 0.05, 0.5], dtype=np.float32),
+            pos=np.array([1.0, 1.0, 1.0], dtype=np.float32),
+            mat=np.eye(3, dtype=np.float32),
+            rgba=np.array([1.0, 0.0, 0.0, 1.0], dtype=np.float32),
+        )
+
+        return ret
+
+    # def render(self):
+    #     ret = super().render()
+
+    #     if not self.arrow_initialized:
+    #         #this will add the marker the next time the scene is rendered.
+    #         # everything in the marker list will be re-rendered each time.
+    #         self.unwrapped.mujoco_renderer.viewer.add_marker(
+    #             type=mujoco.mjtGeom.mjGEOM_ARROW,
+    #             size=[0.05, 0.05, 0.5],
+    #             pos=np.array([1.0, 0.0, 0.0], dtype=np.float64),
+    #             mat=np.eye(3, dtype=np.float64),
+    #             rgba=np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float64),
+    #         )
+
+    #         self.arrow_initialized = True
+
+    #     return ret
+
+    def close(self):
+        try:
+            if hasattr(self.unwrapped, "mujoco_renderer"):
+                viewer = getattr(self.unwrapped.mujoco_renderer, "viewer",
+                                 None)
+                if viewer is not None:
+                    viewer.close()
+                    self.unwrapped.mujoco_renderer.viewer = None
+        except Exception as e:
+            print(f"Error closing viewer: {e}")
+
+        super().close()

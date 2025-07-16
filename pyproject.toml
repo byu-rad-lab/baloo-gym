@@ -28,6 +28,8 @@ dependencies = [
     "seaborn>=0.13.2",
     "rospkg>=1.6.0",
     "protobuf<5.0.0",
+    "nbformat>=5.10.4",
+    "statsmodels>=0.14.1",
 ]
 
 [tool.uv.sources]

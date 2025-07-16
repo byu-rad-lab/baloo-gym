@@ -25,6 +25,9 @@ from tqdm import tqdm
 import os
 from pathlib import Path
 import time
+import imageio.v2 as imageio
+import os
+import gc
 
 
 def get_sensor_data(model, data):
@@ -109,13 +112,16 @@ def record_rollout(env,
 
 
 def make_movie(frames: list, filename: str, fps=30):
-    import moviepy.editor as mpy
-    import os
-    #make folder if it doesn't exist
-    os.makedirs("./videos/", exist_ok=True)
+    os.makedirs("videos", exist_ok=True)
+    path = os.path.join("videos", filename)
+    with imageio.get_writer(path, fps=fps, codec='libx264',
+                            quality=8) as writer:
+        for frame in frames:
+            writer.append_data(frame)
 
-    clip = mpy.ImageSequenceClip(frames, fps=fps)
-    clip.write_videofile(f"./videos/{filename}")
+    # Cleanup
+    del frames
+    gc.collect()
 
 
 def build_env(config: dict, baseline: bool, render_mode, **kwargs):
@@ -153,8 +159,8 @@ def build_env(config: dict, baseline: bool, render_mode, **kwargs):
         render_mode=render_mode,
         camera_name="frontcam",
         ctrl_timestep=config["ctrl_timestep"],
-        render_width=int(160 * resolution),
-        render_height=int(120 * resolution),
+        render_width=int(320 * resolution),
+        render_height=int(240 * resolution),
         randomize_initial_height=config["randomize_initial_height"],
         randomize_object_size=config["randomize_object_size"],
         randomize_object_mass=config["randomize_object_mass"],

@@ -356,7 +356,7 @@ class ThreePartRewardWrapper(gym.Wrapper):
 
         error = np.array([x_error, y_error, z_error])
 
-        box_xerror = np.linalg.norm(error, ord=1)
+        box_xerror = np.linalg.norm(error, ord=2)
 
         # reward = 1 * z_error**2
         # reward = np.exp(-a*box_xerror**2) - np.exp(-a*np.linalg.norm(self.prev_box_proximity)**2)

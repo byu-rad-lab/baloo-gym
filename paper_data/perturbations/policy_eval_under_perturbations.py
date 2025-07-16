@@ -10,7 +10,6 @@ from baloo_gym.policies.open_loop_hugger import OpenLoopHuggerPolicy
 from baloo_gym.utils.helpers import build_env, record_rollout, make_movie
 import numpy as np
 from tqdm import tqdm
-from multiprocessing import Pool, Lock
 import gc
 import argparse
 import json
@@ -21,83 +20,113 @@ from scipy.stats import qmc
 import random
 import ast
 from pathlib import Path
+import faulthandler
 
+faulthandler.enable()
 from baloo_gym.wrappers import ObjectPerturbationWrapper
 
 
-def rollout_episode_with_perturbation(combination: tuple):
-    config = {
-        "total_timesteps": 1000000,
-        "ctrl_timestep": .05,
-        "env_name": "baloo_v9",
-        "time_limit_sec": 60,
-        "curriculum_selection": [],
-        'reward_selection': [
-            'dont_drop',
-        ],
-        "randomize_initial_height": False,
-        "randomize_object_size": False,
-        "randomize_object_mass": False,
-        "randomize_object_quat": False,
-        "randomize_object_pos": False,
-    }
-    x, y, z, m, xp, r = combination
-    # x,y,z,m,xp,r = (.2, .2, .5, 1.0, 0.0, 0.0)
-    # print(f"Running trial with object size: {x, y, z} and mass: {m}")
+def rollout_episode_with_perturbation(combos: tuple, args, model_path) -> None:
+    env = None
+    try:
+        index, combination = combos
+        config = {
+            "total_timesteps": 1000000,
+            "ctrl_timestep": .05,
+            "env_name": "baloo_v9",
+            "time_limit_sec": 120,
+            "curriculum_selection": [],
+            'reward_selection': [
+                'dont_drop',
+            ],
+            "randomize_initial_height": False,
+            "randomize_object_size": False,
+            "randomize_object_mass": False,
+            "randomize_object_quat": False,
+            "randomize_object_pos": False,
+            "resolution": 1.0,
+        }
+        x, y, z, m, xp, r = combination
+        # x,y,z,m,xp,r = (.2, .2, .5, 1.0, 0.0, 0.0)
+        # print(f"Running trial with object size: {x, y, z} and mass: {m}")
 
-    env = build_env(config,
-                    baseline=False if args.runid else True,
-                    render_mode="rgb_array",
-                    object_size=[x, y, z],
-                    object_mass=m,
-                    object_xpos=xp,
-                    object_zrotation=r)
+        env = build_env(config,
+                        baseline=False if args.runid else True,
+                        render_mode="rgb_array",
+                        object_size=[x, y, z],
+                        object_mass=m,
+                        object_xpos=xp,
+                        object_zrotation=r)
 
-    #wrap env in ObjectPerturbationWrapper for this experiment
-    env = ObjectPerturbationWrapper(env)
+        #wrap env in ObjectPerturbationWrapper for this experiment
+        if args.perturb is True:
+            print("perturbing object")
+            env = ObjectPerturbationWrapper(env)
+        else:
+            print("NOT PERTURBING OBJECT")
 
-    successes = []
-    tips = []
-    slips = []
-    episode_lengths = []
-
-    # Get size and weight of object
-    xsize, ysize, zsize = env.unwrapped.model.geom("box").size
-    mass = env.unwrapped.model.body("box").mass
-
-    trial_data = {
-        "xsize": xsize,
-        "ysize": ysize,
-        "zsize": zsize,
-        "mass": mass.item(),
-        "xpos": np.abs(xp),
-        "rotation": np.abs(r),
-    }
-
-    if args.runid:
-        with lock:
+        if args.runid:
             model = PPO.load(model_path)
+            frames, rewards, actions, observations, infos = record_rollout(
+                env,
+                model,
+                render=False,
+                deterministic=True,
+                return_dist=False)
+        else:
+            model = OpenLoopHuggerPolicy(N=50)
+            frames, rewards, actions, observations, infos = record_rollout(
+                env,
+                model,
+                deterministic=True,
+                render=False,
+                return_dist=False)
 
-        frames, rewards, actions, observations, infos = record_rollout(
-            env, model, render=True, deterministic=True, return_dist=False)
-    else:
-        model = OpenLoopHuggerPolicy(N=50)
-        frames, rewards, actions, observations, infos = record_rollout(
-            env, model, deterministic=True, render=True, return_dist=False)
+        #episodes terminate by success or tip, success = 1 - (tip + slip). Each option is mutually exclusive.
+        success = infos[-1].get("is_success", False)
+        tip = infos[-1].get("box_fell_over", False)
+        slip = not (success or tip)
 
-    #episodes terminate by success or tip, success = 1 - (tip + slip). Each option is mutually exclusive.
-    success = infos[-1].get("is_success", False)
-    tip = infos[-1].get("box_fell_over", False)
-    slip = True - (success or tip)
+        # Get size and weight of object
+        xsize, ysize, zsize = env.unwrapped.model.geom("box").size
+        mass = env.unwrapped.model.body("box").mass
 
-    trial_data["success"] = success
-    trial_data["tip_rate"] = tip
-    trial_data["slip_rate"] = slip
-    trial_data["avg_episode_length"] = len(rewards)
+        trial_data = {
+            "xsize": xsize,
+            "ysize": ysize,
+            "zsize": zsize,
+            "mass": mass.item(),
+            "xpos": np.abs(xp),
+            "rotation": np.abs(r),
+            "success": success,
+            "tip_rate": tip,
+            "slip_rate": slip,
+            "avg_episode_length": len(rewards),
+            "action_hist": [a.tolist() for a in actions],
+            "observation_hist": [o.tolist() for o in observations],
+            "info_hist": infos,
+            "video": f"trial_{index}.mp4",
+        }
 
-    make_movie(frames, f"test{combination}.mp4", fps=20)
+        data_dir = Path("data/trials")
+        data_dir.mkdir(parents=True, exist_ok=True)
+        trial_file = data_dir / f"trial_{index}.json"
+        with open(trial_file, "w") as f:
+            json.dump(trial_data, f)
 
-    return trial_data
+        # make_movie(frames, trial_data["video"], fps=20)
+
+    except Exception as e:
+        print(f"[ERROR] Trial {index} failed: {e}", flush=True)
+    finally:
+        if env is not None:
+            try:
+                env.close()
+            except Exception as e:
+                print("failed")
+
+        del env
+        gc.collect()
 
 
 def load_or_download_model(args, local_experiment_folder):
@@ -233,8 +262,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--runid', type=str, help="Wandb run id")
     parser.add_argument('--model_name', type=str)
+    parser.add_argument('--no-perturb', action='store_false', dest='perturb', help='Disable perturbation')
+
 
     args = parser.parse_args()
+    print(args)
     local_experiment_folder = "/home/curtis/baloo/baloo-gym/new_experiments"
     model_path = None
 
@@ -246,27 +278,7 @@ if __name__ == "__main__":
         model_path = load_or_download_model(args, local_experiment_folder)
 
     combinations = load_or_generate_lhs_samples(1000, seed=seed)
+    indexed_combinations = list(enumerate(combinations))
 
-    lock = Lock()
-    with Pool(processes=1) as pool:
-        results = list(
-            tqdm(pool.imap(rollout_episode_with_perturbation, combinations),
-                 total=len(combinations)))
-
-    # print results to a file
-    tag = args.runid if args.runid else "baseline"
-    type = "lhs"
-    length = len(combinations)
-    model = Path(args.model_name).stem if args.model_name else "hugger"
-
-    os.makedirs("data", exist_ok=True)
-
-    with open(f"data/lifting_trials_{tag}_{type}_{length}_{model}.txt",
-              "w") as f:
-        for result in results:
-            json.dump(result, f)
-            f.write("\n")
-
-    print(
-        f"Results saved to data/lifting_trials_{tag}_{type}_{length}_{model}.txt"
-    )
+    for index_combination in tqdm(indexed_combinations):
+        rollout_episode_with_perturbation(index_combination, args, model_path)

@@ -202,7 +202,7 @@ def sample_lhs(seed, N):
 
 def load_or_generate_lhs_samples(N, seed=42):
     #read from lhs_samples.txt if it exists, otherwise create it
-    if os.path.exists(f"{N}_lhs_samples.txt"):
+    if os.path.exists(f"data/{N}_lhs_samples.txt"):
         print(f"Loading LHS samples from {N}_lhs_samples.txt")
         with open(f"{N}_lhs_samples.txt", "r") as f:
             combinations = [
@@ -213,7 +213,7 @@ def load_or_generate_lhs_samples(N, seed=42):
         print("Generating LHS samples")
         combinations = sample_lhs(seed=seed, N=N)
         #write these to a file
-        with open(f"{len(combinations)}_lhs_samples.txt", "w") as f:
+        with open(f"data/{len(combinations)}_lhs_samples.txt", "w") as f:
             for combination in combinations:
                 f.write(f"{combination}\n")
         print(f"Saved LHS samples to {len(combinations)}_lhs_samples.txt")
