@@ -81,6 +81,8 @@ These are implemented in the [```action_spaces```](./utils/action_spaces.py) mod
 ## Future Work ##
 * Right now, all of the model changes (like for visualization) have to happen in baloo-mujoco-sim. With an upgrade on the version of Mujoco, there is a new model editing API which allows you to make dynamic changes to the model. This would be a good feature to use here to add manipulands and other visualization objects without the need to change the baloo-mujoco-sim code.
 
+* Data for paper is online at https://byu.app.box.com/folder/317803197342
+
 
 
 
